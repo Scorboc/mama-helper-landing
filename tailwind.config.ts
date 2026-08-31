@@ -52,6 +52,20 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				mark: 'hsl(var(--mark))',
+				sage: {
+					DEFAULT: 'hsl(var(--sage))',
+					soft: 'hsl(var(--sage-soft))'
+				},
+				pink: {
+					DEFAULT: 'hsl(var(--pink))',
+					soft: 'hsl(var(--pink-soft))'
+				},
+				inner: 'hsl(var(--inner))',
+				gold: 'hsl(var(--gold))',
+				cream: 'hsl(var(--cream))',
+				night: 'hsl(var(--night))',
+				fur: 'hsl(var(--fur))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
@@ -68,7 +82,15 @@ export default {
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
 			},
+			fontFamily: {
+				heading: ['Onest', 'sans-serif'],
+				body: ['Inter', 'sans-serif']
+			},
 			keyframes: {
+				'fade-up': {
+					from: { opacity: '0', transform: 'translateY(8px)' },
+					to: { opacity: '1', transform: 'none' }
+				},
 				'accordion-down': {
 					from: {
 						height: '0'
@@ -87,6 +109,7 @@ export default {
 				}
 			},
 			animation: {
+				'fade-up': 'fade-up 0.5s ease forwards',
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
 			}

@@ -4,35 +4,46 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 30 28% 86%;
+    --foreground: 18 13% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 30 56% 97%;
+    --card-foreground: 18 13% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 30 56% 97%;
+    --popover-foreground: 18 13% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 346 35% 53%;
+    --primary-foreground: 17 100% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 30 24% 92%;
+    --secondary-foreground: 18 13% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 30 24% 92%;
+    --muted-foreground: 22 11% 39%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 346 35% 53%;
+    --accent-foreground: 17 100% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 17 100% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 346 35% 53%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
+
+    --mark: 44 82% 72%;
+    --sage: 105 19% 69%;
+    --sage-soft: 103 24% 85%;
+    --pink: 353 65% 86%;
+    --pink-soft: 356 60% 93%;
+    --inner: 32 30% 92%;
+    --gold: 38 69% 62%;
+    --cream: 35 55% 92%;
+    --night: 226 27% 84%;
+    --fur: 21 46% 62%;
 
     --sidebar-background: 0 0% 98%;
 
@@ -87,6 +98,17 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --mark: 44 82% 72%;
+    --sage: 105 19% 69%;
+    --sage-soft: 103 24% 85%;
+    --pink: 353 65% 86%;
+    --pink-soft: 356 60% 93%;
+    --inner: 32 30% 92%;
+    --gold: 38 69% 62%;
+    --cream: 35 55% 92%;
+    --night: 226 27% 84%;
+    --fur: 21 46% 62%;
   }
 }
 
@@ -95,7 +117,32 @@
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  .tile {
+    @apply rounded-2xl bg-card p-4;
+  }
+
+  .cap {
+    @apply mb-2 block text-[0.8rem] text-muted-foreground;
+  }
+
+  .mark-hl {
+    @apply rounded-[4px] bg-mark px-1;
   }
 }
