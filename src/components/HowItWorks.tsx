@@ -59,11 +59,9 @@ const HowItWorks = () => (
         </div>
 
         <aside className="tile flex flex-col justify-between bg-card">
-          <div>
-            <span className="cap text-center">Наш принцип</span>
-            <div className="grid place-items-center rounded-xl bg-inner py-6">
-              <Fox className="h-24 w-24" />
-            </div>
+          <div className="flex items-center gap-3">
+            <Fox className="h-11 w-11 shrink-0" />
+            <span className="cap mb-0">Наш принцип</span>
           </div>
           <div className="mt-4 space-y-2.5">
             {[
