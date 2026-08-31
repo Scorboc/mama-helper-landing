@@ -11,12 +11,12 @@ const Pricing = () => {
   };
 
   return (
-    <section id="pricing" className="px-3 py-10 sm:px-5 sm:py-16">
-      <div className="mx-auto max-w-[1240px]">
+    <section id="pricing" className="px-3 py-8 sm:px-5 sm:py-12">
+      <div className="mx-auto max-w-[1120px]">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <span className="cap mb-1">Тарифы</span>
-            <h2 className="font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[34px]">
+            <h2 className="font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[30px]">
               Подписка дешевле одного приёма
             </h2>
           </div>

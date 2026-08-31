@@ -9,12 +9,12 @@ const Reviews = () => {
     setIndex((i) => (i + dir + reviews.length) % reviews.length);
 
   return (
-    <section id="reviews" className="px-3 py-10 sm:px-5 sm:py-16">
-      <div className="mx-auto max-w-[1240px]">
+    <section id="reviews" className="px-3 py-8 sm:px-5 sm:py-12">
+      <div className="mx-auto max-w-[1120px]">
         <div className="mb-4 flex items-end justify-between gap-3">
           <div>
             <span className="cap mb-1">Отзывы</span>
-            <h2 className="font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[34px]">
+            <h2 className="font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[30px]">
               Что пишут мамы
             </h2>
           </div>
@@ -63,7 +63,7 @@ const Reviews = () => {
             <div className="tile bg-sage-soft">
               <div className="font-heading text-[30px] font-medium">меньше минуты</div>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                среднее время до двойного ответа
+                среднее время ожидания ответа
               </p>
             </div>
             <div className="tile sm:col-span-2 lg:col-span-1">

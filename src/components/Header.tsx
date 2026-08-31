@@ -16,7 +16,7 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-5">
-      <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-3 rounded-[14px] bg-card/95 px-3 py-2 backdrop-blur">
+      <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-3 rounded-[14px] bg-card/95 px-3 py-2 backdrop-blur">
         <a href="#top" className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-[11px] bg-pink-soft">
             <AvatarCritter variant={0} className="h-7 w-7 rounded-full" />
@@ -54,7 +54,7 @@ const Header = () => {
       </div>
 
       {open && (
-        <div className="mx-auto mt-2 max-w-[1240px] rounded-[14px] bg-card p-2 lg:hidden">
+        <div className="mx-auto mt-2 max-w-[1120px] rounded-[14px] bg-card p-2 lg:hidden">
           {links.map((l) => (
             <a
               key={l.href}

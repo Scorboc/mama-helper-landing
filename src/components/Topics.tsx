@@ -12,10 +12,10 @@ const items = [
 ];
 
 const Topics = () => (
-  <section id="topics" className="px-3 py-10 sm:px-5 sm:py-16">
-    <div className="mx-auto max-w-[1240px]">
+  <section id="topics" className="px-3 py-8 sm:px-5 sm:py-12">
+    <div className="mx-auto max-w-[1120px]">
       <span className="cap mb-1">Круг тем</span>
-      <h2 className="mb-4 max-w-[620px] font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[34px]">
+      <h2 className="mb-4 max-w-[620px] font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[30px]">
         О чём спрашивают чаще всего
       </h2>
 

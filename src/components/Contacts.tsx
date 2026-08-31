@@ -40,12 +40,12 @@ const Contacts = () => {
   };
 
   return (
-    <section id="chat" className="px-3 py-10 sm:px-5 sm:py-16">
-      <div className="mx-auto grid max-w-[1240px] gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <section id="chat" className="px-3 py-8 sm:px-5 sm:py-12">
+      <div className="mx-auto grid max-w-[1120px] gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="tile bg-pink-soft p-5 sm:p-7">
           <span className="cap mb-1">Первый шаг</span>
-          <h2 className="max-w-[520px] font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[34px]">
-            Задайте вопрос — получите <span className="mark-hl">два ответа</span>
+          <h2 className="max-w-[520px] font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[30px]">
+            Спросите — и мы <span className="mark-hl">спокойно ответим</span>
           </h2>
           <p className="mt-2 max-w-[460px] text-[14px] text-muted-foreground">
             Первые вопросы бесплатно и без карты. Мы напишем туда, где вам удобно.

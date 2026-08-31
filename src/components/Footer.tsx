@@ -2,7 +2,7 @@ import { AvatarCritter } from '@/components/Critters';
 
 const Footer = () => (
   <footer className="px-3 pb-5 sm:px-5">
-    <div className="mx-auto max-w-[1240px] rounded-2xl bg-card p-5 sm:p-7">
+    <div className="mx-auto max-w-[1120px] rounded-2xl bg-card p-5 sm:p-7">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
@@ -10,7 +10,7 @@ const Footer = () => (
             <span className="font-heading text-[16px] font-medium">Мамин помощник</span>
           </div>
           <p className="mt-2 max-w-[320px] text-[13px] leading-[1.5] text-muted-foreground">
-            Чат, где один вопрос получает два ответа: от врачей и от других мам.
+            Спокойные ответы на вопросы о беременности, малыше и вас самой.
           </p>
         </div>
 

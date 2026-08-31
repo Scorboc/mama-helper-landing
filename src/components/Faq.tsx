@@ -8,8 +8,8 @@ import { faq } from '@/data/content';
 import { Owl } from '@/components/Critters';
 
 const Faq = () => (
-  <section id="faq" className="px-3 py-10 sm:px-5 sm:py-16">
-    <div className="mx-auto max-w-[1240px] grid gap-3 lg:grid-cols-[300px_minmax(0,1fr)]">
+  <section id="faq" className="px-3 py-8 sm:px-5 sm:py-12">
+    <div className="mx-auto max-w-[1120px] grid gap-3 lg:grid-cols-[300px_minmax(0,1fr)]">
       <div className="tile flex flex-col justify-between">
         <div>
           <span className="cap mb-1">Вопросы и ответы</span>

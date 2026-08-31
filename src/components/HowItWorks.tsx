@@ -33,12 +33,12 @@ const steps = [
 ];
 
 const HowItWorks = () => (
-  <section id="how" className="px-3 py-10 sm:px-5 sm:py-16">
-    <div className="mx-auto max-w-[1240px]">
+  <section id="how" className="px-3 py-8 sm:px-5 sm:py-12">
+    <div className="mx-auto max-w-[1120px]">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
           <span className="cap mb-1">Как это работает</span>
-          <h2 className="mb-4 max-w-[620px] font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[34px]">
+          <h2 className="mb-4 max-w-[620px] font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[30px]">
             Четыре шага от тревоги до <span className="mark-hl">спокойного решения</span>
           </h2>
 
