@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { plans } from '@/data/content';
 import { Bib, Bottle, Rattle, Stroller } from '@/components/BabyIcons';
@@ -11,13 +10,6 @@ const planArt = [
 ];
 
 const Pricing = () => {
-  const [yearly, setYearly] = useState(false);
-
-  const priceOf = (raw: string) => {
-    const value = parseInt(raw, 10);
-    return yearly ? `${Math.round(value * 0.8)} ₽` : raw;
-  };
-
   return (
     <section id="pricing" className="px-3 py-6 sm:px-5 sm:py-8">
       <div className="mx-auto max-w-[1120px]">
@@ -28,24 +20,9 @@ const Pricing = () => {
               Подписка дешевле одного приёма
             </h2>
           </div>
-          <div className="flex items-center gap-1 self-start rounded-full bg-card p-1 text-[13px]">
-            <button
-              onClick={() => setYearly(false)}
-              className={`rounded-full px-4 py-2 transition-colors ${
-                !yearly ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              Помесячно
-            </button>
-            <button
-              onClick={() => setYearly(true)}
-              className={`rounded-full px-4 py-2 transition-colors ${
-                yearly ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'
-              }`}
-            >
-              На год −20%
-            </button>
-          </div>
+          <span className="self-start rounded-full bg-card px-4 py-2 text-[13px] text-muted-foreground">
+            Оплата помесячно
+          </span>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -64,7 +41,7 @@ const Pricing = () => {
               </div>
               <span className="mt-2 text-[13px] text-muted-foreground">{p.name}</span>
               <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="font-heading text-[30px] font-medium">{priceOf(p.price)}</span>
+                <span className="font-heading text-[30px] font-medium">{p.price}</span>
                 <span className="text-[12px] text-muted-foreground">{p.period}</span>
               </div>
 

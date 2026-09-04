@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
-import { AvatarCritter } from '@/components/Critters';
 
 const links = [
   { href: '#voices', label: 'Как отвечаем' },
@@ -15,9 +14,7 @@ const Header = () => {
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-5">
       <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-3 rounded-[14px] bg-card/95 px-3 py-2 backdrop-blur">
         <a href="#top" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-[11px] bg-pink-soft">
-            <AvatarCritter variant={0} className="h-7 w-7 rounded-full" />
-          </span>
+          <img src="/logo-mark.png" alt="Мамин помощник" className="h-10 w-auto" />
           <span className="font-heading text-[15px] font-medium">Мамин помощник</span>
         </a>
 

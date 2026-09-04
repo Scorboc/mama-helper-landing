@@ -1,4 +1,3 @@
-import { AvatarCritter } from '@/components/Critters';
 import { HeartCloud, Socks } from '@/components/BabyIcons';
 
 const Footer = () => (
@@ -9,7 +8,7 @@ const Footer = () => (
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <AvatarCritter variant={0} className="h-9 w-9 overflow-hidden rounded-full" />
+            <img src="/logo-mark.png" alt="Мамин помощник" className="h-10 w-auto" />
             <span className="font-heading text-[16px] font-medium">Мамин помощник</span>
           </div>
           <p className="mt-2 max-w-[320px] text-[13px] leading-[1.5] text-muted-foreground">

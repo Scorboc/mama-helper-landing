@@ -4,46 +4,46 @@
 
 @layer base {
   :root {
-    --background: 30 28% 86%;
-    --foreground: 18 13% 15%;
+    --background: 180 10% 93%;
+    --foreground: 250 25% 18%;
 
-    --card: 30 56% 97%;
-    --card-foreground: 18 13% 15%;
+    --card: 180 25% 99%;
+    --card-foreground: 250 25% 18%;
 
-    --popover: 30 56% 97%;
-    --popover-foreground: 18 13% 15%;
+    --popover: 180 25% 99%;
+    --popover-foreground: 250 25% 18%;
 
-    --primary: 346 35% 53%;
-    --primary-foreground: 17 100% 98%;
+    --primary: 178 52% 40%;
+    --primary-foreground: 180 40% 98%;
 
-    --secondary: 30 24% 92%;
-    --secondary-foreground: 18 13% 15%;
+    --secondary: 180 16% 95%;
+    --secondary-foreground: 250 25% 18%;
 
-    --muted: 30 24% 92%;
-    --muted-foreground: 22 11% 39%;
+    --muted: 180 16% 95%;
+    --muted-foreground: 250 10% 42%;
 
-    --accent: 346 35% 53%;
-    --accent-foreground: 17 100% 98%;
+    --accent: 254 60% 52%;
+    --accent-foreground: 180 40% 98%;
 
-    --destructive: 0 62% 52%;
-    --destructive-foreground: 17 100% 98%;
+    --destructive: 350 71% 55%;
+    --destructive-foreground: 180 40% 98%;
 
-    --border: 30 20% 88%;
-    --input: 30 20% 88%;
-    --ring: 346 35% 53%;
+    --border: 180 14% 89%;
+    --input: 180 14% 89%;
+    --ring: 178 52% 40%;
 
     --radius: 1rem;
 
-    --mark: 44 82% 72%;
-    --sage: 105 19% 69%;
-    --sage-soft: 103 24% 85%;
-    --pink: 353 65% 86%;
-    --pink-soft: 356 60% 93%;
-    --inner: 32 30% 92%;
-    --gold: 38 69% 62%;
-    --cream: 35 55% 92%;
-    --night: 226 27% 84%;
-    --fur: 21 46% 62%;
+    --mark: 33 90% 76%;
+    --sage: 178 45% 62%;
+    --sage-soft: 178 45% 88%;
+    --pink: 350 75% 87%;
+    --pink-soft: 350 75% 94%;
+    --inner: 180 16% 95%;
+    --gold: 33 73% 63%;
+    --cream: 33 80% 93%;
+    --night: 236 68% 90%;
+    --fur: 283 34% 66%;
 
     --sidebar-background: 0 0% 98%;
 

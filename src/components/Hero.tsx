@@ -1,4 +1,4 @@
-import { AvatarCritter, Fox } from '@/components/Critters';
+import { AvatarCritter } from '@/components/Critters';
 import { Bib, Bottle, Pacifier, Rattle, Socks, Stroller } from '@/components/BabyIcons';
 
 const Hero = () => {
@@ -11,9 +11,9 @@ const Hero = () => {
         <Bottle className="pointer-events-none absolute bottom-4 right-10 hidden h-14 w-14 rotate-6 opacity-60 lg:block" />
 
         <div className="relative mx-auto flex max-w-[680px] flex-col items-center text-center">
-          <div className="mb-1 flex items-center gap-2">
+          <div className="mb-1 flex items-center gap-3">
             <Pacifier className="h-9 w-9" />
-            <Fox className="h-12 w-12" />
+            <img src="/logo-mark.png" alt="Мамин помощник" className="h-20 w-auto" />
             <Bib className="h-9 w-9" />
           </div>
           <h1 className="mt-3 font-heading text-[28px] font-normal leading-[1.12] tracking-[-0.02em] sm:text-[38px]">
