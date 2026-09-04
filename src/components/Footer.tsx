@@ -16,12 +16,9 @@ const Footer = () => (
 
         <nav className="grid grid-cols-2 gap-x-8 gap-y-2 text-[13px] text-muted-foreground sm:grid-cols-3">
           {[
-            { href: '#voices', label: 'Два голоса' },
-            { href: '#topics', label: 'Темы' },
+            { href: '#voices', label: 'Как отвечаем' },
             { href: '#how', label: 'Как это работает' },
             { href: '#pricing', label: 'Тарифы' },
-            { href: '#reviews', label: 'Отзывы' },
-            { href: '#faq', label: 'Вопросы' },
           ].map((l) => (
             <a key={l.href} href={l.href} className="transition-colors hover:text-foreground">
               {l.label}

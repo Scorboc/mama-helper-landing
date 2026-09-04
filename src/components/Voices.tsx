@@ -20,7 +20,7 @@ const Voices = () => {
   const topic = topics.find((t) => t.id === active) ?? topics[0];
 
   return (
-    <section id="voices" className="px-3 py-8 sm:px-5 sm:py-12">
+    <section id="voices" className="px-3 py-6 sm:px-5 sm:py-8">
       <div className="mx-auto max-w-[1120px]">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>

@@ -33,7 +33,7 @@ const steps = [
 ];
 
 const HowItWorks = () => (
-  <section id="how" className="px-3 py-8 sm:px-5 sm:py-12">
+  <section id="how" className="px-3 py-6 sm:px-5 sm:py-8">
     <div className="mx-auto max-w-[1120px]">
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
@@ -58,7 +58,7 @@ const HowItWorks = () => (
           </div>
         </div>
 
-        <aside className="tile flex flex-col justify-between bg-card">
+        <aside className="tile flex flex-col bg-card">
           <div className="flex items-center gap-3">
             <Fox className="h-11 w-11 shrink-0" />
             <span className="cap mb-0">Наш принцип</span>

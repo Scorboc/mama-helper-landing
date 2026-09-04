@@ -3,12 +3,9 @@ import Icon from '@/components/ui/icon';
 import { AvatarCritter } from '@/components/Critters';
 
 const links = [
-  { href: '#voices', label: 'Два голоса' },
-  { href: '#topics', label: 'Темы' },
+  { href: '#voices', label: 'Как отвечаем' },
   { href: '#how', label: 'Как это работает' },
   { href: '#pricing', label: 'Тарифы' },
-  { href: '#reviews', label: 'Отзывы' },
-  { href: '#faq', label: 'Вопросы' },
 ];
 
 const Header = () => {
@@ -38,7 +35,7 @@ const Header = () => {
 
         <div className="flex items-center gap-2">
           <a
-            href="#chat"
+            href="#pricing"
             className="hidden rounded-[11px] bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90 sm:block"
           >
             Открыть чат
@@ -66,7 +63,7 @@ const Header = () => {
             </a>
           ))}
           <a
-            href="#chat"
+            href="#pricing"
             onClick={() => setOpen(false)}
             className="mt-1 block rounded-[10px] bg-primary px-3 py-2.5 text-center text-sm font-medium text-primary-foreground"
           >

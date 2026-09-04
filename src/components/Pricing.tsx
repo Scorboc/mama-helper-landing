@@ -11,7 +11,7 @@ const Pricing = () => {
   };
 
   return (
-    <section id="pricing" className="px-3 py-8 sm:px-5 sm:py-12">
+    <section id="pricing" className="px-3 py-6 sm:px-5 sm:py-8">
       <div className="mx-auto max-w-[1120px]">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -67,7 +67,7 @@ const Pricing = () => {
               </ul>
 
               <a
-                href="#chat"
+                href="#top"
                 className={`mt-4 block rounded-[11px] py-2.5 text-center text-[14px] font-medium transition-opacity hover:opacity-90 ${
                   p.hot ? 'bg-primary text-primary-foreground' : 'bg-inner text-foreground'
                 }`}
