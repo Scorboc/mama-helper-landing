@@ -22,8 +22,8 @@ const Hero = () => {
             Разговор, который <span className="mark-hl">слышит вас</span>.
           </h1>
           <p className="mt-3 max-w-[520px] text-[14px] leading-[1.5] text-muted-foreground sm:text-[15px]">
-            Спросите своими словами в любое время — спокойно объясним, что известно
-            по проверенным источникам и что помогало другим мамам.
+            Ответ приходит за минуту — вместо долгих часов на форумах и в книгах.
+            Спросите своими словами в любое время и сразу получите проверенный ответ.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
