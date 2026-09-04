@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
-import { stages } from '@/data/content';
-import { Bib, Block, Bottle, Pacifier } from '@/components/BabyIcons';
+import { dadPlan, stages } from '@/data/content';
+import { Bib, Block, Bottle, Pacifier, Stroller } from '@/components/BabyIcons';
 
 const stageArt: Record<string, JSX.Element> = {
   pregnancy: <Bottle className="h-8 w-8" />,
@@ -134,6 +134,53 @@ const Pricing = () => {
             </div>
           </div>
         </div>
+
+        <article className="tile relative mt-3 overflow-hidden">
+          <span className="blob -right-16 -top-16 h-48 w-48 bg-blue/25" />
+          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="flex items-start gap-3 lg:max-w-[360px]">
+              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-blue-soft">
+                <Stroller className="h-9 w-9" />
+              </span>
+              <div>
+                <span className="inline-block rounded-full bg-gradient-to-r from-blue to-teal px-3 py-1 text-[11px] font-semibold text-white">
+                  дополнение
+                </span>
+                <h3 className="mt-1.5 font-heading text-[20px] font-medium">{dadPlan.name}</h3>
+                <p className="mt-1 text-[13px] leading-[1.45] text-muted-foreground">
+                  {dadPlan.lead}
+                </p>
+              </div>
+            </div>
+
+            <ul className="grid flex-1 gap-2 sm:grid-cols-2">
+              {dadPlan.features.map((f) => (
+                <li
+                  key={f}
+                  className="flex gap-2 rounded-[12px] bg-inner px-3 py-2 text-[13px] leading-[1.35]"
+                >
+                  <Icon name="Check" size={15} className="mt-0.5 shrink-0 text-accent" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex shrink-0 flex-col items-start gap-2 lg:items-center">
+              <div className="text-center">
+                <span className="font-heading text-[26px] font-medium leading-none">
+                  +{dadPlan.price}
+                </span>
+                <div className="mt-1 text-[11px] text-muted-foreground">{dadPlan.period}</div>
+              </div>
+              <a
+                href="#top"
+                className="rounded-full bg-gradient-to-r from-blue to-teal px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_18px_-8px_hsl(232_70%_60%_/_0.7)] transition-transform hover:-translate-y-0.5"
+              >
+                Подключить папу
+              </a>
+            </div>
+          </div>
+        </article>
 
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {[
