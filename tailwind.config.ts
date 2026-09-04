@@ -66,6 +66,17 @@ export default {
 				cream: 'hsl(var(--cream))',
 				night: 'hsl(var(--night))',
 				fur: 'hsl(var(--fur))',
+				violet: {
+					DEFAULT: 'hsl(var(--violet))',
+					soft: 'hsl(var(--violet-soft))'
+				},
+				blue: {
+					DEFAULT: 'hsl(var(--blue))',
+					soft: 'hsl(var(--blue-soft))'
+				},
+				teal: 'hsl(var(--teal))',
+				coral: 'hsl(var(--coral))',
+				orange: 'hsl(var(--orange))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',

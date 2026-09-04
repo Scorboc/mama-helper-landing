@@ -33,7 +33,7 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <a
             href="#pricing"
-            className="hidden rounded-[11px] bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90 sm:block"
+            className="hidden rounded-full bg-gradient-to-r from-violet to-blue px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_16px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5 sm:block"
           >
             Открыть чат
           </a>

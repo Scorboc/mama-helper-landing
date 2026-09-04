@@ -9,6 +9,8 @@ const planArt = [
   <Bib className="h-9 w-9" key="d" />,
 ];
 
+const planTint = ['bg-violet-soft', 'bg-sage-soft', 'bg-cream', 'bg-blue-soft'];
+
 const Pricing = () => {
   return (
     <section id="pricing" className="px-3 py-6 sm:px-5 sm:py-8">
@@ -29,14 +31,20 @@ const Pricing = () => {
           {plans.map((p, i) => (
             <article
               key={p.name}
-              className={`tile flex flex-col transition-transform duration-200 hover:-translate-y-1 ${p.hot ? 'bg-pink-soft' : ''}`}
+              className={`tile flex flex-col transition-transform duration-200 hover:-translate-y-1 ${
+                p.hot ? 'ring-2 ring-violet' : ''
+              }`}
             >
               <div className="flex items-center justify-between">
-                <span className="grid h-12 w-12 place-items-center rounded-[14px] bg-inner">
+                <span
+                  className={`grid h-14 w-14 place-items-center rounded-[18px] ${planTint[i % planTint.length]}`}
+                >
                   {planArt[i % planArt.length]}
                 </span>
                 {p.hot && (
-                  <span className="rounded-full bg-card px-2.5 py-1 text-[11px]">чаще всего</span>
+                  <span className="rounded-full bg-gradient-to-r from-violet to-blue px-3 py-1 text-[11px] font-semibold text-white">
+                    чаще всего
+                  </span>
                 )}
               </div>
               <span className="mt-2 text-[13px] text-muted-foreground">{p.name}</span>
@@ -56,8 +64,10 @@ const Pricing = () => {
 
               <a
                 href="#top"
-                className={`mt-4 block rounded-[11px] py-2.5 text-center text-[14px] font-medium transition-opacity hover:opacity-90 ${
-                  p.hot ? 'bg-primary text-primary-foreground' : 'bg-inner text-foreground'
+                className={`mt-4 block rounded-full py-2.5 text-center text-[14px] font-semibold transition-transform hover:-translate-y-0.5 ${
+                  p.hot
+                    ? 'bg-gradient-to-r from-violet to-blue text-white shadow-[0_8px_18px_-8px_hsl(258_62%_49%_/_0.7)]'
+                    : 'bg-violet-soft text-primary'
                 }`}
               >
                 Попробовать

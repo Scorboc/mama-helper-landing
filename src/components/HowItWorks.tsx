@@ -8,7 +8,7 @@ const steps = [
     art: <Pacifier className="h-9 w-9" />,
     title: 'Спрашиваете своими словами',
     text: 'Без анкет и медицинских терминов. Так, как написали бы подруге в мессенджер — хоть в три часа ночи.',
-    bg: 'bg-pink-soft',
+    bg: 'bg-violet-soft',
   },
   {
     n: '02',
@@ -29,7 +29,7 @@ const steps = [
     art: <HeartCloud className="h-9 w-9" />,
     title: 'Решаете спокойно',
     text: 'Два голоса рядом — и видно, где медицина, а где чужой опыт. Если случай срочный, мы сразу скажем идти к врачу.',
-    bg: 'bg-inner',
+    bg: 'bg-blue-soft',
   },
 ];
 
@@ -52,7 +52,7 @@ const HowItWorks = () => (
                   </span>
                 </span>
                 <div>
-                  <div className="text-[12px] text-muted-foreground">{s.n}</div>
+                  <div className="text-[12px] font-bold text-primary">{s.n}</div>
                   <h3 className="mt-0.5 font-heading text-[16px] font-medium">{s.title}</h3>
                   <p className="mt-1.5 text-[13px] leading-[1.45] text-muted-foreground">{s.text}</p>
                 </div>

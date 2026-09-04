@@ -5,10 +5,15 @@ const Hero = () => {
   return (
     <section id="top" className="px-3 pt-3 sm:px-5 sm:pt-5">
       <div className="tile relative mx-auto max-w-[1120px] overflow-hidden px-5 py-7 sm:px-8 sm:py-9">
-        <Rattle className="pointer-events-none absolute -left-3 top-4 hidden h-16 w-16 -rotate-12 opacity-70 lg:block" />
-        <Socks className="pointer-events-none absolute -right-2 top-6 hidden h-16 w-16 rotate-12 opacity-70 lg:block" />
-        <Stroller className="pointer-events-none absolute bottom-3 left-8 hidden h-14 w-14 opacity-60 lg:block" />
-        <Bottle className="pointer-events-none absolute bottom-4 right-10 hidden h-14 w-14 rotate-6 opacity-60 lg:block" />
+        <span className="blob -left-16 -top-16 h-56 w-56 bg-violet/25" />
+        <span className="blob -right-12 -top-10 h-52 w-52 bg-orange/25" />
+        <span className="blob -bottom-16 left-1/3 h-56 w-56 bg-teal/25" />
+        <span className="blob -bottom-12 -right-16 h-52 w-52 bg-coral/25" />
+
+        <Rattle className="pointer-events-none absolute left-2 top-6 hidden h-16 w-16 -rotate-12 lg:block" />
+        <Socks className="pointer-events-none absolute right-3 top-8 hidden h-16 w-16 rotate-12 lg:block" />
+        <Stroller className="pointer-events-none absolute bottom-4 left-10 hidden h-14 w-14 lg:block" />
+        <Bottle className="pointer-events-none absolute bottom-5 right-12 hidden h-14 w-14 rotate-6 lg:block" />
 
         <div className="relative mx-auto flex max-w-[680px] flex-col items-center text-center">
           <div className="mb-1 flex items-center gap-3">
@@ -29,7 +34,7 @@ const Hero = () => {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <a
               href="#pricing"
-              className="rounded-[11px] bg-primary px-5 py-2.5 text-[14px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              className="rounded-full bg-gradient-to-r from-violet to-blue px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5"
             >
               Написать сейчас
             </a>

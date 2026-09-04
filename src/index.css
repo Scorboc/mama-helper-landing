@@ -4,46 +4,54 @@
 
 @layer base {
   :root {
-    --background: 180 10% 93%;
-    --foreground: 250 25% 18%;
+    --background: 250 60% 97%;
+    --foreground: 254 45% 20%;
 
-    --card: 180 25% 99%;
-    --card-foreground: 250 25% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 254 45% 20%;
 
-    --popover: 180 25% 99%;
-    --popover-foreground: 250 25% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 254 45% 20%;
 
-    --primary: 178 52% 40%;
-    --primary-foreground: 180 40% 98%;
+    --primary: 258 62% 49%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 180 16% 95%;
-    --secondary-foreground: 250 25% 18%;
+    --secondary: 250 60% 95%;
+    --secondary-foreground: 254 45% 20%;
 
-    --muted: 180 16% 95%;
-    --muted-foreground: 250 10% 42%;
+    --muted: 250 45% 95%;
+    --muted-foreground: 254 18% 45%;
 
-    --accent: 254 60% 52%;
-    --accent-foreground: 180 40% 98%;
+    --accent: 178 52% 52%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 350 71% 55%;
-    --destructive-foreground: 180 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 180 14% 89%;
-    --input: 180 14% 89%;
-    --ring: 178 52% 40%;
+    --border: 250 40% 91%;
+    --input: 250 40% 91%;
+    --ring: 258 62% 49%;
 
     --radius: 1rem;
 
-    --mark: 33 90% 76%;
-    --sage: 178 45% 62%;
-    --sage-soft: 178 45% 88%;
-    --pink: 350 75% 87%;
-    --pink-soft: 350 75% 94%;
-    --inner: 180 16% 95%;
-    --gold: 33 73% 63%;
-    --cream: 33 80% 93%;
-    --night: 236 68% 90%;
-    --fur: 283 34% 66%;
+    --mark: 35 95% 68%;
+    --sage: 178 52% 52%;
+    --sage-soft: 178 65% 90%;
+    --pink: 350 78% 66%;
+    --pink-soft: 350 90% 94%;
+    --inner: 250 55% 96%;
+    --gold: 33 90% 62%;
+    --cream: 35 100% 92%;
+    --night: 232 70% 60%;
+    --fur: 258 62% 49%;
+
+    --violet: 258 62% 49%;
+    --violet-soft: 258 75% 94%;
+    --blue: 232 70% 60%;
+    --blue-soft: 232 85% 94%;
+    --teal: 178 52% 52%;
+    --coral: 350 78% 66%;
+    --orange: 33 90% 62%;
 
     --sidebar-background: 0 0% 98%;
 
@@ -135,14 +143,18 @@
 
 @layer components {
   .tile {
-    @apply rounded-2xl bg-card p-4;
+    @apply rounded-[22px] bg-card p-4 shadow-[0_6px_20px_-8px_hsl(258_62%_49%_/_0.18)];
   }
 
   .cap {
-    @apply mb-2 block text-[0.8rem] text-muted-foreground;
+    @apply mb-2 block text-[0.8rem] font-medium text-primary;
   }
 
   .mark-hl {
-    @apply rounded-[4px] bg-mark px-1;
+    @apply rounded-[6px] bg-mark px-1.5 text-foreground;
+  }
+
+  .blob {
+    @apply pointer-events-none absolute rounded-full blur-3xl;
   }
 }

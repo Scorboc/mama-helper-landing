@@ -3,14 +3,14 @@ type IconProps = {
 };
 
 const c = {
-  pink: 'hsl(var(--pink))',
+  pink: 'hsl(var(--coral))',
   pinkSoft: 'hsl(var(--pink-soft))',
-  sage: 'hsl(var(--sage))',
+  sage: 'hsl(var(--teal))',
   sageSoft: 'hsl(var(--sage-soft))',
   cream: 'hsl(var(--cream))',
-  gold: 'hsl(var(--gold))',
-  night: 'hsl(var(--night))',
-  fur: 'hsl(var(--fur))',
+  gold: 'hsl(var(--orange))',
+  night: 'hsl(var(--blue))',
+  fur: 'hsl(var(--violet))',
   mark: 'hsl(var(--mark))',
   text: 'hsl(var(--foreground))',
   card: 'hsl(var(--card))',
