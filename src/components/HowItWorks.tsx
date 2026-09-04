@@ -1,31 +1,32 @@
 import Icon from '@/components/ui/icon';
 import { Fox } from '@/components/Critters';
+import { Bib, Block, Bottle, HeartCloud, Pacifier, Rattle } from '@/components/BabyIcons';
 
 const steps = [
   {
     n: '01',
-    icon: 'MessageCircle',
+    art: <Pacifier className="h-9 w-9" />,
     title: 'Спрашиваете своими словами',
     text: 'Без анкет и медицинских терминов. Так, как написали бы подруге в мессенджер — хоть в три часа ночи.',
     bg: 'bg-pink-soft',
   },
   {
     n: '02',
-    icon: 'BookOpenCheck',
+    art: <Bottle className="h-9 w-9" />,
     title: 'Врачебная часть ответа',
     text: 'Собираем то, что говорят клинические рекомендации и наши консультанты-педиатры. Без диагнозов и без страшилок.',
     bg: 'bg-cream',
   },
   {
     n: '03',
-    icon: 'Users',
+    art: <Bib className="h-9 w-9" />,
     title: 'Голос других мам',
     text: 'Рядом — обезличенный опыт тех, кто уже прошёл через тот же вопрос. Что помогало, а что оказалось лишним.',
     bg: 'bg-sage-soft',
   },
   {
     n: '04',
-    icon: 'HeartHandshake',
+    art: <HeartCloud className="h-9 w-9" />,
     title: 'Решаете спокойно',
     text: 'Два голоса рядом — и видно, где медицина, а где чужой опыт. Если случай срочный, мы сразу скажем идти к врачу.',
     bg: 'bg-inner',
@@ -44,9 +45,11 @@ const HowItWorks = () => (
 
           <div className="grid gap-3 sm:grid-cols-2">
             {steps.map((s) => (
-              <article key={s.n} className="tile flex gap-3">
-                <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-[12px] ${s.bg}`}>
-                  <Icon name={s.icon} size={20} />
+              <article key={s.n} className="tile group flex gap-3 transition-transform duration-200 hover:-translate-y-1">
+                <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-[16px] ${s.bg}`}>
+                  <span className="transition-transform duration-200 group-hover:scale-110">
+                    {s.art}
+                  </span>
                 </span>
                 <div>
                   <div className="text-[12px] text-muted-foreground">{s.n}</div>
@@ -58,12 +61,14 @@ const HowItWorks = () => (
           </div>
         </div>
 
-        <aside className="tile flex flex-col bg-card">
-          <div className="flex items-center gap-3">
+        <aside className="tile relative flex flex-col overflow-hidden bg-card">
+          <Block className="pointer-events-none absolute -right-2 top-10 h-16 w-16 rotate-12 opacity-25" />
+          <div className="relative flex items-center gap-2">
             <Fox className="h-11 w-11 shrink-0" />
+            <Rattle className="h-8 w-8 shrink-0 -rotate-12" />
             <span className="cap mb-0">Наш принцип</span>
           </div>
-          <div className="mt-4 space-y-2.5">
+          <div className="relative mt-4 space-y-2.5">
             {[
               'Мы не ставим диагнозы',
               'Не назначаем лечение',

@@ -1,9 +1,12 @@
 import { AvatarCritter } from '@/components/Critters';
+import { HeartCloud, Socks } from '@/components/BabyIcons';
 
 const Footer = () => (
   <footer className="px-3 pb-5 sm:px-5">
-    <div className="mx-auto max-w-[1120px] rounded-2xl bg-card p-5 sm:p-7">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <div className="relative mx-auto max-w-[1120px] overflow-hidden rounded-2xl bg-card p-5 sm:p-7">
+      <Socks className="pointer-events-none absolute -right-3 top-4 h-20 w-20 rotate-12 opacity-20" />
+      <HeartCloud className="pointer-events-none absolute -left-4 bottom-2 h-20 w-20 opacity-15" />
+      <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <AvatarCritter variant={0} className="h-9 w-9 overflow-hidden rounded-full" />

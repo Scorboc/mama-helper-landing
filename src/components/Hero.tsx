@@ -1,11 +1,21 @@
 import { AvatarCritter, Fox } from '@/components/Critters';
+import { Bib, Bottle, Pacifier, Rattle, Socks, Stroller } from '@/components/BabyIcons';
 
 const Hero = () => {
   return (
     <section id="top" className="px-3 pt-3 sm:px-5 sm:pt-5">
-      <div className="tile mx-auto max-w-[1120px] px-5 py-7 sm:px-8 sm:py-9">
-        <div className="mx-auto flex max-w-[680px] flex-col items-center text-center">
-          <Fox className="h-12 w-12" />
+      <div className="tile relative mx-auto max-w-[1120px] overflow-hidden px-5 py-7 sm:px-8 sm:py-9">
+        <Rattle className="pointer-events-none absolute -left-3 top-4 hidden h-16 w-16 -rotate-12 opacity-70 lg:block" />
+        <Socks className="pointer-events-none absolute -right-2 top-6 hidden h-16 w-16 rotate-12 opacity-70 lg:block" />
+        <Stroller className="pointer-events-none absolute bottom-3 left-8 hidden h-14 w-14 opacity-60 lg:block" />
+        <Bottle className="pointer-events-none absolute bottom-4 right-10 hidden h-14 w-14 rotate-6 opacity-60 lg:block" />
+
+        <div className="relative mx-auto flex max-w-[680px] flex-col items-center text-center">
+          <div className="mb-1 flex items-center gap-2">
+            <Pacifier className="h-9 w-9" />
+            <Fox className="h-12 w-12" />
+            <Bib className="h-9 w-9" />
+          </div>
           <h1 className="mt-3 font-heading text-[28px] font-normal leading-[1.12] tracking-[-0.02em] sm:text-[38px]">
             Не форум и не поисковик.
             <br />

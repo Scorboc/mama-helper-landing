@@ -2,6 +2,16 @@ import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { topics } from '@/data/content';
 import { AvatarCritter, Fox } from '@/components/Critters';
+import { Bib, Block, Bottle, HeartCloud, Pacifier, Socks } from '@/components/BabyIcons';
+
+const topicArt: Record<string, JSX.Element> = {
+  sleep: <Pacifier className="h-7 w-7" />,
+  feeding: <Bottle className="h-7 w-7" />,
+  vaccines: <Bib className="h-7 w-7" />,
+  growth: <Block className="h-7 w-7" />,
+  colic: <Socks className="h-7 w-7" />,
+  mom: <HeartCloud className="h-7 w-7" />,
+};
 
 const highlight = (text: string, mark?: string) => {
   if (!mark || !text.includes(mark)) return text;
@@ -39,12 +49,15 @@ const Voices = () => {
             <button
               key={t.id}
               onClick={() => setActive(t.id)}
-              className={`rounded-full px-4 py-2 text-[13px] transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full py-1.5 pl-1.5 pr-4 text-[13px] transition-colors ${
                 t.id === active
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-card text-muted-foreground hover:text-foreground'
               }`}
             >
+              <span className="grid h-8 w-8 place-items-center rounded-full bg-card">
+                {topicArt[t.id]}
+              </span>
               {t.label}
             </button>
           ))}

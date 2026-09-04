@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 import { plans } from '@/data/content';
+import { Bib, Bottle, Rattle, Stroller } from '@/components/BabyIcons';
+
+const planArt = [
+  <Stroller className="h-9 w-9" key="a" />,
+  <Bottle className="h-9 w-9" key="b" />,
+  <Rattle className="h-9 w-9" key="c" />,
+  <Bib className="h-9 w-9" key="d" />,
+];
 
 const Pricing = () => {
   const [yearly, setYearly] = useState(false);
@@ -41,17 +49,20 @@ const Pricing = () => {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {plans.map((p) => (
+          {plans.map((p, i) => (
             <article
               key={p.name}
-              className={`tile flex flex-col ${p.hot ? 'bg-pink-soft' : ''}`}
+              className={`tile flex flex-col transition-transform duration-200 hover:-translate-y-1 ${p.hot ? 'bg-pink-soft' : ''}`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[13px] text-muted-foreground">{p.name}</span>
+                <span className="grid h-12 w-12 place-items-center rounded-[14px] bg-inner">
+                  {planArt[i % planArt.length]}
+                </span>
                 {p.hot && (
                   <span className="rounded-full bg-card px-2.5 py-1 text-[11px]">чаще всего</span>
                 )}
               </div>
+              <span className="mt-2 text-[13px] text-muted-foreground">{p.name}</span>
               <div className="mt-2 flex items-baseline gap-1.5">
                 <span className="font-heading text-[30px] font-medium">{priceOf(p.price)}</span>
                 <span className="text-[12px] text-muted-foreground">{p.period}</span>
