@@ -137,47 +137,55 @@ const Pricing = () => {
 
         <article className="tile relative mt-3 overflow-hidden">
           <span className="blob -right-16 -top-16 h-48 w-48 bg-blue/25" />
-          <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center">
-            <div className="flex items-start gap-3 lg:max-w-[360px]">
-              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-blue-soft">
-                <Stroller className="h-9 w-9" />
-              </span>
-              <div>
-                <span className="inline-block rounded-full bg-gradient-to-r from-blue to-teal px-3 py-1 text-[11px] font-semibold text-white">
-                  дополнение
+          <div className="relative grid gap-4 lg:grid-cols-[minmax(0,1fr)_400px] lg:items-center">
+            <div>
+              <div className="flex items-start gap-3">
+                <span className="grid h-14 w-14 shrink-0 place-items-center rounded-[18px] bg-blue-soft">
+                  <Stroller className="h-9 w-9" />
                 </span>
-                <h3 className="mt-1.5 font-heading text-[20px] font-medium">{dadPlan.name}</h3>
-                <p className="mt-1 text-[13px] leading-[1.45] text-muted-foreground">
-                  {dadPlan.lead}
-                </p>
+                <div>
+                  <h3 className="font-heading text-[20px] font-medium">{dadPlan.name}</h3>
+                  <p className="mt-1 max-w-[440px] text-[13px] leading-[1.45] text-muted-foreground">
+                    {dadPlan.lead}
+                  </p>
+                </div>
               </div>
+
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {dadPlan.features.map((f) => (
+                  <li
+                    key={f}
+                    className="flex gap-2 rounded-[12px] bg-inner px-3 py-2 text-[13px] leading-[1.35]"
+                  >
+                    <Icon name="Check" size={15} className="mt-0.5 shrink-0 text-accent" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            <ul className="grid flex-1 gap-2 sm:grid-cols-2">
-              {dadPlan.features.map((f) => (
-                <li
-                  key={f}
-                  className="flex gap-2 rounded-[12px] bg-inner px-3 py-2 text-[13px] leading-[1.35]"
+            <div className="grid gap-2 sm:grid-cols-2">
+              {dadPlan.options.map((o) => (
+                <div
+                  key={o.id}
+                  className="flex flex-col rounded-[18px] border border-border bg-inner p-3"
                 >
-                  <Icon name="Check" size={15} className="mt-0.5 shrink-0 text-accent" />
-                  {f}
-                </li>
+                  <div className="text-[12px] font-medium">{o.title}</div>
+                  <div className="mt-0.5 text-[11px] leading-[1.35] text-muted-foreground">
+                    {o.note}
+                  </div>
+                  <div className="mt-2 font-heading text-[24px] font-medium leading-none">
+                    {o.price}
+                  </div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">{o.period}</div>
+                  <a
+                    href="#top"
+                    className="mt-3 block rounded-full bg-gradient-to-r from-blue to-teal py-2 text-center text-[12px] font-semibold text-white shadow-[0_6px_14px_-6px_hsl(232_70%_60%_/_0.7)] transition-transform hover:-translate-y-0.5"
+                  >
+                    {o.cta}
+                  </a>
+                </div>
               ))}
-            </ul>
-
-            <div className="flex shrink-0 flex-col items-start gap-2 lg:items-center">
-              <div className="text-center">
-                <span className="font-heading text-[26px] font-medium leading-none">
-                  +{dadPlan.price}
-                </span>
-                <div className="mt-1 text-[11px] text-muted-foreground">{dadPlan.period}</div>
-              </div>
-              <a
-                href="#top"
-                className="rounded-full bg-gradient-to-r from-blue to-teal px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_18px_-8px_hsl(232_70%_60%_/_0.7)] transition-transform hover:-translate-y-0.5"
-              >
-                Подключить папу
-              </a>
             </div>
           </div>
         </article>
@@ -185,7 +193,7 @@ const Pricing = () => {
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {[
             { icon: 'Infinity', t: 'Все этапы включены', d: 'Малыш растёт — чат меняется вместе с ним, доплат нет' },
-            { icon: 'Users', t: 'Вся семья в подписке', d: 'Папа и бабушка пишут в тот же чат со своего телефона' },
+            { icon: 'Lock', t: 'Личная переписка', d: 'У каждого своя подписка и свой чат — вопросы видите только вы' },
             { icon: 'HeartHandshake', t: 'Отмена в один клик', d: 'Первые вопросы бесплатно и без привязки карты' },
           ].map((b) => (
             <div key={b.t} className="tile flex gap-3">
