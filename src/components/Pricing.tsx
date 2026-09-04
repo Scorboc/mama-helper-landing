@@ -1,84 +1,157 @@
+import { useState } from 'react';
 import Icon from '@/components/ui/icon';
-import { plans } from '@/data/content';
-import { Bib, Bottle, Rattle, Stroller } from '@/components/BabyIcons';
+import { stages } from '@/data/content';
+import { Bib, Block, Bottle, Pacifier } from '@/components/BabyIcons';
 
-const planArt = [
-  <Stroller className="h-9 w-9" key="a" />,
-  <Bottle className="h-9 w-9" key="b" />,
-  <Rattle className="h-9 w-9" key="c" />,
-  <Bib className="h-9 w-9" key="d" />,
-];
+const stageArt: Record<string, JSX.Element> = {
+  pregnancy: <Bottle className="h-8 w-8" />,
+  newborn: <Pacifier className="h-8 w-8" />,
+  baby: <Bib className="h-8 w-8" />,
+  toddler: <Block className="h-8 w-8" />,
+};
 
-const planTint = ['bg-violet-soft', 'bg-sage-soft', 'bg-cream', 'bg-blue-soft'];
+const stageTint: Record<string, string> = {
+  pregnancy: 'bg-violet-soft',
+  newborn: 'bg-pink-soft',
+  baby: 'bg-sage-soft',
+  toddler: 'bg-blue-soft',
+};
 
 const Pricing = () => {
+  const [active, setActive] = useState('newborn');
+  const current = stages.find((s) => s.id === active) ?? stages[1];
+
   return (
     <section id="pricing" className="px-3 py-6 sm:px-5 sm:py-8">
       <div className="mx-auto max-w-[1120px]">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="cap mb-1">Тарифы</span>
-            <h2 className="font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[30px]">
-              Подписка дешевле одного приёма
+            <span className="cap mb-1">Подписка</span>
+            <h2 className="max-w-[620px] font-heading text-[26px] font-normal leading-[1.15] tracking-[-0.02em] sm:text-[30px]">
+              Одна подписка, которая <span className="mark-hl">растёт вместе с малышом</span>
             </h2>
           </div>
-          <span className="self-start rounded-full bg-card px-4 py-2 text-[13px] text-muted-foreground">
-            Оплата помесячно
-          </span>
+          <p className="max-w-[300px] text-[14px] text-muted-foreground">
+            Цена не меняется — меняются вопросы. Выберите свой этап и посмотрите, о чём
+            будем говорить.
+          </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {plans.map((p, i) => (
-            <article
-              key={p.name}
-              className={`tile flex flex-col transition-transform duration-200 hover:-translate-y-1 ${
-                p.hot ? 'ring-2 ring-violet' : ''
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span
-                  className={`grid h-14 w-14 place-items-center rounded-[18px] ${planTint[i % planTint.length]}`}
-                >
-                  {planArt[i % planArt.length]}
-                </span>
-                {p.hot && (
-                  <span className="rounded-full bg-gradient-to-r from-violet to-blue px-3 py-1 text-[11px] font-semibold text-white">
-                    чаще всего
-                  </span>
-                )}
+        <div className="tile relative overflow-hidden p-0">
+          <span className="blob -left-20 -top-20 h-56 w-56 bg-violet/20" />
+          <span className="blob -bottom-20 -right-16 h-56 w-56 bg-teal/20" />
+
+          <div className="relative grid gap-0 lg:grid-cols-[340px_minmax(0,1fr)]">
+            <div className="border-b border-border p-4 lg:border-b-0 lg:border-r">
+              <div className="mb-3 text-[12px] font-medium text-muted-foreground">
+                Ваш этап пути
               </div>
-              <span className="mt-2 text-[13px] text-muted-foreground">{p.name}</span>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="font-heading text-[30px] font-medium">{p.price}</span>
-                <span className="text-[12px] text-muted-foreground">{p.period}</span>
+              <div className="flex flex-col gap-2">
+                {stages.map((s, i) => {
+                  const on = s.id === active;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setActive(s.id)}
+                      className={`flex items-center gap-3 rounded-[16px] p-2 text-left transition-all ${
+                        on
+                          ? 'bg-gradient-to-r from-violet to-blue text-white shadow-[0_8px_18px_-8px_hsl(258_62%_49%_/_0.6)]'
+                          : 'bg-inner hover:bg-violet-soft'
+                      }`}
+                    >
+                      <span
+                        className={`grid h-11 w-11 shrink-0 place-items-center rounded-[14px] ${
+                          on ? 'bg-white/85' : stageTint[s.id]
+                        }`}
+                      >
+                        {stageArt[s.id]}
+                      </span>
+                      <span className="min-w-0">
+                        <span
+                          className={`block text-[11px] ${on ? 'text-white/75' : 'text-muted-foreground'}`}
+                        >
+                          {s.stage} · {s.age}
+                        </span>
+                        <span className="block truncate font-heading text-[15px] font-medium">
+                          {s.name}
+                        </span>
+                      </span>
+                      {i < stages.length - 1 && (
+                        <span className="ml-auto shrink-0">
+                          <Icon
+                            name="ChevronRight"
+                            size={16}
+                            className={on ? 'text-white/70' : 'text-muted-foreground'}
+                          />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <span className="inline-block rounded-full bg-violet-soft px-3 py-1 text-[11px] font-semibold text-primary">
+                    {current.stage} · {current.age}
+                  </span>
+                  <h3 className="mt-2 font-heading text-[22px] font-medium">{current.name}</h3>
+                  <p className="mt-1 max-w-[400px] text-[13px] leading-[1.45] text-muted-foreground">
+                    {current.lead}
+                  </p>
+                </div>
+                <div className="rounded-[18px] bg-inner px-4 py-3 text-center">
+                  <div className="font-heading text-[30px] font-medium leading-none">490 ₽</div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">в месяц</div>
+                </div>
               </div>
 
-              <ul className="mt-3 flex-1 space-y-2">
-                {p.features.map((f) => (
-                  <li key={f} className="flex gap-2 text-[13px] leading-[1.4] text-muted-foreground">
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                {current.features.map((f) => (
+                  <li
+                    key={f}
+                    className="flex gap-2 rounded-[12px] bg-inner px-3 py-2 text-[13px] leading-[1.35]"
+                  >
                     <Icon name="Check" size={15} className="mt-0.5 shrink-0 text-primary" />
                     {f}
                   </li>
                 ))}
               </ul>
 
-              <a
-                href="#top"
-                className={`mt-4 block rounded-full py-2.5 text-center text-[14px] font-semibold transition-transform hover:-translate-y-0.5 ${
-                  p.hot
-                    ? 'bg-gradient-to-r from-violet to-blue text-white shadow-[0_8px_18px_-8px_hsl(258_62%_49%_/_0.7)]'
-                    : 'bg-violet-soft text-primary'
-                }`}
-              >
-                Попробовать
-              </a>
-            </article>
-          ))}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <a
+                  href="#top"
+                  className="rounded-full bg-gradient-to-r from-violet to-blue px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5"
+                >
+                  Начать с этого этапа
+                </a>
+                <span className="text-[12px] text-muted-foreground">
+                  Этап меняется сам — переплачивать не нужно
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <p className="mt-3 text-center text-[12px] text-muted-foreground">
-          Первые вопросы бесплатно и без карты. Отмена подписки в один клик.
-        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          {[
+            { icon: 'Infinity', t: 'Все этапы включены', d: 'Малыш растёт — чат меняется вместе с ним, доплат нет' },
+            { icon: 'Users', t: 'Вся семья в подписке', d: 'Папа и бабушка пишут в тот же чат со своего телефона' },
+            { icon: 'HeartHandshake', t: 'Отмена в один клик', d: 'Первые вопросы бесплатно и без привязки карты' },
+          ].map((b) => (
+            <div key={b.t} className="tile flex gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[13px] bg-violet-soft">
+                <Icon name={b.icon} size={18} className="text-primary" />
+              </span>
+              <div>
+                <div className="font-heading text-[14px] font-medium">{b.t}</div>
+                <p className="mt-1 text-[12px] leading-[1.4] text-muted-foreground">{b.d}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
