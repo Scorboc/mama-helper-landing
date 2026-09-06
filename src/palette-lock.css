@@ -1,0 +1,106 @@
+/*
+ * The project is served through a source-based preview as well as production
+ * builds. Keep the original palette in a separate, last-loaded stylesheet so
+ * an older cached stylesheet cannot repaint the interface after the app loads.
+ */
+:root,
+:root.dark {
+  color-scheme: light;
+  --background: 250 60% 97% !important;
+  --foreground: 254 45% 20% !important;
+  --card: 0 0% 100% !important;
+  --card-foreground: 254 45% 20% !important;
+  --popover: 0 0% 100% !important;
+  --popover-foreground: 254 45% 20% !important;
+  --primary: 258 62% 49% !important;
+  --primary-foreground: 0 0% 100% !important;
+  --secondary: 250 60% 95% !important;
+  --secondary-foreground: 254 45% 20% !important;
+  --muted: 250 45% 95% !important;
+  --muted-foreground: 254 18% 45% !important;
+  --accent: 178 52% 52% !important;
+  --accent-foreground: 0 0% 100% !important;
+  --destructive: 350 71% 55% !important;
+  --destructive-foreground: 0 0% 100% !important;
+  --border: 250 40% 91% !important;
+  --input: 250 40% 91% !important;
+  --ring: 258 62% 49% !important;
+  --mark: 35 95% 68% !important;
+  --sage: 178 52% 52% !important;
+  --sage-soft: 178 65% 90% !important;
+  --pink: 350 78% 66% !important;
+  --pink-soft: 350 90% 94% !important;
+  --inner: 250 55% 96% !important;
+  --gold: 33 90% 62% !important;
+  --cream: 35 100% 92% !important;
+  --night: 232 70% 60% !important;
+  --fur: 258 62% 49% !important;
+  --violet: 258 62% 49% !important;
+  --violet-soft: 258 75% 94% !important;
+  --blue: 232 70% 60% !important;
+  --blue-soft: 232 85% 94% !important;
+  --teal: 178 52% 52% !important;
+  --coral: 350 78% 66% !important;
+  --orange: 33 90% 62% !important;
+}
+
+/* These rules also neutralise the few fixed colour values from a stale theme. */
+.parent-workspace .tile,
+.account-page .tile {
+  border-width: 0 !important;
+  box-shadow: 0 6px 20px -8px hsl(258 62% 49% / 0.18) !important;
+}
+
+.parent-workspace .featured-card {
+  background: linear-gradient(125deg, hsl(var(--violet-soft)), hsl(var(--blue-soft))) !important;
+}
+
+.parent-workspace .cabinet-tabs {
+  background: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 14px hsl(276 36% 33% / 0.03) !important;
+}
+
+.parent-workspace .cabinet-tabs > button[data-state='active'] {
+  background: hsl(var(--primary)) !important;
+}
+
+.parent-workspace .test-pill,
+.parent-workspace .demo-notice,
+.parent-workspace .chat-reminder {
+  border-color: transparent !important;
+}
+
+.parent-workspace .count {
+  color: #745124 !important;
+}
+
+.parent-workspace .bubble:not(.user) {
+  background: hsl(var(--inner)) !important;
+  border-width: 0 !important;
+}
+
+.parent-workspace .bubble.user {
+  background: hsl(var(--primary)) !important;
+}
+
+.parent-workspace .chat-prompts button {
+  border-color: transparent !important;
+}
+
+.parent-workspace .save-notice {
+  color: #235953 !important;
+}
+
+.parent-workspace .form-error,
+.account-page .form-error {
+  background: #fff0f0 !important;
+  border-color: #e7aeae !important;
+  color: #903633 !important;
+}
+
+html,
+body,
+#root {
+  transition: none !important;
+}
