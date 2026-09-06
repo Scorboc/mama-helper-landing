@@ -2,9 +2,9 @@ import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 
 const links = [
-  { href: '#voices', label: 'Как отвечаем' },
+  { href: '#voices', label: 'Чем поможем' },
   { href: '#how', label: 'Как это работает' },
-  { href: '#pricing', label: 'Тарифы' },
+  { href: '#pricing', label: 'Мамам и папам' },
 ];
 
 const Header = () => {
@@ -32,10 +32,10 @@ const Header = () => {
 
         <div className="flex items-center gap-2">
           <a
-            href="#pricing"
+            href="/cabinet"
             className="hidden rounded-full bg-gradient-to-r from-violet to-blue px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_16px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5 sm:block"
           >
-            Открыть чат
+            Личный кабинет
           </a>
           <button
             aria-label="Меню"
@@ -60,11 +60,11 @@ const Header = () => {
             </a>
           ))}
           <a
-            href="#pricing"
+            href="/cabinet"
             onClick={() => setOpen(false)}
             className="mt-1 block rounded-[10px] bg-primary px-3 py-2.5 text-center text-sm font-medium text-primary-foreground"
           >
-            Открыть чат
+            Личный кабинет
           </a>
         </div>
       )}

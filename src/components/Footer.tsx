@@ -12,15 +12,15 @@ const Footer = () => (
             <span className="font-heading text-[16px] font-medium">Мамин помощник</span>
           </div>
           <p className="mt-2 max-w-[320px] text-[13px] leading-[1.5] text-muted-foreground">
-            Спокойные ответы на вопросы о беременности, малыше и вас самой.
+            Забота о малыше и поддержка родителей — от беременности до трёх лет.
           </p>
         </div>
 
         <nav className="grid grid-cols-2 gap-x-8 gap-y-2 text-[13px] text-muted-foreground sm:grid-cols-3">
           {[
-            { href: '#voices', label: 'Как отвечаем' },
+            { href: '#voices', label: 'Чем поможем' },
             { href: '#how', label: 'Как это работает' },
-            { href: '#pricing', label: 'Тарифы' },
+            { href: '/account', label: 'Регистрация' },
           ].map((l) => (
             <a key={l.href} href={l.href} className="transition-colors hover:text-foreground">
               {l.label}
@@ -36,7 +36,7 @@ const Footer = () => (
 
       <div className="mt-4 flex flex-col gap-2 text-[12px] text-muted-foreground sm:flex-row sm:justify-between">
         <span>© {new Date().getFullYear()} Мамин помощник</span>
-        <span>Политика конфиденциальности · Оферта</span>
+        <a href="/privacy" className="underline">Данные и условия тестирования</a>
       </div>
     </div>
   </footer>
