@@ -33,7 +33,7 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <a
             href="/cabinet"
-            className="hidden rounded-full bg-gradient-to-r from-violet to-blue px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_16px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5 sm:block"
+            className="hidden rounded-full bg-gradient-to-r from-primary to-blue px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_16px_-6px_hsl(194_51%_28%_/_0.45)] transition-transform hover:-translate-y-0.5 sm:block"
           >
             Личный кабинет
           </a>
