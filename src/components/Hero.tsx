@@ -40,7 +40,7 @@ const Hero = () => {
             <span className="text-[13px] text-muted-foreground">
               Тест без оплаты · небольшой демо-чат
             </span>
-            <a href="/demo" className="text-[14px] text-primary underline">Сначала посмотреть демо</a>
+            <a href="/account" className="text-[14px] text-primary underline">Войти в тестовый чат</a>
           </div>
         </div>
       </div>
