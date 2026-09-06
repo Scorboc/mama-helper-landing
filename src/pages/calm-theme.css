@@ -1,0 +1,72 @@
+.parent-workspace .tile,
+.account-page .tile {
+  border: 1px solid hsl(var(--border) / 0.72);
+  box-shadow: 0 12px 30px -20px hsl(194 51% 28% / 0.34);
+}
+
+.parent-workspace .featured-card {
+  background: linear-gradient(135deg, hsl(var(--blue-soft)), hsl(var(--sage-soft)));
+}
+
+.parent-workspace .cabinet-tabs {
+  background: hsl(var(--card) / 0.92);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 8px 24px -18px hsl(194 51% 28% / 0.45);
+}
+
+.parent-workspace .cabinet-tabs > button[data-state='active'] {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--blue)));
+}
+
+.parent-workspace .test-pill,
+.parent-workspace .demo-notice,
+.parent-workspace .chat-reminder {
+  background: hsl(var(--cream));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(21 40% 86%);
+}
+
+.parent-workspace .count {
+  background: hsl(var(--cream));
+  color: hsl(var(--foreground));
+}
+
+.parent-workspace .bubble:not(.user) {
+  background: hsl(var(--blue-soft));
+  border: 1px solid hsl(202 35% 87%);
+}
+
+.parent-workspace .bubble.user {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--blue)));
+}
+
+.parent-workspace .chat-prompts button {
+  background: hsl(var(--blue-soft));
+  border: 1px solid hsl(202 35% 87%);
+  color: hsl(var(--foreground));
+}
+
+.parent-workspace .chat-prompts button:nth-child(2n) {
+  background: hsl(var(--sage-soft));
+  border-color: hsl(145 20% 84%);
+}
+
+.parent-workspace .chat-prompts button:nth-child(3n) {
+  background: hsl(var(--cream));
+  border-color: hsl(21 40% 86%);
+}
+
+.parent-workspace .save-notice {
+  color: hsl(153 24% 27%);
+}
+
+.parent-workspace .form-error,
+.account-page .form-error {
+  background: hsl(6 68% 96%);
+  border-color: hsl(6 45% 79%);
+  color: hsl(6 46% 34%);
+}
+
+.parent-workspace .timeline {
+  border-color: hsl(var(--teal));
+}
