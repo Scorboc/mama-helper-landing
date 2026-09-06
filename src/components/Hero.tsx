@@ -33,7 +33,7 @@ const Hero = () => {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <a
               href="/account"
-              className="rounded-full bg-gradient-to-r from-primary to-blue px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_hsl(194_51%_28%_/_0.45)] transition-transform hover:-translate-y-0.5"
+              className="rounded-full bg-gradient-to-r from-violet to-blue px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5"
             >
               Создать личный кабинет
             </a>
