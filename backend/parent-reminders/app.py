@@ -133,8 +133,7 @@ def new_session(db, user_id):
 def identity(db, headers):
     jar = SimpleCookie()
     try:
-        # Платформа переносит Cookie в X-Cookie.
-        jar.load(headers.get('cookie') or headers.get('x-cookie', ''))
+        jar.load(headers.get('cookie', ''))
         token = jar[COOKIE].value
     except (KeyError, ValueError):
         raise AppError(401, 'Войдите в аккаунт.')
@@ -322,7 +321,6 @@ def handler(event, context=None):
         db.conn.commit()
         if set_cookie:
             response_headers['Set-Cookie'] = set_cookie
-            response_headers['X-Set-Cookie'] = set_cookie
         return respond(200,result)
     except AppError as exc:
         if db:

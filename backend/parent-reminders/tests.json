@@ -1,0 +1,12 @@
+{
+  "tests": [
+    {
+      "name": "Запуск без служебного токена запрещён",
+      "method": "POST",
+      "path": "/",
+      "headers": {"Content-Type": "application/json"},
+      "body": {},
+      "expectedStatus": 403
+    }
+  ]
+}

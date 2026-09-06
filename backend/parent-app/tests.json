@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Запрос без разрешённого адреса сайта отклоняется",
+      "method": "POST",
+      "path": "/",
+      "headers": {"Content-Type": "application/json"},
+      "body": {"action": "config"},
+      "expectedStatus": 403,
+      "expectedBody": {"error": "string"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}
