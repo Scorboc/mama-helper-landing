@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Account from "./pages/Account";
@@ -11,6 +11,12 @@ import ParentWorkspace from "./pages/ParentWorkspace";
 import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
+
+function DemoGate(){
+  return sessionStorage.getItem('mh_demo_access') === '1'
+    ? <ParentWorkspace key="guest" guest />
+    : <Navigate to="/account" replace />;
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -22,8 +28,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/account" element={<Account />} />
           <Route path="/cabinet" element={<ParentWorkspace key="account" />} />
-          <Route path="/demo" element={<ParentWorkspace key="guest" guest />} />
-          <Route path="/chat" element={<ParentWorkspace key="chat" guest />} />
+          <Route path="/demo" element={<DemoGate />} />
+          <Route path="/chat" element={<ParentWorkspace key="chat" />} />
           <Route path="/privacy" element={<Privacy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
