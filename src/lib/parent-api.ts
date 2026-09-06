@@ -6,7 +6,7 @@ async function apiUrl(){
   endpoint ??= fetch('/app-config.json',{cache:'no-store'}).then(async r=>{
     if(!r.ok)throw new Error(); const config=await r.json();
     const url=import.meta.env.VITE_APP_API_URL || config.apiUrl;
-    if(typeof url!=='string'||!url)throw new ApiError('Регистрация ещё не включена владельцем сайта. Пока можно открыть демо без аккаунта.',503);
+    if(typeof url!=='string'||!url)throw new ApiError('Регистрация ещё не включена владельцем сайта. Для просмотра используйте тестовый вход.',503);
     const parsed=new URL(url,window.location.origin);
     if(parsed.protocol!=='https:' && parsed.hostname!=='localhost' && parsed.hostname!=='127.0.0.1')throw new Error();
     return parsed.href;
