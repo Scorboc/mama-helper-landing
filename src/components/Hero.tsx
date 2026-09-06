@@ -1,4 +1,3 @@
-import { AvatarCritter } from '@/components/Critters';
 import { Bib, Bottle, Pacifier, Rattle, Socks, Stroller } from '@/components/BabyIcons';
 
 const Hero = () => {
@@ -22,29 +21,26 @@ const Hero = () => {
             <Bib className="h-9 w-9" />
           </div>
           <h1 className="mt-3 font-heading text-[28px] font-normal leading-[1.12] tracking-[-0.02em] sm:text-[38px]">
-            Не форум и не поисковик.
+            Большая забота
             <br />
-            Разговор, который <span className="mark-hl">слышит вас</span>.
+            о <span className="mark-hl">маленьком человеке</span>.
           </h1>
           <p className="mt-3 max-w-[520px] text-[14px] leading-[1.5] text-muted-foreground sm:text-[15px]">
-            Ответ приходит за минуту — вместо долгих часов на форумах и в книгах.
-            Спросите своими словами в любое время и сразу получите проверенный ответ.
+            Для мам и пап: от первых недель беременности до трёх лет малыша.
+            Место, где можно задать вопрос, попросить поддержки и разобраться, что делать дальше.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <a
-              href="#pricing"
+              href="/chat"
               className="rounded-full bg-gradient-to-r from-violet to-blue px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5"
             >
-              Написать сейчас
+              Попробовать демо
             </a>
             <span className="text-[13px] text-muted-foreground">
-              Первые ответы бесплатно, без карты
+              Тестовая версия · без подключения AI
             </span>
-            <span className="flex items-center gap-2 text-[12px] text-muted-foreground">
-              <AvatarCritter variant={1} className="h-5 w-5 overflow-hidden rounded-full" />
-              Аня спросила про колики минуту назад
-            </span>
+
           </div>
         </div>
       </div>
