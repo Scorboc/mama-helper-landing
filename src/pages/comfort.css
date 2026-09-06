@@ -1,0 +1,47 @@
+/* Calm, readable surfaces; the chat remains the main focus. */
+.parent-app {
+  background: radial-gradient(ellipse at 0% 15%, #fce8db 0, transparent 42%),
+    radial-gradient(ellipse at 100% 60%, #ece5fc 0, transparent 45%), #faf8fc;
+}
+.app-header { border-color: #e9e1eb; }
+.brand { letter-spacing: -.65px; }
+.brand > svg { width: 42px; height: 42px; padding: 10px; color: #fff; background: #7751aa; border-radius: 15px 15px 15px 5px; }
+.demo-badge { background: #ffffffb3; border: 1px solid #e6dce8; color: #6a5678; }
+.intro h1 { font-weight: 500; font-size: clamp(32px, 3.1vw, 43px); letter-spacing: -1.5px; line-height: 1.2; }
+.intro > .eyebrow { color: #987049; }
+.profile-summary { background: #ffffffb3; border: 1px solid #fff; border-radius: 24px; box-shadow: 0 10px 28px #75496906; }
+.profile-summary > svg { background: #f8e7d9; color: #8b6044; padding: 12px; width: 48px; height: 48px; border-radius: 17px; }
+.main-panel { border-radius: 30px; border-color: #ffffff; box-shadow: 0 24px 80px #7257770c; }
+.app-tabs { padding: 16px 20px; border-color: #f0eaf3; }
+.app-tabs > button { border-radius: 16px; min-height: 48px; transition: background .18s ease, color .18s ease; }
+.app-tabs > button[data-state=active] { background: #f0e8fa; color: #684394; }
+.panel-heading { padding-top: 25px; padding-bottom: 22px; }
+.panel-heading h2 { font-weight: 500; letter-spacing: -.6px; font-size: 27px; }
+.message { background: #f5f1fa; border: 1px solid #efe8f5; border-radius: 8px 24px 24px; }
+.message.user { background: #7951a9; border-color: #7951a9; border-radius: 24px 8px 24px 24px; }
+.message-label { font-weight: 500; }
+.milestone { background: #fff3e4; color: #775630; border: 1px solid #f5e6d0; border-radius: 16px; padding: 16px; }
+.milestone > svg { flex-shrink: 0; }
+.suggestions { gap: 9px; padding-top: 18px; padding-bottom: 16px; }
+.suggestions button { background: #fff; border-color: #e9e0ed; min-height: 42px; transition: background .18s ease; }
+.suggestions button:nth-child(1) { background: #fcf0ef; border-color: #f3dedb; color: #96584e; }
+.suggestions button:nth-child(2) { background: #eff5f6; border-color: #dfeaec; color: #436970; }
+.composer { background: #faf8fc; border: 1px solid #e8dfee; border-radius: 22px; padding: 8px; }
+.composer textarea { border: 0; box-shadow: none; background: transparent; min-height: 60px; }
+.composer button { background: #7951a9; border-radius: 17px; }
+.section-body .advice-card { border-radius: 24px; background: #fbf9fd; }
+.section-body .advice-card:first-of-type { background: #fff7ec; border-color: #f0e5d6; }
+.section-body button { border-radius: 14px; }
+.field input, .field button { background: #fbf9fd; border-radius: 14px; }
+.safety-note a { text-decoration: underline; font-weight: 600; }
+@media (max-width: 760px) {
+  .main-panel { border-radius: 24px; }
+  .intro h1 { font-size: 29px; }
+  .app-tabs { padding: 10px 7px; }
+  .app-tabs > button { min-height: 57px; border-radius: 14px; }
+  .brand > svg { width: 34px; height: 34px; padding: 8px; border-radius: 12px 12px 12px 4px; }
+  .panel-heading h2 { font-size: 23px; }
+  .panel-heading { align-items: flex-start; }
+  .panel-heading > button { padding-left: 8px; padding-right: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .parent-app *, html { scroll-behavior: auto; transition: none !important; } }
