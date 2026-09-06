@@ -1,0 +1,12 @@
+{
+  "schema":"mama-helper-source-registry/v1",
+  "public_ui_policy":"Не показывать ссылки в текущем интерфейсе. Хранить источник, версию, дату и лицензионный статус для каждой одобренной карточки.",
+  "tiers":[
+    {"tier":1,"name":"Россия: официальные клинические и государственные источники","allowed_domains":["cr.minzdrav.gov.ru","minzdrav.gov.ru","rosminzdrav.ru","rospotrebnadzor.ru","foms.gov.ru"],"use":"Первый выбор для клинических вопросов, маршрутизации и российской организации помощи.","approval":"Нужна проверка редактором конкретной действующей версии документа."},
+    {"tier":2,"name":"Международные первичные руководства","allowed_domains":["who.int","iris.who.int","unicef.org","ncbi.nlm.nih.gov","cdc.gov","nhs.uk"],"use":"Дополняют базу, когда нет российского первичного документа или нужен международный стандарт. Не подменяют локальный маршрут пациента.","approval":"Нужны сверка применимости к России/СНГ и медицинская проверка."},
+    {"tier":3,"name":"Официальные учреждения и профессиональные организации","allowed_domains":[],"use":"Добавляются только поимённо после проверки редактором: государственная больница, медицинский университет, профильное общество или регулирующий орган.","approval":"Домен не становится разрешённым автоматически; проверяется авторство, дата, конфликт интересов и применимость."}
+  ],
+  "never_evidence_domains":["babyblog.ru","woman.ru","forum.sibmama.ru","u-mama.ru","reddit.com","instagram.com","tiktok.com","youtube.com","vk.com","dzen.ru","otzovik.com","irecommend.ru","wildberries.ru","ozon.ru"],
+  "never_evidence_types":["форумные ответы","личные блоги","социальные сети","рекламные статьи","карточки товаров","неатрибутированные пересказы","поисковый сниппет без открытого первоисточника"],
+  "provenance_fields_required":["source_id","publisher","canonical_url","document_title","version_or_publication_date","retrieved_at","clinical_scope","copyright_or_license_note","reviewer_id","reviewed_at","status"]
+}

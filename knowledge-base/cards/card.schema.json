@@ -1,0 +1,18 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"Mama Helper approved knowledge card",
+  "type":"object",
+  "required":["id","status","topic","audience","intent_examples","answer_contract","safety","provenance","review"],
+  "properties":{
+    "id":{"type":"string","pattern":"^[a-z0-9-]{3,80}$"},
+    "status":{"enum":["candidate","researching","medical-review","approved","archived"]},
+    "topic":{"type":"string"},
+    "audience":{"type":"array","items":{"enum":["mom","dad","pregnancy","postpartum","child"]}},
+    "intent_examples":{"type":"array","minItems":1,"items":{"type":"string","maxLength":500}},
+    "answer_contract":{"type":"object","required":["may_say","must_not_say","clarifying_fields"],"properties":{"may_say":{"type":"array","items":{"type":"string"}},"must_not_say":{"type":"array","items":{"type":"string"}},"clarifying_fields":{"type":"array","items":{"type":"string"}}}},
+    "safety":{"type":"object","required":["red_flag_groups","referral_when"],"properties":{"red_flag_groups":{"type":"array","items":{"type":"string"}},"referral_when":{"type":"array","items":{"type":"string"}}}},
+    "provenance":{"type":"array","minItems":1,"items":{"type":"object","required":["source_id","canonical_url","version_or_publication_date","retrieved_at"],"properties":{"source_id":{"type":"string"},"canonical_url":{"type":"string","format":"uri"},"version_or_publication_date":{"type":"string"},"retrieved_at":{"type":"string","format":"date"}}}},
+    "review":{"type":"object","required":["reviewer_id","reviewed_at","next_review_at"],"properties":{"reviewer_id":{"type":"string"},"reviewed_at":{"type":"string","format":"date"},"next_review_at":{"type":"string","format":"date"}}}
+  },
+  "additionalProperties":false
+}
