@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { api, Session } from '@/lib/parent-api';
 import { Fox } from '@/components/Critters';
 import './parent-app.css';
+import './calm-theme.css';
 
 export default function Account(){
   const [mode,setMode]=useState('register');const [email,setEmail]=useState('');
