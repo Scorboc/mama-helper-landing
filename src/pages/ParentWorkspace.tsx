@@ -14,7 +14,6 @@ import { topics } from '@/data/parent-guide';
 import { ageValue, contextLabel, defaultProfile, demoAnswer, demoPrompts, dueMilestones, emptyState, milestones, ParentState, Profile, stateWithProfile, today } from '@/lib/parent-model';
 import { api, Session } from '@/lib/parent-api';
 import './parent-app.css';
-import './calm-theme.css';
 
 export default function ParentWorkspace({guest=false}:{guest?:boolean}){
   const [state,setState]=useState<ParentState>(emptyState);const [revision,setRevision]=useState(0);
