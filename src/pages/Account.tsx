@@ -17,6 +17,9 @@ export default function Account(){
   const navigate=useNavigate();
   async function submit(e:FormEvent){e.preventDefault();if(busy)return;setBusy(true);setError('');
     try{
+      if(mode==='login'&&email.trim()==='1'&&password==='1'){
+        sessionStorage.setItem('mh_test_mode','1');setPassword('');navigate('/cabinet');return;
+      }
       const result=await api<Session>(mode,{email,password,consent,recoveryCode:recovery});setPassword('');setRecovery('');
       if(result.recoveryCode)setNewCode(result.recoveryCode);else navigate('/cabinet');
     }catch(err){setError((err as Error).message);}finally{setBusy(false);}
@@ -31,6 +34,6 @@ export default function Account(){
     {mode==='register'&&<div className="flex gap-3 items-start"><Checkbox id="consent" checked={consent} onCheckedChange={v=>setConsent(v===true)}/><label htmlFor="consent" className="text-sm leading-relaxed">Мне исполнилось 18 лет. Я принимаю <Link to="/privacy" className="underline">условия тестирования и обработки данных</Link>.</label></div>}
     {error&&<p className="form-error" role="alert">{error}</p>}
     <Button className="w-full" type="submit" disabled={busy||(mode==='register'&&!consent)}>{busy?'Подождите…':mode==='register'?'Создать аккаунт':mode==='login'?'Войти':'Восстановить доступ'}</Button></form>
-    <p className="muted mt-4 text-sm flex gap-2"><Heart size={18} className="shrink-0"/>У каждого свой аккаунт, даже если вы родители одного малыша.</p></>}
+    {mode==='login'&&<p className="text-center text-sm mt-5 text-muted-foreground">Тестовый вход: <strong>1</strong> · пароль: <strong>1</strong></p>}<p className="muted mt-4 text-sm flex gap-2"><Heart size={18} className="shrink-0"/>У каждого свой аккаунт, даже если вы родители одного малыша.</p></>}
   </div></main>;
 }
