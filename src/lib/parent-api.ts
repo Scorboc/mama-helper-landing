@@ -13,9 +13,9 @@ async function apiUrl(){
   }).catch(error=>{endpoint=undefined;throw error instanceof ApiError?error:new ApiError('Не удалось подключиться к сервису аккаунтов. Попробуйте позже.',503);});
   return endpoint;
 }
-export async function api<T>(action:string,data:Record<string,unknown>={}):Promise<T>{
+export async function api<T>(action:string,data:Record<string,unknown>={},timeoutMs=15000):Promise<T>{
   const url=await apiUrl();
-  const controller=new AbortController();const timer=window.setTimeout(()=>controller.abort(),15000);
+  const controller=new AbortController();const timer=window.setTimeout(()=>controller.abort(),timeoutMs);
   try{
     const response=await fetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...data}),signal:controller.signal});
     const body=await response.json();

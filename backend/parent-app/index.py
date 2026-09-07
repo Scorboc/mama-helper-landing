@@ -1,4 +1,4 @@
-"""Parent app cloud handler. No AI calls. See DEPLOYMENT.md before publishing."""
+"""Parent app cloud handler. Chat replies via Cheap AI (household topics only). See DEPLOYMENT.md before publishing."""
 import base64
 import calendar
 import hashlib
@@ -9,6 +9,8 @@ import re
 import secrets
 import sqlite3
 import time
+import urllib.error
+import urllib.request
 from datetime import date, timedelta
 from http.cookies import SimpleCookie
 from pathlib import Path
@@ -20,6 +22,44 @@ PASSWORD_ROUNDS = 600_000
 SESSION_AGE = 7 * 86400
 COOKIE = 'mh_session'
 TOPICS = {'pregnancy', 'feeding', 'sleep', 'care', 'play', 'movement', 'wellbeing', 'dad'}
+
+CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
+CHAT_MODEL = 'gpt5.6'
+CHAT_SYSTEM_PROMPT = (
+    'Ты — тёплый ассистент по бытовым вопросам ухода за ребёнком, беременности и поддержке родителей '
+    'в приложении «Мамин помощник». Отвечай по-русски, коротко и по-доброму, только на бытовые темы: '
+    'сон, кормление, игры и развитие, режим дня, поддержка родителей, роль папы, уход, покупки. '
+    'Никогда не ставь диагнозы, не назначай лечение и не указывай дозировки лекарств. При любых вопросах '
+    'о симптомах, здоровье, лекарствах или тревожных признаках мягко направляй обратиться к врачу очно, '
+    'не давая медицинских рекомендаций по существу. Если пользователь описывает угрозу жизни, судороги, '
+    'потерю сознания, отравление или мысли о самоповреждении — посоветуй немедленно звонить 112.'
+)
+# Fast local guard: answered without calling the external model, matches the client-side wording.
+EMERGENCY_PATTERN = re.compile(
+    r'не дыш|задыха|судорог|без созн|подавил|подавилась|подавился|отравил|проглотил батарейк|'
+    r'сильн.*кровотеч|не хочу жить|суицид|покончить|убить себя|навредить себе|навредить ребен'
+)
+EMERGENCY_TEXT = (
+    'Если прямо сейчас есть угроза жизни, затруднённое дыхание, судороги, потеря сознания, сильное '
+    'кровотечение, отравление или риск навредить себе либо ребёнку — звоните 112. Не ждите ответа чата. '
+    'Если рядом есть взрослый, которому доверяете, позовите его сейчас.'
+)
+
+
+def chat_answer(question):
+    payload = json.dumps({
+        'model': CHAT_MODEL,
+        'messages': [{'role': 'system', 'content': CHAT_SYSTEM_PROMPT}, {'role': 'user', 'content': question}],
+        'max_tokens': 500,
+        'temperature': 0.6,
+    }).encode()
+    request = urllib.request.Request(CHAT_API_URL, data=payload, method='POST', headers={
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + os.environ['CHEAP_AI_API_KEY'],
+    })
+    with urllib.request.urlopen(request, timeout=12) as response:
+        body = json.loads(response.read().decode())
+    return body['choices'][0]['message']['content'].strip()
 
 
 class AppError(Exception):
@@ -247,6 +287,19 @@ def handle_action(db, action, data, headers, ip):
     if action == 'logout':
         db.query('DELETE FROM mh_sessions WHERE token_hash=?',(token_hash,))
         return {'ok':True}, cookie('',True)
+    if action == 'chat':
+        question = data.get('question')
+        if not isinstance(question, str) or not question.strip() or len(question) > 2000:
+            raise AppError(400, 'Напишите вопрос длиной до 2000 символов.')
+        rate_limit(db, 'chat:' + user[0], 30, 900)
+        question = question.strip()
+        if EMERGENCY_PATTERN.search(question.lower().replace('ё', 'е')):
+            return {'answer': EMERGENCY_TEXT}, None
+        try:
+            answer = chat_answer(question)
+        except (urllib.error.URLError, TimeoutError, KeyError, ValueError, IndexError):
+            raise AppError(503, 'Помощник временно недоступен. Попробуйте ещё раз чуть позже.')
+        return {'answer': answer}, None
     if action == 'save':
         state = validate_state(data.get('state'))
         revision = data.get('revision')
