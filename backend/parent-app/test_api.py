@@ -71,6 +71,25 @@ class AccountsTest(unittest.TestCase):
         os.environ.pop('APP_DATA_KEY')
         r,_=self.call('register',email='no@example.test',password='long-test-password',consent=True)
         self.assertEqual(r['statusCode'],503)
+    def test_health_config_and_chat_receive_profile(self):
+        self.assertEqual(self.call('health')[1],{'ok':True,'database':True})
+        config=self.call('config')[1]
+        self.assertTrue(config['ok']);self.assertFalse(config['chatConfigured'])
+        c,b=self.register('chat@example.test');state=b['state']
+        state['profile']={'role':'mom','stage':'child','birthDate':(date.today()-timedelta(days=400)).isoformat(),'week':20,'weekDate':date.today().isoformat(),'feeding':'mixed','sleep':'просыпается ночью','health':'','healthConfirmed':False,'topics':['sleep','play']}
+        self.assertEqual(self.call('save',c,state=state,revision=0)[0]['statusCode'],200)
+        captured={};original=app.chat_answer
+        def fake_answer(question,profile):
+            captured.update(question=question,profile=profile)
+            return 'Тестовый ответ'
+        app.chat_answer=fake_answer
+        try:
+            response,body=self.call('chat',c,question='Во что поиграть?')
+        finally:
+            app.chat_answer=original
+        self.assertEqual(response['statusCode'],200);self.assertEqual(body['answer'],'Тестовый ответ')
+        self.assertEqual(captured['profile']['birthDate'],state['profile']['birthDate'])
+        self.assertIn('ребёнок',app.chat_profile_context(captured['profile']))
     def test_events_and_deduplication(self):
         c,b=self.register('push2@example.test');state=b['state']
         state['profile']={'role':'dad','stage':'child','birthDate':date.today().isoformat(),'week':20,'weekDate':date.today().isoformat(),'feeding':'unknown','sleep':'','health':'','healthConfirmed':False,'topics':[]}

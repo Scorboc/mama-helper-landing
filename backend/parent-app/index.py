@@ -24,7 +24,9 @@ COOKIE = 'mh_session'
 TOPICS = {'pregnancy', 'feeding', 'sleep', 'care', 'play', 'movement', 'wellbeing', 'dad'}
 
 CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
-CHAT_MODEL = 'gpt5.6'
+# CheapAI uses the full catalog model id. Keep it configurable so the model can
+# be changed in server secrets without publishing a new frontend build.
+CHAT_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-5.6-luna')
 CHAT_SYSTEM_PROMPT = (
     'Ты — тёплый ассистент по бытовым вопросам ухода за ребёнком, беременности и поддержке родителей '
     'в приложении «Мамин помощник». Отвечай по-русски, коротко и по-доброму, только на бытовые темы: '
@@ -46,16 +48,51 @@ EMERGENCY_TEXT = (
 )
 
 
-def chat_answer(question):
+def chat_profile_context(profile):
+    if not profile:
+        return 'Профиль пока не заполнен. Не угадывай возраст или срок.'
+    if profile['stage'] == 'pregnancy':
+        anchor = date.fromisoformat(profile['weekDate'])
+        current_week = min(42, profile['week'] + max(0, (date.today() - anchor).days) // 7)
+        stage = f'беременность, примерно {current_week} полных недель'
+    else:
+        birthday = date.fromisoformat(profile['birthDate'])
+        now = date.today()
+        anniversary_day = min(birthday.day, calendar.monthrange(now.year, now.month)[1])
+        total_months = (now.year - birthday.year) * 12 + now.month - birthday.month
+        if now.day < anniversary_day:
+            total_months -= 1
+        total_months = max(0, total_months)
+        years, months = divmod(total_months, 12)
+        anchor_year = birthday.year + (birthday.month - 1 + total_months) // 12
+        anchor_month = (birthday.month - 1 + total_months) % 12 + 1
+        anchor = date(anchor_year, anchor_month, min(birthday.day, calendar.monthrange(anchor_year, anchor_month)[1]))
+        days = max(0, (now - anchor).days)
+        stage = f'ребёнок, {years} г. {months} мес. {days} дн.; дата рождения {birthday.isoformat()}'
+    return (
+        f'Контекст пользователя: роль={profile["role"]}; этап={stage}; кормление={profile["feeding"]}; '
+        f'сон={profile["sleep"] or "не указан"}; выбранные темы={", ".join(profile["topics"]) or "все"}. '
+        'Особенности здоровья из профиля не используй для постановки диагноза или назначения лечения.'
+    )
+
+
+def chat_answer(question, profile=None):
+    api_key = os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')
+    if not api_key:
+        raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
     payload = json.dumps({
         'model': CHAT_MODEL,
-        'messages': [{'role': 'system', 'content': CHAT_SYSTEM_PROMPT}, {'role': 'user', 'content': question}],
+        'messages': [
+            {'role': 'system', 'content': CHAT_SYSTEM_PROMPT},
+            {'role': 'system', 'content': chat_profile_context(profile)},
+            {'role': 'user', 'content': question},
+        ],
         'max_tokens': 500,
         'temperature': 0.6,
     }).encode()
     request = urllib.request.Request(CHAT_API_URL, data=payload, method='POST', headers={
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + os.environ['CHEAP_AI_API_KEY'],
+        'Authorization': 'Bearer ' + api_key,
     })
     with urllib.request.urlopen(request, timeout=12) as response:
         body = json.loads(response.read().decode())
@@ -295,8 +332,12 @@ def handle_action(db, action, data, headers, ip):
         question = question.strip()
         if EMERGENCY_PATTERN.search(question.lower().replace('ё', 'е')):
             return {'answer': EMERGENCY_TEXT}, None
+        state_row = db.query('SELECT encrypted_data FROM mh_state WHERE user_id=?', (user[0],)).fetchone()
+        profile = unseal(state_row[0]).get('profile') if state_row else None
         try:
-            answer = chat_answer(question)
+            answer = chat_answer(question, profile)
+        except AppError:
+            raise
         except (urllib.error.URLError, TimeoutError, KeyError, ValueError, IndexError):
             raise AppError(503, 'Помощник временно недоступен. Попробуйте ещё раз чуть позже.')
         return {'answer': answer}, None
@@ -367,7 +408,16 @@ def handler(event, context=None):
         if not isinstance(data,dict):
             raise AppError(400,'Неверный запрос.')
         if data.get('action') == 'config':
-            return respond(200,{'pushKey':os.environ.get('VAPID_PUBLIC_KEY','')})
+            return respond(200,{
+                'ok': True,
+                'pushKey': os.environ.get('VAPID_PUBLIC_KEY',''),
+                'chatConfigured': bool(os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')),
+            })
+        if data.get('action') == 'health':
+            cipher()
+            db = DB()
+            db.query('SELECT 1').fetchone()
+            return respond(200,{'ok':True,'database':True})
         cipher()  # Fail closed if encryption has not been configured.
         db = DB()
         ip = str(event.get('requestContext',{}).get('identity',{}).get('sourceIp','unknown'))
