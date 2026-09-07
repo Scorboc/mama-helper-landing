@@ -12,12 +12,6 @@ import Privacy from "./pages/Privacy";
 
 const queryClient = new QueryClient();
 
-function DemoGate(){
-  return sessionStorage.getItem('mh_demo_access') === '1'
-    ? <ParentWorkspace key="guest" guest />
-    : <Navigate to="/account" replace />;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -28,7 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/account" element={<Account />} />
           <Route path="/cabinet" element={<ParentWorkspace key="account" />} />
-          <Route path="/demo" element={<DemoGate />} />
+          <Route path="/demo" element={<Navigate to="/account" replace />} />
           <Route path="/chat" element={<ParentWorkspace key="chat" />} />
           <Route path="/privacy" element={<Privacy />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

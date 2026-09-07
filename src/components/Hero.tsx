@@ -38,9 +38,9 @@ const Hero = () => {
               Создать личный кабинет
             </a>
             <span className="text-[13px] text-muted-foreground">
-              Тест без оплаты · небольшой демо-чат
+              Тест без оплаты · чат с помощником
             </span>
-            <a href="/account" className="text-[14px] text-primary underline">Войти в тестовый чат</a>
+            <a href="/account" className="text-[14px] text-primary underline">Войти в аккаунт</a>
           </div>
         </div>
       </div>

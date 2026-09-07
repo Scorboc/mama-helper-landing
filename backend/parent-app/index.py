@@ -367,7 +367,7 @@ def handler(event, context=None):
         if not isinstance(data,dict):
             raise AppError(400,'Неверный запрос.')
         if data.get('action') == 'config':
-            return respond(200,{'pushKey':os.environ.get('VAPID_PUBLIC_KEY',''), 'demo':True})
+            return respond(200,{'pushKey':os.environ.get('VAPID_PUBLIC_KEY','')})
         cipher()  # Fail closed if encryption has not been configured.
         db = DB()
         ip = str(event.get('requestContext',{}).get('identity',{}).get('sourceIp','unknown'))
