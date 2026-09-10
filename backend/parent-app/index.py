@@ -153,12 +153,9 @@ class DB:
             self.conn.execute('PRAGMA foreign_keys=ON')
         else:
             import psycopg2
-            self.conn = psycopg2.connect(os.environ['DATABASE_URL'], connect_timeout=8, sslmode='require')
-            schema = os.environ.get('MAIN_DB_SCHEMA', '')
-            if schema:
-                cur = self.conn.cursor()
-                cur.execute('SET search_path TO "%s", public' % schema.replace('"', ''))
-                self.conn.commit()
+            schema = os.environ.get('MAIN_DB_SCHEMA', '').replace('"', '')
+            options = f'-c search_path="{schema}",public' if schema else None
+            self.conn = psycopg2.connect(os.environ['DATABASE_URL'], connect_timeout=8, options=options)
 
     def query(self, sql, params=()):
         cur = self.conn.cursor()
