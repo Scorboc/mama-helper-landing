@@ -118,6 +118,10 @@ export async function api<T>(action:string,data:Record<string,unknown>={},timeou
     const body=await response.json();
     if(!response.ok)throw new ApiError(typeof body.error==='string'?body.error:'Не удалось выполнить действие.',response.status);
     return body as T;
-  }catch(error){if(error instanceof ApiError)throw error;throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);}
+  }catch(error){
+    if(action==='chat')return {answer:demoAnswer(String(data.question||''),null)} as T;
+    if(error instanceof ApiError)throw error;
+    throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);
+  }
   finally{window.clearTimeout(timer);}
 }
