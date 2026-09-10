@@ -31,6 +31,6 @@ export default function Account(){
     {mode==='register'&&<div className="flex gap-3 items-start"><Checkbox id="consent" checked={consent} onCheckedChange={v=>setConsent(v===true)}/><label htmlFor="consent" className="text-sm leading-relaxed">Мне исполнилось 18 лет. Я принимаю <Link to="/privacy" className="underline">условия тестирования и обработки данных</Link>.</label></div>}
     {error&&<p className="form-error" role="alert">{error}</p>}
     <Button className="w-full" type="submit" disabled={busy||(mode==='register'&&!consent)}>{busy?'Подождите…':mode==='register'?'Создать аккаунт':mode==='login'?'Войти':'Восстановить доступ'}</Button></form>
-    {mode==='login'&&<p className="text-center text-sm mt-5 text-muted-foreground">Тестовый вход: <strong>1</strong> · пароль: <strong>1</strong></p>}<p className="muted mt-4 text-sm flex gap-2"><Heart size={18} className="shrink-0"/>В тестовой версии данные сохраняются только в этом браузере. У каждого родителя — отдельный аккаунт.</p></>}
+    {mode==='login'&&<p className="text-center text-sm mt-5 text-muted-foreground">Тестовый вход: <strong>1</strong> · пароль: <strong>1</strong></p>}<p className="muted mt-4 text-sm flex gap-2"><Heart size={18} className="shrink-0"/>Данные аккаунта защищённо сохраняются на сервере. У каждого родителя — отдельный аккаунт.</p></>}
   </div></main>;
 }
