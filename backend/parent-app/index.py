@@ -155,7 +155,8 @@ class DB:
             import psycopg2
             schema = os.environ.get('MAIN_DB_SCHEMA', '').replace('"', '')
             options = f'-c search_path="{schema}",public' if schema else None
-            self.conn = psycopg2.connect(os.environ['DATABASE_URL'], connect_timeout=8, options=options)
+            sslmode = os.environ.get('PGSSLMODE', 'prefer')
+            self.conn = psycopg2.connect(os.environ['DATABASE_URL'], connect_timeout=8, options=options, sslmode=sslmode)
 
     def query(self, sql, params=()):
         cur = self.conn.cursor()
