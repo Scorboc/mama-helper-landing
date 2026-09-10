@@ -120,8 +120,20 @@ def digest(value):
     return hashlib.sha256(value.encode()).hexdigest()
 
 
+def fernet_key():
+    secret = os.environ['APP_DATA_KEY'].strip()
+    if not secret:
+        raise AppError(503, 'Сервис хранения данных не настроен.')
+    key = secret.encode()
+    try:
+        Fernet(key)
+        return key
+    except (ValueError, TypeError):
+        return base64.urlsafe_b64encode(hashlib.sha256(key).digest())
+
+
 def cipher():
-    return Fernet(os.environ['APP_DATA_KEY'].encode())
+    return Fernet(fernet_key())
 
 
 def seal(value):
