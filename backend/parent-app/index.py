@@ -30,7 +30,7 @@ CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
 CHAT_SIMPLE_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-5.6-luna')
 CHAT_DEEP_MODEL = os.environ.get('CHEAPAI_DEEP_MODEL', 'gpt-5.6-sol')
 CHAT_LIVE_ENABLED = os.environ.get('CHEAPAI_LIVE_ENABLED', '1') != '0'
-CHAT_TIMEOUT = max(2, min(4, int(os.environ.get('CHEAPAI_TIMEOUT_SECONDS', '3'))))
+CHAT_TIMEOUT = max(2, min(12, int(os.environ.get('CHEAPAI_TIMEOUT_SECONDS', '9'))))
 CHAT_SYSTEM_PROMPT = (
     'Ты — тёплый ассистент по бытовым вопросам ухода за ребёнком, беременности и поддержке родителей '
     'в приложении «Мамин помощник». Отвечай по-русски, коротко и по-доброму, только на бытовые темы: '
