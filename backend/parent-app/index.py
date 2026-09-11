@@ -536,7 +536,25 @@ def handle_action(db, action, data, headers, ip):
             answer = chat_answer(question, build_chat_context(state))
         except AppError:
             raise
-        except (urllib.error.URLError, TimeoutError, ChatTimeout, KeyError, ValueError, IndexError):
+        except (urllib.error.URLError, TimeoutError, ChatTimeout, KeyError, ValueError, IndexError) as exc:
+            diag_code = 'timeout'
+            diag_status = ''
+            if isinstance(exc, urllib.error.HTTPError):
+                diag_status = str(exc.code)
+                try:
+                    err_body = json.loads(exc.read().decode())
+                    diag_code = ((err_body.get('error') or {}).get('code')
+                                 or (err_body.get('error') or {}).get('type')
+                                 or 'http_error')
+                except Exception:
+                    diag_code = 'http_error'
+            elif isinstance(exc, (ChatTimeout, TimeoutError)):
+                diag_code = 'timeout'
+            elif isinstance(exc, urllib.error.URLError):
+                diag_code = f'network_error:{exc.reason}'
+            else:
+                diag_code = 'parse_error'
+            print(f'CHAT_DIAG status={diag_status} code={diag_code}')
             answer = fallback_chat_answer(question, state)
         card_entry = extract_medical_card_entry(question)
         response = {'answer': answer}
