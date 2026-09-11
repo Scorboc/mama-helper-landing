@@ -27,7 +27,7 @@ TOPICS = {'pregnancy', 'feeding', 'sleep', 'care', 'play', 'movement', 'wellbein
 CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
 # CheapAI uses OpenAI-compatible model ids. Keep it configurable so the model can
 # be changed in server secrets without publishing a new frontend build.
-CHAT_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-4o-mini')
+CHAT_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-5.6-luna')
 CHAT_TIMEOUT = max(3, min(10, int(os.environ.get('CHEAPAI_TIMEOUT_SECONDS', '6'))))
 CHAT_SYSTEM_PROMPT = (
     'Ты — тёплый ассистент по бытовым вопросам ухода за ребёнком, беременности и поддержке родителей '
