@@ -29,6 +29,7 @@ CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
 # be changed in server secrets without publishing a new frontend build.
 CHAT_SIMPLE_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-5.6-luna')
 CHAT_DEEP_MODEL = os.environ.get('CHEAPAI_DEEP_MODEL', 'gpt-5.6-sol')
+CHAT_LIVE_ENABLED = os.environ.get('CHEAPAI_LIVE_ENABLED') == '1'
 CHAT_TIMEOUT = max(3, min(10, int(os.environ.get('CHEAPAI_TIMEOUT_SECONDS', '6'))))
 CHAT_SYSTEM_PROMPT = (
     'Ты — тёплый ассистент по бытовым вопросам ухода за ребёнком, беременности и поддержке родителей '
@@ -225,6 +226,8 @@ def with_chat_deadline(call):
 
 
 def chat_answer(question, context_text):
+    if not CHAT_LIVE_ENABLED:
+        raise ChatTimeout()
     api_key = os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')
     if not api_key:
         raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
