@@ -1,4 +1,4 @@
-import { demoAnswer, emptyState, ParentState } from './parent-model';
+import { demoAnswer, emptyState, ParentState, Profile } from './parent-model';
 
 export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string};
 type LocalAccount = {id:string;email:string;salt:string;passwordHash:string;recoveryHash:string;state:ParentState;revision:number};
@@ -119,7 +119,7 @@ export async function api<T>(action:string,data:Record<string,unknown>={},timeou
     if(!response.ok)throw new ApiError(typeof body.error==='string'?body.error:'Не удалось выполнить действие.',response.status);
     return body as T;
   }catch(error){
-    if(action==='chat')return {answer:demoAnswer(String(data.question||''),null)} as T;
+    if(action==='chat')return {answer:demoAnswer(String(data.question||''),(data.profile as Profile | null) ?? null)} as T;
     if(error instanceof ApiError)throw error;
     throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);
   }
