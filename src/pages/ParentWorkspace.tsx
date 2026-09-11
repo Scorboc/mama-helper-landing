@@ -38,7 +38,7 @@ export default function ParentWorkspace(){
     setState(withUser);
     setChatBusy(true);
     try{
-      const {answer}=await api<{answer:string}>('chat',{question:q},25000);
+      const {answer}=await api<{answer:string}>('chat',{question:q,profile:state.profile},25000);
       const next={...withUser,messages:[...withUser.messages,{id:crypto.randomUUID(),role:'assistant' as const,text:answer}]};
       await save(next,'Переписка сохранена');
     }catch(e){setError((e as Error).message);setState(state);}
