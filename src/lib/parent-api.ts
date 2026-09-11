@@ -1,4 +1,4 @@
-import { demoAnswer, emptyState, ParentState, Profile } from './parent-model';
+import { demoAnswer, emptyState, MedicalCardEntry, ParentState } from './parent-model';
 
 export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string};
 type LocalAccount = {id:string;email:string;salt:string;passwordHash:string;recoveryHash:string;state:ParentState;revision:number};
@@ -60,7 +60,11 @@ function activeAccount(accounts=readAccounts()){
 }
 
 function publicSession(account:LocalAccount,recovery?:string):Session{
-  return {user:{id:account.id,email:account.email},state:account.state,revision:account.revision,...(recovery?{recoveryCode:recovery}:{})};
+  return {user:{id:account.id,email:account.email},state:normalizeState(account.state),revision:account.revision,...(recovery?{recoveryCode:recovery}:{})};
+}
+
+function normalizeState(state:ParentState):ParentState{
+  return {...emptyState(),...state,medicalCard:Array.isArray((state as {medicalCard?:MedicalCardEntry[]}).medicalCard)?(state as {medicalCard:MedicalCardEntry[]}).medicalCard:[]};
 }
 
 async function localApi<T>(action:string,data:Record<string,unknown>):Promise<T>{
@@ -96,7 +100,7 @@ async function localApi<T>(action:string,data:Record<string,unknown>):Promise<T>
   const account=activeAccount(accounts);if(!account)throw new ApiError('Войдите в аккаунт.',401);
   if(action==='save'){
     if(Number(data.revision)!==account.revision)throw new ApiError('Данные изменились в другой вкладке. Обновите страницу.',409);
-    account.state=data.state as ParentState;account.revision+=1;writeAccounts(accounts);return {revision:account.revision} as T;
+    account.state=normalizeState(data.state as ParentState);account.revision+=1;writeAccounts(accounts);return {revision:account.revision} as T;
   }
   if(action==='chat')return {answer:demoAnswer(String(data.question||''),account.state.profile)} as T;
   if(action==='config')return {ok:true,chatConfigured:false,pushKey:'',storage:'local'} as T;
@@ -118,10 +122,6 @@ export async function api<T>(action:string,data:Record<string,unknown>={},timeou
     const body=await response.json();
     if(!response.ok)throw new ApiError(typeof body.error==='string'?body.error:'Не удалось выполнить действие.',response.status);
     return body as T;
-  }catch(error){
-    if(action==='chat')return {answer:demoAnswer(String(data.question||''),(data.profile as Profile | null) ?? null)} as T;
-    if(error instanceof ApiError)throw error;
-    throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);
-  }
+  }catch(error){if(error instanceof ApiError)throw error;throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);}
   finally{window.clearTimeout(timer);}
 }

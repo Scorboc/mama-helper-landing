@@ -27,7 +27,8 @@ TOPICS = {'pregnancy', 'feeding', 'sleep', 'care', 'play', 'movement', 'wellbein
 CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
 # CheapAI uses OpenAI-compatible model ids. Keep it configurable so the model can
 # be changed in server secrets without publishing a new frontend build.
-CHAT_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-5.6-luna')
+CHAT_SIMPLE_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-5.6-luna')
+CHAT_DEEP_MODEL = os.environ.get('CHEAPAI_DEEP_MODEL', 'gpt-5.6-sol')
 CHAT_TIMEOUT = max(3, min(10, int(os.environ.get('CHEAPAI_TIMEOUT_SECONDS', '6'))))
 CHAT_SYSTEM_PROMPT = (
     'Ты — тёплый ассистент по бытовым вопросам ухода за ребёнком, беременности и поддержке родителей '
@@ -38,6 +39,13 @@ CHAT_SYSTEM_PROMPT = (
     'не давая медицинских рекомендаций по существу. Если пользователь описывает угрозу жизни, судороги, '
     'потерю сознания, отравление или мысли о самоповреждении — посоветуй немедленно звонить 112.'
 )
+FEEDING_LABELS = {
+    'unknown': 'не указано',
+    'breast': 'грудное вскармливание',
+    'formula': 'смесь',
+    'mixed': 'смешанное кормление',
+    'solids': 'есть прикорм',
+}
 # Fast local guard: answered without calling the external model, matches the client-side wording.
 EMERGENCY_PATTERN = re.compile(
     r'не дыш|задыха|судорог|без созн|подавил|подавилась|подавился|отравил|проглотил батарейк|'
@@ -48,6 +56,12 @@ EMERGENCY_TEXT = (
     'кровотечение, отравление или риск навредить себе либо ребёнку — звоните 112. Не ждите ответа чата. '
     'Если рядом есть взрослый, которому доверяете, позовите его сейчас.'
 )
+DEEP_QUESTION_PATTERN = re.compile(
+    r'стресс|тревог|депресс|паник|выгоран|срыв|плач|не справля|устал|страшно|'
+    r'психолог|отношени|муж|жена|пап|послеродов|лактац|гв|смес|прикорм|'
+    r'развит|задерж|не говорит|не ходит|не сидит|не полз|истерик|сон.*плох|'
+    r'регресс|адаптац|садик|аутиз|сдвг|невролог'
+)
 
 
 class ChatTimeout(Exception):
@@ -56,11 +70,14 @@ class ChatTimeout(Exception):
 
 def chat_profile_context(profile):
     if not profile:
-        return ''
+        return 'Профиль не заполнен. Если вопрос зависит от возраста или срока, попроси заполнить профиль.'
     if profile['stage'] == 'pregnancy':
         anchor = date.fromisoformat(profile['weekDate'])
         current_week = min(42, profile['week'] + max(0, (date.today() - anchor).days) // 7)
-        return f'Учитываю профиль: беременность, примерно {current_week} полных недель.\n\n'
+        stage = f'беременность, примерно {current_week} полных недель'
+        parts = ['Контекст профиля для ответа:', f'- роль пользователя: {"мама" if profile["role"] == "mom" else "папа"}', f'- этап: {stage}']
+        parts.append('Учитывай срок. Если вопрос зависит от врача или обследований, не назначай их сам.')
+        return '\n'.join(parts)
     birthday = date.fromisoformat(profile['birthDate'])
     now = date.today()
     anniversary_day = min(birthday.day, calendar.monthrange(now.year, now.month)[1])
@@ -73,7 +90,75 @@ def chat_profile_context(profile):
     anchor_month = (birthday.month - 1 + total_months) % 12 + 1
     anchor = date(anchor_year, anchor_month, min(birthday.day, calendar.monthrange(anchor_year, anchor_month)[1]))
     days = max(0, (now - anchor).days)
-    return f'Учитываю профиль: ребёнку {years} г. {months} мес. {days} дн.\n\n'
+    stage = f'ребёнку {years} г. {months} мес. {days} дн.'
+    parts = [
+        'Контекст профиля для ответа:',
+        f'- роль пользователя: {"мама" if profile["role"] == "mom" else "папа"}',
+        f'- этап: {stage}',
+        f'- кормление: {FEEDING_LABELS.get(profile["feeding"], "не указано")}',
+    ]
+    if profile.get('sleep'):
+        parts.append(f'- сон: {profile["sleep"][:300]}')
+    if profile.get('health') and profile.get('healthConfirmed') is True:
+        parts.append(f'- подтверждённые особенности здоровья: {profile["health"][:500]}')
+    if profile.get('topics'):
+        parts.append(f'- выбранные темы: {", ".join(profile["topics"][:8])}')
+    parts.append('Учитывай возраст ребёнка. Если действие рано или рискованно для возраста, скажи об этом.')
+    return '\n'.join(parts)
+
+
+def chat_history_context(state):
+    messages = state.get('messages', [])[-10:]
+    if not messages:
+        return ''
+    lines = ['Последние сообщения этого диалога:']
+    for message in messages:
+        role = 'родитель' if message.get('role') == 'user' else 'помощник'
+        text = str(message.get('text', ''))[:700].replace('\n', ' ')
+        if text:
+            lines.append(f'- {role}: {text}')
+    return '\n'.join(lines)
+
+
+def medical_card_context(state):
+    entries = state.get('medicalCard', [])[-12:]
+    if not entries:
+        return ''
+    lines = ['Карта фактов, которые родитель уже сообщил. Не ставь по ним диагнозы и не назначай лечение:']
+    for entry in entries:
+        text = str(entry.get('text', ''))[:400].replace('\n', ' ')
+        date_text = str(entry.get('date', ''))[:10]
+        if text:
+            lines.append(f'- {date_text}: {text}')
+    return '\n'.join(lines)
+
+
+def build_chat_context(state):
+    blocks = [chat_profile_context(state.get('profile'))]
+    card = medical_card_context(state)
+    history = chat_history_context(state)
+    if card:
+        blocks.append(card)
+    if history:
+        blocks.append(history)
+    return '\n\n'.join(blocks)
+
+
+def extract_medical_card_entry(question):
+    normalized = question.lower().replace('ё', 'е')
+    if not re.search(r'сделал|сделали|прошли|были у|сходили|начал|начала|начали|назначил|назначили|привив|вакцин|анализ|осмотр|педиатр|невролог|узи', normalized):
+        return None
+    if re.search(r'как|что|почему|можно ли|нужно ли|стоит ли|когда', normalized) and not re.search(r'сделал|сделали|прошли|были у|сходили|начал|начала|начали|назначил|назначили', normalized):
+        return None
+    text = re.sub(r'\s+', ' ', question).strip()
+    return {'id': secrets.token_hex(8), 'date': date.today().isoformat(), 'text': text[:500], 'source': 'chat'}
+
+
+def choose_chat_model(question):
+    normalized = question.lower().replace('ё', 'е')
+    if len(normalized) > 350 or DEEP_QUESTION_PATTERN.search(normalized):
+        return CHAT_DEEP_MODEL
+    return CHAT_SIMPLE_MODEL
 
 
 def with_chat_deadline(call):
@@ -91,14 +176,15 @@ def with_chat_deadline(call):
         signal.signal(signal.SIGALRM, previous)
 
 
-def chat_answer(question):
+def chat_answer(question, context_text):
     api_key = os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')
     if not api_key:
         raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
     payload = json.dumps({
-        'model': CHAT_MODEL,
+        'model': choose_chat_model(question),
         'messages': [
             {'role': 'system', 'content': CHAT_SYSTEM_PROMPT},
+            {'role': 'system', 'content': context_text},
             {'role': 'user', 'content': question},
         ],
         'max_tokens': 450,
@@ -252,10 +338,20 @@ def identity(db, headers):
 
 def blank_state():
     return {'profile': None, 'saved': [], 'completed': [], 'events': {},
-            'preferences': {'repeat': 'never', 'push': False}, 'messages': []}
+            'preferences': {'repeat': 'never', 'push': False}, 'messages': [], 'medicalCard': []}
+
+
+def normalize_state(value):
+    if not isinstance(value, dict):
+        return blank_state()
+    state = {**blank_state(), **value}
+    if not isinstance(state.get('medicalCard'), list):
+        state['medicalCard'] = []
+    return state
 
 
 def validate_state(value):
+    value = normalize_state(value)
     if not isinstance(value, dict) or set(value) != set(blank_state()):
         raise AppError(400, 'Неверный формат данных.')
     p = value['profile']
@@ -307,12 +403,25 @@ def validate_state(value):
     for m in value['messages']:
         if not isinstance(m,dict) or set(m) != {'id','role','text'} or not isinstance(m['id'],str) or len(m['id']) > 100 or m['role'] not in ('user','assistant') or not isinstance(m['text'],str) or len(m['text']) > 2500:
             raise AppError(400, 'Неверный формат сообщения.')
+    if not isinstance(value['medicalCard'],list) or len(value['medicalCard']) > 120:
+        raise AppError(400, 'Карта наблюдений слишком длинная.')
+    for entry in value['medicalCard']:
+        if not isinstance(entry,dict) or set(entry) != {'id','date','text','source'}:
+            raise AppError(400, 'Неверная запись карты.')
+        if not isinstance(entry['id'],str) or not re.fullmatch(r'[a-zA-Z0-9-]{1,80}',entry['id']):
+            raise AppError(400, 'Неверная запись карты.')
+        try:
+            date.fromisoformat(entry['date'])
+        except (ValueError, TypeError):
+            raise AppError(400, 'Проверьте дату записи карты.')
+        if not isinstance(entry['text'],str) or not 1 <= len(entry['text']) <= 500 or entry['source'] not in ('chat','manual'):
+            raise AppError(400, 'Проверьте текст записи карты.')
     return value
 
 
 def payload(db, user):
     row = db.query('SELECT encrypted_data,revision FROM mh_state WHERE user_id=?', (user[0],)).fetchone()
-    return {'user': {'id':user[0],'email':user[1]}, 'state':unseal(row[0]), 'revision':row[1]}
+    return {'user': {'id':user[0],'email':user[1]}, 'state':normalize_state(unseal(row[0])), 'revision':row[1]}
 
 
 def handle_action(db, action, data, headers, ip):
@@ -361,14 +470,18 @@ def handle_action(db, action, data, headers, ip):
         if EMERGENCY_PATTERN.search(question.lower().replace('ё', 'е')):
             return {'answer': EMERGENCY_TEXT}, None
         state_row = db.query('SELECT encrypted_data FROM mh_state WHERE user_id=?', (user[0],)).fetchone()
-        profile = unseal(state_row[0]).get('profile') if state_row else None
+        state = normalize_state(unseal(state_row[0])) if state_row else blank_state()
         try:
-            answer = chat_answer(question)
+            answer = chat_answer(question, build_chat_context(state))
         except AppError:
             raise
         except (urllib.error.URLError, TimeoutError, ChatTimeout, KeyError, ValueError, IndexError):
             raise AppError(503, 'Помощник временно недоступен. Попробуйте ещё раз чуть позже.')
-        return {'answer': chat_profile_context(profile) + answer}, None
+        card_entry = extract_medical_card_entry(question)
+        response = {'answer': answer}
+        if card_entry:
+            response['cardEntry'] = card_entry
+        return response, None
     if action == 'save':
         state = validate_state(data.get('state'))
         revision = data.get('revision')

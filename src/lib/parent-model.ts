@@ -4,13 +4,15 @@ export type Profile = {
   sleep: string; health: string; healthConfirmed: boolean; topics: string[];
 };
 export type Message = {id:string;role:'user'|'assistant';text:string};
+export type MedicalCardEntry = {id:string;date:string;text:string;source:'chat'|'manual'};
 export type ParentState = {
   profile: Profile|null; saved:string[]; completed:string[];
   events:Record<string,{status:'read'|'hidden'|'later';until:number}>;
   preferences:{repeat:'never'|'day'|'week';push:boolean}; messages:Message[];
+  medicalCard:MedicalCardEntry[];
 };
 export const today = () => new Date().toISOString().slice(0,10);
-export const emptyState = (): ParentState => ({profile:null,saved:[],completed:[],events:{},preferences:{repeat:'never',push:false},messages:[]});
+export const emptyState = (): ParentState => ({profile:null,saved:[],completed:[],events:{},preferences:{repeat:'never',push:false},messages:[],medicalCard:[]});
 export const defaultProfile = (): Profile => ({role:'mom',stage:'pregnancy',birthDate:'',week:20,weekDate:today(),feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]});
 export function ageValue(p:Profile,now=new Date()) {
   if(p.stage==='pregnancy') return p.week + Math.floor((Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())-Date.parse(p.weekDate+'T00:00:00Z'))/604800000);
