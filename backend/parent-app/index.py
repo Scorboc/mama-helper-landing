@@ -8,6 +8,7 @@ import os
 import re
 import secrets
 import signal
+import socket
 import sqlite3
 import time
 import urllib.error
@@ -247,8 +248,17 @@ def chat_answer(question, context_text):
     })
 
     def call_provider():
-        with urllib.request.urlopen(request, timeout=CHAT_TIMEOUT) as response:
-            body = json.loads(response.read().decode())
+        original_getaddrinfo = socket.getaddrinfo
+
+        def ipv4_getaddrinfo(host, port, family=0, type=0, proto=0, flags=0):
+            return original_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+
+        socket.getaddrinfo = ipv4_getaddrinfo
+        try:
+            with urllib.request.urlopen(request, timeout=CHAT_TIMEOUT) as response:
+                body = json.loads(response.read().decode())
+        finally:
+            socket.getaddrinfo = original_getaddrinfo
         return body['choices'][0]['message']['content'].strip()
 
     return with_chat_deadline(call_provider)
@@ -526,25 +536,7 @@ def handle_action(db, action, data, headers, ip):
             answer = chat_answer(question, build_chat_context(state))
         except AppError:
             raise
-        except (urllib.error.URLError, TimeoutError, ChatTimeout, KeyError, ValueError, IndexError) as exc:
-            diag_code = 'timeout'
-            diag_status = ''
-            if isinstance(exc, urllib.error.HTTPError):
-                diag_status = str(exc.code)
-                try:
-                    err_body = json.loads(exc.read().decode())
-                    diag_code = ((err_body.get('error') or {}).get('code')
-                                 or (err_body.get('error') or {}).get('type')
-                                 or 'http_error')
-                except Exception:
-                    diag_code = 'http_error'
-            elif isinstance(exc, (ChatTimeout, TimeoutError)):
-                diag_code = 'timeout'
-            elif isinstance(exc, urllib.error.URLError):
-                diag_code = 'network_error'
-            else:
-                diag_code = 'parse_error'
-            print(f'CHAT_DIAG status={diag_status} code={diag_code}')
+        except (urllib.error.URLError, TimeoutError, ChatTimeout, KeyError, ValueError, IndexError):
             answer = fallback_chat_answer(question, state)
         card_entry = extract_medical_card_entry(question)
         response = {'answer': answer}
