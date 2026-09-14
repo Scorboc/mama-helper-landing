@@ -10,6 +10,7 @@ import { Fox } from '@/components/Critters';
 import './parent-app.css';
 
 export default function Account(){
+  const [invite]=useState(()=>new URLSearchParams(window.location.hash.slice(1)).get('invite') || '');
   const [mode,setMode]=useState('register');const [email,setEmail]=useState('');
   const [password,setPassword]=useState('');const [recovery,setRecovery]=useState('');
   const [consent,setConsent]=useState(false);const [visible,setVisible]=useState(false);
@@ -17,7 +18,8 @@ export default function Account(){
   const navigate=useNavigate();
   async function submit(e:FormEvent){e.preventDefault();if(busy)return;setBusy(true);setError('');
     try{
-      const result=await api<Session>(mode,{email,password,consent,recoveryCode:recovery});setPassword('');setRecovery('');
+      const result=await api<Session>(mode,{email,password,consent,recoveryCode:recovery,...(mode==='register'&&invite?{invite}:{})});setPassword('');setRecovery('');
+      if(invite)window.history.replaceState(null,'',window.location.pathname);
       if(result.recoveryCode)setNewCode(result.recoveryCode);else navigate('/cabinet');
     }catch(err){setError((err as Error).message);}finally{setBusy(false);}
   }

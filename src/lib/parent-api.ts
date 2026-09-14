@@ -1,6 +1,7 @@
 import { demoAnswer, emptyState, MedicalCardEntry, ParentState } from './parent-model';
 
-export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string;sessionToken?:string};
+export type Quota = {limit:number;used:number;remaining:number};
+export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string;sessionToken?:string;quota?:Quota};
 type LocalAccount = {id:string;email:string;salt:string;passwordHash:string;recoveryHash:string;state:ParentState;revision:number};
 
 const ACCOUNTS_KEY='mh_local_accounts_v1';
@@ -137,5 +138,26 @@ export async function api<T>(action:string,data:Record<string,unknown>={},timeou
     if(error instanceof DOMException&&error.name==='AbortError')throw new ApiError('Сервер не ответил вовремя. Попробуйте отправить ещё раз.',504);
     throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);
   }
+  finally{window.clearTimeout(timer);}
+}
+
+export async function streamChat(data:Record<string,unknown>,onText:(text:string)=>void):Promise<{answer:string;state:ParentState;revision:number;quota?:Quota}> {
+  const url=await apiUrl();
+  if(!url)throw new ApiError('Для AI-чата нужен подключённый сервер.',503);
+  const controller=new AbortController(),timer=window.setTimeout(()=>controller.abort(),75000);
+  try {
+    const headers:Record<string,string>={'Content-Type':'application/json'};
+    const token=localStorage.getItem(REMOTE_SESSION_KEY);if(token)headers.Authorization=`Bearer ${token}`;
+    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify({action:'chat',...data,stream:true}),signal:controller.signal});
+    if(!response.ok){const b=await response.json().catch(()=>({}));throw new ApiError(b.error || 'Сервис не ответил.',response.status);}
+    if(!response.body)throw new ApiError('Пустой ответ сервера.',502);
+    if(!response.headers.get('Content-Type')?.includes('application/x-ndjson'))return await response.json();
+    const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';let result:Awaited<ReturnType<typeof streamChat>>|undefined;
+    const line=(row:string)=>{if(!row.trim())return;const event=JSON.parse(row);if(event.type==='delta')onText(event.text);if(event.type==='error')throw new ApiError(event.error,event.status);if(event.type==='result')result=event.data;};
+    while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});let at;while((at=buffer.indexOf('\n'))>=0){line(buffer.slice(0,at));buffer=buffer.slice(at+1);}}
+    buffer+=decoder.decode();line(buffer);
+    if(!result?.state)throw new ApiError('Ответ прервался. Можно повторить запрос без двойного списания.',502);
+    return result;
+  }catch(e){if(e instanceof ApiError)throw e;throw new ApiError('Связь прервалась. Ваш вопрос сохранён для повторной отправки.',503);}
   finally{window.clearTimeout(timer);}
 }

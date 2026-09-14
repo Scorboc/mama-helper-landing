@@ -4,12 +4,15 @@ export type Profile = {
   week: number; weekDate: string; feeding: 'unknown'|'breast'|'formula'|'mixed'|'solids';
   sleep: string; health: string; healthConfirmed: boolean; topics: string[];
 };
-export type Message = {id:string;role:'user'|'assistant';text:string};
-export type MedicalCardEntry = {id:string;date:string;text:string;source:'chat'|'manual'};
+export type Message = {id:string;role:'user'|'assistant';text:string;model?:string;sourcesChecked?:boolean};
+export type MedicalCardEntry = {id:string;date:string;text:string;source:'chat'|'manual';confirmation?:'pending'|'parent'|'doctor'};
 export type ParentState = {
   profile: Profile|null; saved:string[]; completed:string[];
   events:Record<string,{status:'read'|'hidden'|'later';until:number}>;
-  preferences:{repeat:'never'|'day'|'week';push:boolean}; messages:Message[];
+  preferences:{repeat:'never'|'day'|'week';push:boolean;answerStyle?:'short'|'steps'|'detail'}; messages:Message[];
+  pendingMemory?:MedicalCardEntry[];
+  conversations?:{id:string;title:string;messages:Message[]}[];
+  conversationTitle?:string;
   medicalCard:MedicalCardEntry[];
 };
 export const today = () => new Date().toISOString().slice(0,10);
@@ -21,7 +24,14 @@ export function ageValue(p:Profile,now=new Date()) {
   const anniversaryDay=Math.min(d.getUTCDate(),new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,0)).getUTCDate());
   return (now.getUTCFullYear()-d.getUTCFullYear())*12+now.getUTCMonth()-d.getUTCMonth()-(now.getUTCDate()<anniversaryDay?1:0);
 }
-export const contextLabel=(p:Profile|null)=>!p?'Заполните профиль':p.stage==='child'?`Ребёнку ${ageValue(p)} мес.`:`Беременность · ${ageValue(p)} нед.`;
+export function contextLabel(p:Profile|null) {
+  if(!p)return 'Профиль не заполнен — возраст неизвестен';
+  if(p.stage==='pregnancy')return `Беременность · ${ageValue(p)} полных нед.`;
+  const months=ageValue(p), born=new Date(p.birthDate+'T00:00:00Z'), now=new Date();
+  const day=new Date(Date.UTC(born.getUTCFullYear(),born.getUTCMonth()+months,Math.min(born.getUTCDate(),new Date(Date.UTC(born.getUTCFullYear(),born.getUTCMonth()+months+1,0)).getUTCDate())));
+  const days=Math.floor((Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())-day.getTime())/86400000);
+  return `${p.childName?.trim() || 'Ваш ребёнок'} · ${months} мес. ${days} дн.`;
+}
 export type Milestone={id:string;stage:'pregnancy'|'child';age:number;topic:string;title:string;text:string;guide:string};
 export const milestones:Milestone[]=[
   {id:'pregnancy-12',stage:'pregnancy',age:12,topic:'pregnancy',title:'Собрать вопросы к приёму',text:'Уточните свой план наблюдения. Напоминание не назначает обследований.',guide:'visit'},
