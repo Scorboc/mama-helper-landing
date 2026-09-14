@@ -4,7 +4,11 @@ const ORIGIN = "https://mama-helper-landing--preview.poehali.dev",
 export default {
   async fetch(req, env) {
     const origin = req.headers.get("Origin") || "";
-    if (req.method === "OPTIONS") {\n      const headers = new Headers();\n      cors(headers, origin);\n      return new Response(null, { status: 204, headers });\n    }
+    if (req.method === "OPTIONS") {
+      const headers = new Headers();
+      cors(headers, origin);
+      return new Response(null, { status: 204, headers });
+    }
     if (req.method !== "POST")
       return out({ error: "POST required" }, 405, origin);
     let body;
