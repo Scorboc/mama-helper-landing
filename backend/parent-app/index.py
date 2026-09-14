@@ -25,7 +25,7 @@ SESSION_AGE = 7 * 86400
 COOKIE = 'mh_session'
 TOPICS = {'pregnancy', 'feeding', 'sleep', 'care', 'play', 'movement', 'wellbeing', 'dad'}
 
-CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
+CHAT_API_URL = os.environ.get('CHEAPAI_API_URL', 'https://cheapai.io/v1/chat/completions')
 # CheapAI uses OpenAI-compatible model ids. Keep it configurable so the model can
 # be changed in server secrets without publishing a new frontend build.
 CHAT_SIMPLE_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-5.6-luna')
