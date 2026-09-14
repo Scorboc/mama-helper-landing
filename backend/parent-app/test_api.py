@@ -113,6 +113,19 @@ class AccountsTest(unittest.TestCase):
         self.assertEqual(captured['question'],'Во что поиграть?')
         self.assertIn('ребёнку',captured['context_text'])
         self.assertIn('смешанное кормление',captured['context_text'])
+    def test_chat_creates_a_medical_card_entry_for_a_reported_fact(self):
+        c,_=self.register('card@example.test')
+        original=app.chat_answer
+        app.chat_answer=lambda question,context_text:'Поняла, сохраню этот факт.'
+        try:
+            response,body=self.call('chat',c,question='Сегодня были у педиатра и сделали прививку')
+        finally:
+            app.chat_answer=original
+        self.assertEqual(response['statusCode'],200)
+        self.assertEqual(body['cardEntry']['source'],'chat')
+        self.assertEqual(body['cardEntry']['text'],'Сегодня были у педиатра и сделали прививку')
+        self.assertEqual(body['cardEntry']['date'],date.today().isoformat())
+
     def test_events_and_deduplication(self):
         c,b=self.register('push2@example.test');state=b['state']
         state['profile']={'role':'dad','stage':'child','birthDate':date.today().isoformat(),'week':20,'weekDate':date.today().isoformat(),'feeding':'unknown','sleep':'','health':'','healthConfirmed':False,'topics':[]}
