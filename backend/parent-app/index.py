@@ -244,7 +244,10 @@ def chat_answer(question, context_text):
     }).encode()
     request = urllib.request.Request(CHAT_API_URL, data=payload, method='POST', headers={
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Authorization': 'Bearer ' + api_key,
+        'User-Agent': 'MamaHelper/0.1 (+https://mama-helper-landing--preview.poehali.dev)',
+        'Connection': 'close',
     })
 
     def call_provider():
