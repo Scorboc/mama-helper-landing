@@ -38,7 +38,7 @@ export default function ParentWorkspace(){
     setState(withUser);
     setChatBusy(true);
     try{
-      const {answer,cardEntry}=await api<{answer:string;cardEntry?:ParentState['medicalCard'][number]}>('chat',{question:q},60000);
+      const {answer,cardEntry}=await api<{answer:string;cardEntry?:ParentState['medicalCard'][number]}>('chat',{question:q},75000);
       const medicalCard=cardEntry?[cardEntry,...withUser.medicalCard].slice(0,120):withUser.medicalCard;
       const next={...withUser,medicalCard,messages:[...withUser.messages,{id:crypto.randomUUID(),role:'assistant' as const,text:answer}]};
       await save(next,'Переписка сохранена');
