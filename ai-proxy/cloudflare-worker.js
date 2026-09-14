@@ -72,7 +72,7 @@ export class AccountStore {
         u = {
           id,
           email,
-          password: await pwd(password),
+          password: await pwd(password, this.env.PROXY_TOKEN),
           recovery: await sha(recovery),
           state: blank(),
           revision: 0,
@@ -91,7 +91,7 @@ export class AccountStore {
         id = "test-account";
         let password;
         try {
-          password = await pwd("1");
+          password = await pwd("1", this.env.PROXY_TOKEN);
         } catch {
           throw new AppError(500, "Ошибка запуска аккаунта: AUTH-01");
         }
@@ -109,7 +109,14 @@ export class AccountStore {
           throw new AppError(500, "Ошибка запуска аккаунта: STORAGE-01");
         }
       }
-      if (!u || !(await match(String(d.password || ""), u.password)))
+      if (
+        !u ||
+        !(await match(
+          String(d.password || ""),
+          u.password,
+          this.env.PROXY_TOKEN,
+        ))
+      )
         throw new AppError(401, "Неверная почта или пароль.");
       return this.loginResponse(u);
     }
@@ -125,7 +132,7 @@ export class AccountStore {
       )
         throw new AppError(400, "Проверьте почту и код восстановления.");
       const recovery = code();
-      u.password = await pwd(password);
+      u.password = await pwd(password, this.env.PROXY_TOKEN);
       u.recovery = await sha(recovery);
       await this.removeSessions(id);
       await this.s.put("u:" + id, u);
@@ -150,7 +157,13 @@ export class AccountStore {
     }
     if (a === "chat") return this.chat(i.u, d);
     if (a === "delete") {
-      if (!(await match(String(d.password || ""), i.u.password)))
+      if (
+        !(await match(
+          String(d.password || ""),
+          i.u.password,
+          this.env.PROXY_TOKEN,
+        ))
+      )
         throw new AppError(401, "Неверный пароль.");
       await this.removeSessions(i.u.id);
       await this.s.delete(["u:" + i.u.id, "e:" + i.u.email]);
@@ -360,33 +373,38 @@ function pass(v) {
     throw new AppError(400, "Пароль должен содержать не меньше 12 символов.");
   return p;
 }
-async function pwd(p) {
+async function pwd(p, pepper) {
+  if (!pepper) throw new Error("password pepper is missing");
   const salt = random(16);
-  return { salt, hash: await pbkdf(p, salt) };
+  return { salt, hash: await pbkdf(p, salt, pepper) };
 }
-async function match(p, r) {
-  return !!r && (await pbkdf(p, r.salt)) === r.hash;
+async function match(p, r, pepper) {
+  return !!r && !!pepper && (await pbkdf(p, r.salt, pepper)) === r.hash;
 }
-async function pbkdf(p, salt) {
-  const k = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(p),
-    "PBKDF2",
-    false,
-    ["deriveBits"],
-  );
-  return hex(
-    await crypto.subtle.deriveBits(
-      {
-        name: "PBKDF2",
-        salt: enc.encode(salt),
-        iterations: 210000,
-        hash: "SHA-256",
-      },
-      k,
-      256,
-    ),
-  );
+async function pbkdf(p, salt, pepper) {
+  let material = enc.encode(`${pepper}:${p}`);
+  for (let stage = 0; stage < 3; stage++) {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      material,
+      "PBKDF2",
+      false,
+      ["deriveBits"],
+    );
+    material = new Uint8Array(
+      await crypto.subtle.deriveBits(
+        {
+          name: "PBKDF2",
+          salt: enc.encode(`${salt}:${stage}`),
+          iterations: 70000,
+          hash: "SHA-256",
+        },
+        key,
+        256,
+      ),
+    );
+  }
+  return hex(material);
 }
 async function sha(v) {
   return hex(await crypto.subtle.digest("SHA-256", enc.encode(v)));
