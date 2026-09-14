@@ -15,10 +15,10 @@ import { ageValue, contextLabel, defaultProfile, demoPrompts, dueMilestones, emp
 import { api, Session } from '@/lib/parent-api';
 import './parent-app.css';
 
-export default function ParentWorkspace(){
+export default function ParentWorkspace({initialTab='home'}:{initialTab?:string}){
   const [state,setState]=useState<ParentState>(emptyState);const [revision,setRevision]=useState(0);
   const [user,setUser]=useState<Session['user']|null>(null);const [loading,setLoading]=useState(true);
-  const [tab,setTab]=useState('home');const [error,setError]=useState('');const [notice,setNotice]=useState('');
+  const [tab,setTab]=useState(initialTab);const [error,setError]=useState('');const [notice,setNotice]=useState('');
   const [busy,setBusy]=useState(false);const lock=useRef(false);const [chatBusy,setChatBusy]=useState(false);
   const [draft,setDraft]=useState('');const [profileDraft,setProfileDraft]=useState<Profile>(defaultProfile);
   const [deleteOpen,setDeleteOpen]=useState(false);const [deletePassword,setDeletePassword]=useState('');
