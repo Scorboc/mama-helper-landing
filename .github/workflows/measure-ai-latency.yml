@@ -21,7 +21,7 @@ jobs:
           if not token:
               raise SystemExit('Missing CHEAPAI_API_KEY')
           url = 'https://cheapai.io/v1/chat/completions'
-          cases = [('default', {}), ('low', {'reasoning_effort':'low'}), ('stream-low', {'reasoning_effort':'low', 'stream':True})]
+          cases = [('stream', {'stream':True})]
           for name, options in cases:
               body = {'model':'gpt-5.6-luna', 'messages':[{'role':'user','content':'Ответь по-русски двумя предложениями: что такое игра в прятки?'}], 'max_tokens':180, **options}
               start = time.monotonic()
@@ -31,11 +31,18 @@ jobs:
                   request = urllib.request.Request(url, data=json.dumps(body).encode(), headers={'Authorization':'Bearer '+token, 'Content-Type':'application/json'})
                   with urllib.request.urlopen(request, timeout=40) as response:
                       status = response.status
+                      print(json.dumps({'content_type':response.headers.get('Content-Type')}), flush=True)
                       if options.get('stream'):
                           for line in response:
                               if time.monotonic()-start > 55:
                                   break
                               if not line.startswith(b'data:'):
+                                  if line.lstrip().startswith(b'{'):
+                                      try:
+                                          shape = json.loads(line)
+                                          print(json.dumps({'json_keys':list(shape) if isinstance(shape,dict) else [], 'has_choices':bool(shape.get('choices')) if isinstance(shape,dict) else False}), flush=True)
+                                      except ValueError:
+                                          pass
                                   continue
                               data = line[5:].strip()
                               if data == b'[DONE]':
