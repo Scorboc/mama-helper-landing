@@ -39,31 +39,16 @@ export default function ParentWorkspace({initialTab='home'}:{initialTab?:string}
     const retry=last?.role==='user'&&last.text===q;
     if(state.messages.length>=78&&!retry){setError('Начните новый чат, чтобы продолжить.');return;}
     lock.current=true;setBusy(true);setChatBusy(true);setError('');setNotice('');
-    const withUser=retry?state:{...state,messages:[...state.messages,{id:crypto.randomUUID(),role:'user' as const,text:q}]};
+    const messageId=retry?last.id:crypto.randomUUID();
+    const withUser=retry?state:{...state,messages:[...state.messages,{id:messageId,role:'user' as const,text:q}]};
     setState(withUser);
-    let phase:'question'|'answer'|'save'='question';
     try{
-      // Persist the question before waiting for AI; keep the returned revision
-      // locally so the second write never uses a stale React render.
-      const saved=await api<{revision:number}>('save',{state:withUser,revision});
-      setRevision(saved.revision);setDraft('');phase='answer';
-      const {answer,cardEntry}=await api<{answer:string;cardEntry?:ParentState['medicalCard'][number]}>('chat',{question:q},75000);
-      const medicalCard=cardEntry?[cardEntry,...withUser.medicalCard].slice(0,120):withUser.medicalCard;
-      const next={...withUser,medicalCard,messages:[...withUser.messages,{id:crypto.randomUUID(),role:'assistant' as const,text:answer}]};
-      setState(next);phase='save';
-      const completed=await api<{revision:number}>('save',{state:next,revision:saved.revision});
-      setRevision(completed.revision);setNotice('Переписка сохранена');
+      const result=await api<{answer:string;state:ParentState;revision:number}>('chat',{question:q,messageId,revision},75000);
+      setState(result.state);setRevision(result.revision);setDraft('');setNotice('Переписка сохранена');
     }catch(e){
       const detail=(e as Error).message;
-      if(phase==='answer'){
-        setDraft(current=>current||q);
-        setError('Ответ не получен. Ваш вопрос сохранён в переписке. Можно отправить его повторно. '+detail);
-      }else if(phase==='question'){
-        setDraft(current=>current||q);
-        setError('Не удалось подтвердить сохранение вопроса. Текст оставлен в чате и поле ввода. '+detail);
-      }else{
-        setError('Ответ показан, но сохранить его на сервере не удалось. Не закрывайте страницу. '+detail);
-      }
+      setDraft(current=>current||q);
+      setError('Ответ не получен. Текст оставлен на экране и в поле ввода — можно отправить повторно. '+detail);
     }finally{lock.current=false;setBusy(false);setChatBusy(false);}
   }
   async function submitProfile(e:FormEvent){e.preventDefault();const p=profileDraft;
