@@ -20,5 +20,5 @@ const initialized=stateWithProfile(emptyState(),born('2024-01-01'));
 assert.equal(initialized.events['child-0'].status,'hidden');
 assert.match(demoAnswer('Я хочу навредить себе'),/112/);
 assert.match(demoAnswer('Дайте дозировку лекарства'),/не рассчитываю дозы/);
-assert.match(demoAnswer('Мне нужна поддержка'),/пауз/);
+assert.match(demoAnswer('Мне нужна поддержка'),/маленький шаг/);
 console.log('Parent model checks passed: dates, thresholds, postponement, filters, safe demo fallback.');
