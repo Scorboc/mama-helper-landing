@@ -111,8 +111,11 @@ def chat_profile_context(profile):
     return '\n'.join(parts)
 
 
-def chat_history_context(state):
+def chat_history_context(state, current_question=''):
     messages = state.get('messages', [])[-10:]
+    if (messages and current_question and messages[-1].get('role') == 'user'
+            and str(messages[-1].get('text', '')).strip() == current_question.strip()):
+        messages = messages[:-1]
     if not messages:
         return ''
     lines = ['Последние сообщения этого диалога:']
@@ -137,10 +140,10 @@ def medical_card_context(state):
     return '\n'.join(lines)
 
 
-def build_chat_context(state):
+def build_chat_context(state, current_question=''):
     blocks = [chat_profile_context(state.get('profile'))]
     card = medical_card_context(state)
-    history = chat_history_context(state)
+    history = chat_history_context(state, current_question)
     if card:
         blocks.append(card)
     if history:
@@ -549,7 +552,7 @@ def handle_action(db, action, data, headers, ip):
         state_row = db.query('SELECT encrypted_data FROM mh_state WHERE user_id=?', (user[0],)).fetchone()
         state = normalize_state(unseal(state_row[0])) if state_row else blank_state()
         try:
-            answer = chat_answer(question, build_chat_context(state))
+            answer = chat_answer(question, build_chat_context(state, question))
         except AppError:
             raise
         except (urllib.error.URLError, TimeoutError, ChatTimeout, KeyError, ValueError, IndexError) as exc:
