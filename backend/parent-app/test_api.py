@@ -106,10 +106,12 @@ class AccountsTest(unittest.TestCase):
             return 'Тестовый ответ'
         app.chat_answer=fake_answer
         try:
-            response,body=self.call('chat',c,question='Во что поиграть?')
+            response,body=self.call('chat',c,question='Во что поиграть?',messageId='question-1',revision=1)
         finally:
             app.chat_answer=original
         self.assertEqual(response['statusCode'],200);self.assertEqual(body['answer'],'Тестовый ответ')
+        self.assertEqual(body['revision'],2)
+        self.assertEqual([m['role'] for m in body['state']['messages']],['user','assistant'])
         self.assertEqual(captured['question'],'Во что поиграть?')
         self.assertIn('ребёнку',captured['context_text'])
         self.assertIn('смешанное кормление',captured['context_text'])
@@ -118,13 +120,35 @@ class AccountsTest(unittest.TestCase):
         original=app.chat_answer
         app.chat_answer=lambda question,context_text:'Поняла, сохраню этот факт.'
         try:
-            response,body=self.call('chat',c,question='Сегодня были у педиатра и сделали прививку')
+            response,body=self.call('chat',c,question='Сегодня были у педиатра и сделали прививку',messageId='card-fact-1',revision=0)
         finally:
             app.chat_answer=original
         self.assertEqual(response['statusCode'],200)
         self.assertEqual(body['cardEntry']['source'],'chat')
         self.assertEqual(body['cardEntry']['text'],'Сегодня были у педиатра и сделали прививку')
         self.assertEqual(body['cardEntry']['date'],date.today().isoformat())
+        session=self.call('session',c)[1]
+        self.assertEqual(session['revision'],1)
+        self.assertEqual(session['state']['medicalCard'][0]['text'],'Сегодня были у педиатра и сделали прививку')
+        self.assertEqual(len(session['state']['messages']),2)
+
+    def test_chat_is_atomic_and_rejects_stale_revision(self):
+        c,_=self.register('atomic@example.test')
+        original=app.chat_answer
+        calls=[]
+        app.chat_answer=lambda question,context_text:(calls.append(question) or 'Атомарный ответ')
+        try:
+            first,body=self.call('chat',c,question='Во что поиграть?',messageId='stable-message-id',revision=0)
+            stale,_=self.call('chat',c,question='Другой вопрос',messageId='other-message-id',revision=0)
+            retry,retried=self.call('chat',c,question='Во что поиграть?',messageId='stable-message-id',revision=1)
+        finally:
+            app.chat_answer=original
+        self.assertEqual(first['statusCode'],200)
+        self.assertEqual(stale['statusCode'],409)
+        self.assertEqual(retry['statusCode'],200)
+        self.assertEqual(retried['answer'],'Атомарный ответ')
+        self.assertEqual(retried['revision'],1)
+        self.assertEqual(calls,['Во что поиграть?'])
 
     def test_events_and_deduplication(self):
         c,b=self.register('push2@example.test');state=b['state']
