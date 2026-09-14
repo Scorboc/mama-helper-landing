@@ -230,9 +230,12 @@ def with_chat_deadline(call):
 def chat_answer(question, context_text):
     if not CHAT_LIVE_ENABLED:
         raise ChatTimeout()
-    api_key = os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')
-    if not api_key:
-        raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
+    direct_api_key = os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')
+    using_proxy = CHAT_API_URL != DEFAULT_CHAT_API_URL
+    auth_token = os.environ.get('CHEAPAI_PROXY_TOKEN') if using_proxy else direct_api_key
+    if not auth_token:
+        message = 'Прокси чат-помощника не настроен.' if using_proxy else 'Владелец ещё не подключил ключ чат-помощника.'
+        raise AppError(503, message)
     payload = json.dumps({
         'model': choose_chat_model(question),
         'messages': [
@@ -243,9 +246,6 @@ def chat_answer(question, context_text):
         'max_tokens': 450,
         'temperature': 0.5,
     }).encode()
-    auth_token = os.environ.get('CHEAPAI_PROXY_TOKEN') if CHAT_API_URL != DEFAULT_CHAT_API_URL else api_key
-    if not auth_token:
-        raise AppError(503, 'Прокси чат-помощника не настроен.')
     request = urllib.request.Request(CHAT_API_URL, data=payload, method='POST', headers={
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -638,7 +638,11 @@ def handler(event, context=None):
             return respond(200,{
                 'ok': True,
                 'pushKey': os.environ.get('VAPID_PUBLIC_KEY',''),
-                'chatConfigured': bool(os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')),
+                'chatConfigured': bool(
+                    (CHAT_API_URL != DEFAULT_CHAT_API_URL and os.environ.get('CHEAPAI_PROXY_TOKEN'))
+                    or os.environ.get('CHEAPAI_API_KEY')
+                    or os.environ.get('CHEAP_AI_API_KEY')
+                ),
             })
         if data.get('action') == 'health':
             cipher()
