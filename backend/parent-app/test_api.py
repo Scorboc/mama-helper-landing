@@ -79,8 +79,8 @@ class AccountsTest(unittest.TestCase):
         state['profile']={'role':'mom','stage':'child','birthDate':(date.today()-timedelta(days=400)).isoformat(),'week':20,'weekDate':date.today().isoformat(),'feeding':'mixed','sleep':'просыпается ночью','health':'','healthConfirmed':False,'topics':['sleep','play']}
         self.assertEqual(self.call('save',c,state=state,revision=0)[0]['statusCode'],200)
         captured={};original=app.chat_answer
-        def fake_answer(question,profile):
-            captured.update(question=question,profile=profile)
+        def fake_answer(question,context_text):
+            captured.update(question=question,context_text=context_text)
             return 'Тестовый ответ'
         app.chat_answer=fake_answer
         try:
@@ -88,8 +88,9 @@ class AccountsTest(unittest.TestCase):
         finally:
             app.chat_answer=original
         self.assertEqual(response['statusCode'],200);self.assertEqual(body['answer'],'Тестовый ответ')
-        self.assertEqual(captured['profile']['birthDate'],state['profile']['birthDate'])
-        self.assertIn('ребёнок',app.chat_profile_context(captured['profile']))
+        self.assertEqual(captured['question'],'Во что поиграть?')
+        self.assertIn('ребёнку',captured['context_text'])
+        self.assertIn('смешанное кормление',captured['context_text'])
     def test_events_and_deduplication(self):
         c,b=self.register('push2@example.test');state=b['state']
         state['profile']={'role':'dad','stage':'child','birthDate':date.today().isoformat(),'week':20,'weekDate':date.today().isoformat(),'feeding':'unknown','sleep':'','health':'','healthConfirmed':False,'topics':[]}
