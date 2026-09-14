@@ -44,4 +44,14 @@ jobs:
           printf '%s' "$PROXY_TOKEN" | npx wrangler secret put PROXY_TOKEN
 
       - name: Deploy Worker
-        run: npm run deploy
+        run: |
+          set -o pipefail
+          npm run deploy 2>&1 | tee worker-deploy.log
+          grep -Eo 'https://[^[:space:]]+\.workers\.dev' worker-deploy.log | tail -n 1 > worker-url.txt
+          test -s worker-url.txt || echo 'Worker URL was not printed by Wrangler. Open Cloudflare Dashboard > Workers & Pages > Overview and search for mama-helper-ai-proxy.' > worker-url.txt
+
+      - name: Upload Worker URL
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-url
+          path: ai-proxy/worker-url.txt
