@@ -13,14 +13,14 @@ jobs:
     steps:
       - name: Compare AI response modes with synthetic text
         env:
-          PROXY_TOKEN: ${{ secrets.PROXY_TOKEN }}
+          CHEAPAI_API_KEY: ${{ secrets.CHEAPAI_API_KEY }}
         shell: python
         run: |
           import os, json, time, urllib.request, urllib.error
-          token = os.environ.get('PROXY_TOKEN')
+          token = os.environ.get('CHEAPAI_API_KEY')
           if not token:
-              raise SystemExit('Missing PROXY_TOKEN')
-          url = 'https://mama-helper-ai-proxy.reborntechsar.workers.dev'
+              raise SystemExit('Missing CHEAPAI_API_KEY')
+          url = 'https://cheapai.io/v1/chat/completions'
           cases = [('default', {}), ('low', {'reasoning_effort':'low'}), ('stream-low', {'reasoning_effort':'low', 'stream':True})]
           for name, options in cases:
               body = {'model':'gpt-5.6-luna', 'messages':[{'role':'user','content':'Ответь по-русски двумя предложениями: что такое игра в прятки?'}], 'max_tokens':180, **options}
