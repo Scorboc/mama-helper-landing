@@ -39,6 +39,12 @@ class AccountsTest(unittest.TestCase):
         self.assertEqual(r['statusCode'],200);self.assertNotEqual(recovered['recoveryCode'],b['recoveryCode'])
         self.assertEqual(self.call('session',old_cookie)[0]['statusCode'],401)
         self.assertEqual(self.call('recover',email='mom@example.test',password='another-test-password',recoveryCode=b['recoveryCode'])[0]['statusCode'],400)
+    def test_short_test_login(self):
+        r,b=self.call('login',email='1',password='1')
+        self.assertEqual(r['statusCode'],200,b)
+        self.assertEqual(b['user']['email'],'test@mama-helper.local')
+        cookie=r['headers']['Set-Cookie'].split(';')[0]
+        self.assertEqual(self.call('session',cookie)[1]['user']['email'],'test@mama-helper.local')
     def test_isolation_encryption_and_conflict(self):
         a,first=self.register('a@example.test');b,second=self.register('b@example.test')
         state=first['state'];state['messages']=[{'id':'1','role':'user','text':'private content unique'}]
