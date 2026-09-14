@@ -3,6 +3,8 @@
   "name": "mama-helper-ai-proxy",
   "main": "cloudflare-worker.js",
   "compatibility_date": "2026-09-14",
+  "durable_objects": {"bindings": [{"name": "ACCOUNT_STORE", "class_name": "AccountStore"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["AccountStore"]}],
   "observability": {
     "enabled": true
   }
