@@ -119,9 +119,17 @@ export async function api<T>(action:string,data:Record<string,unknown>={},timeou
   const controller=new AbortController();const timer=window.setTimeout(()=>controller.abort(),timeoutMs);
   try{
     const response=await fetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...data}),signal:controller.signal});
-    const body=await response.json();
-    if(!response.ok)throw new ApiError(typeof body.error==='string'?body.error:'Не удалось выполнить действие.',response.status);
+    const raw=await response.text();let body:Record<string,unknown>={};
+    try{body=raw?JSON.parse(raw):{};}catch{body={};}
+    if(!response.ok){
+      if(response.status===402)throw new ApiError('Сервис временно остановлен: исчерпан лимит облачных функций. Владелец уже получил уведомление.',402);
+      throw new ApiError(typeof body.error==='string'?body.error:'Не удалось выполнить действие.',response.status);
+    }
     return body as T;
-  }catch(error){if(error instanceof ApiError)throw error;throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);}
+  }catch(error){
+    if(error instanceof ApiError)throw error;
+    if(error instanceof DOMException&&error.name==='AbortError')throw new ApiError('Сервер не ответил вовремя. Попробуйте отправить ещё раз.',504);
+    throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);
+  }
   finally{window.clearTimeout(timer);}
 }
