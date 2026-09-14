@@ -1,10 +1,11 @@
 import { demoAnswer, emptyState, MedicalCardEntry, ParentState } from './parent-model';
 
-export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string};
+export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string;sessionToken?:string};
 type LocalAccount = {id:string;email:string;salt:string;passwordHash:string;recoveryHash:string;state:ParentState;revision:number};
 
 const ACCOUNTS_KEY='mh_local_accounts_v1';
 const SESSION_KEY='mh_local_session_v1';
+const REMOTE_SESSION_KEY='mh_remote_session_v1';
 let endpoint:Promise<string|null>|undefined;
 
 export class ApiError extends Error { constructor(message:string,public status:number){super(message);} }
@@ -118,13 +119,18 @@ export async function api<T>(action:string,data:Record<string,unknown>={},timeou
   if(!url)return localApi<T>(action,data);
   const controller=new AbortController();const timer=window.setTimeout(()=>controller.abort(),timeoutMs);
   try{
-    const response=await fetch(url,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,...data}),signal:controller.signal});
+    const token=localStorage.getItem(REMOTE_SESSION_KEY);
+    const headers:Record<string,string>={'Content-Type':'application/json'};
+    if(token)headers.Authorization=`Bearer ${token}`;
+    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify({action,...data}),signal:controller.signal});
     const raw=await response.text();let body:Record<string,unknown>={};
     try{body=raw?JSON.parse(raw):{};}catch{body={};}
     if(!response.ok){
       if(response.status===402)throw new ApiError('Сервис временно остановлен: исчерпан лимит облачных функций. Владелец уже получил уведомление.',402);
       throw new ApiError(typeof body.error==='string'?body.error:'Не удалось выполнить действие.',response.status);
     }
+    if(typeof body.sessionToken==='string')localStorage.setItem(REMOTE_SESSION_KEY,body.sessionToken);
+    if(action==='logout'||action==='delete')localStorage.removeItem(REMOTE_SESSION_KEY);
     return body as T;
   }catch(error){
     if(error instanceof ApiError)throw error;
