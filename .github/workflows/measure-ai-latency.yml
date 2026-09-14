@@ -1,0 +1,56 @@
+name: Measure AI latency
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/measure-ai-latency.yml']
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Compare AI response modes with synthetic text
+        env:
+          PROXY_TOKEN: ${{ secrets.PROXY_TOKEN }}
+        shell: python
+        run: |
+          import os, json, time, urllib.request, urllib.error
+          token = os.environ.get('PROXY_TOKEN')
+          if not token:
+              raise SystemExit('Missing PROXY_TOKEN')
+          url = 'https://mama-helper-ai-proxy.reborntechsar.workers.dev'
+          cases = [('default', {}), ('low', {'reasoning_effort':'low'}), ('stream-low', {'reasoning_effort':'low', 'stream':True})]
+          for name, options in cases:
+              body = {'model':'gpt-5.6-luna', 'messages':[{'role':'user','content':'Ответь по-русски двумя предложениями: что такое игра в прятки?'}], 'max_tokens':180, **options}
+              start = time.monotonic()
+              first = None
+              nonempty = False
+              try:
+                  request = urllib.request.Request(url, data=json.dumps(body).encode(), headers={'Authorization':'Bearer '+token, 'Content-Type':'application/json'})
+                  with urllib.request.urlopen(request, timeout=40) as response:
+                      status = response.status
+                      if options.get('stream'):
+                          for line in response:
+                              if time.monotonic()-start > 55:
+                                  break
+                              if not line.startswith(b'data:'):
+                                  continue
+                              data = line[5:].strip()
+                              if data == b'[DONE]':
+                                  break
+                              item = json.loads(data)
+                              delta = (item.get('choices') or [{}])[0].get('delta', {}).get('content')
+                              if delta:
+                                  nonempty = True
+                                  if first is None:
+                                      first = round(time.monotonic()-start, 2)
+                      else:
+                          item = json.load(response)
+                          nonempty = bool((item.get('choices') or [{}])[0].get('message', {}).get('content'))
+                  print(json.dumps({'case':name,'status':status,'total_seconds':round(time.monotonic()-start,2),'first_text_seconds':first,'nonempty':nonempty}), flush=True)
+              except urllib.error.HTTPError as error:
+                  print(json.dumps({'case':name,'status':error.code,'seconds':round(time.monotonic()-start,2)}), flush=True)
+              except Exception as error:
+                  print(json.dumps({'case':name,'error_type':type(error).__name__,'seconds':round(time.monotonic()-start,2)}), flush=True)
