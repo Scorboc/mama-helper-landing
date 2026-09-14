@@ -27,6 +27,7 @@ export default {
         headers: {
           "Content-Type": "application/json",
           Cookie: req.headers.get("Cookie") || "",
+          Authorization: req.headers.get("Authorization") || "",
         },
         body: JSON.stringify(body),
       }),
@@ -46,6 +47,7 @@ export class AccountStore {
       return await this.handle(
         await req.json(),
         req.headers.get("Cookie") || "",
+        req.headers.get("Authorization") || "",
       );
     } catch (e) {
       if (e instanceof AppError) return json({ error: e.message }, e.status);
@@ -53,7 +55,7 @@ export class AccountStore {
       return json({ error: "Сервис временно недоступен." }, 500);
     }
   }
-  async handle(d, cookies) {
+  async handle(d, cookies, authorization) {
     const a = d.action;
     if (a === "health")
       return json({ ok: true, database: true, platform: "cloudflare" });
@@ -142,7 +144,7 @@ export class AccountStore {
       await this.s.put("u:" + id, u);
       return this.loginResponse(u, recovery);
     }
-    const i = await this.identity(cookies);
+    const i = await this.identity(cookies, authorization);
     if (a === "session") return json(pub(i.u));
     if (a === "logout") {
       await this.s.delete("s:" + i.token);
@@ -241,13 +243,18 @@ export class AccountStore {
       throw new AppError(500, "Ошибка запуска аккаунта: SESSION-01");
     }
     return json(
-      { ...pub(u), ...(recovery ? { recoveryCode: recovery } : {}) },
+      {
+        ...pub(u),
+        sessionToken: token,
+        ...(recovery ? { recoveryCode: recovery } : {}),
+      },
       200,
       `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=604800`,
     );
   }
-  async identity(h) {
-    const token = cookie(h)[COOKIE];
+  async identity(h, authorization) {
+    const bearer = String(authorization || "").match(/^Bearer ([a-f0-9]{64})$/i);
+    const token = bearer?.[1] || cookie(h)[COOKIE];
     if (!token) throw new AppError(401, "Войдите в аккаунт.");
     const s = await this.s.get("s:" + token),
       u = s ? await this.s.get("u:" + s.uid) : null;
@@ -482,7 +489,7 @@ function cors(h, o) {
   if (o === ORIGIN) {
     h.set("Access-Control-Allow-Origin", o);
     h.set("Access-Control-Allow-Credentials", "true");
-    h.set("Access-Control-Allow-Headers", "Content-Type");
+    h.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
     h.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   }
   h.set("Cache-Control", "no-store");
