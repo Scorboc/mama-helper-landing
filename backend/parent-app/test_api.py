@@ -39,6 +39,12 @@ class AccountsTest(unittest.TestCase):
         self.assertEqual(r['statusCode'],200);self.assertNotEqual(recovered['recoveryCode'],b['recoveryCode'])
         self.assertEqual(self.call('session',old_cookie)[0]['statusCode'],401)
         self.assertEqual(self.call('recover',email='mom@example.test',password='another-test-password',recoveryCode=b['recoveryCode'])[0]['statusCode'],400)
+    def test_model_routing_for_everyday_and_sensitive_questions(self):
+        for question in ('Привет', 'Игры для развития ребенка', 'Во что папе поиграть с малышом?', 'Как выбрать книжку?'):
+            self.assertEqual(app.choose_chat_model(question), app.CHAT_SIMPLE_MODEL, question)
+        for question in ('Боюсь задержки развития', 'Ребенок не говорит', 'У меня паника', 'Как выбрать лечебную смесь?'):
+            self.assertEqual(app.choose_chat_model(question), app.CHAT_DEEP_MODEL, question)
+
     def test_short_test_login(self):
         r,b=self.call('login',email='1',password='1')
         self.assertEqual(r['statusCode'],200,b)
