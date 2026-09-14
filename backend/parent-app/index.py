@@ -61,8 +61,8 @@ EMERGENCY_TEXT = (
 )
 DEEP_QUESTION_PATTERN = re.compile(
     r'стресс|тревог|депресс|паник|выгоран|срыв|плач|не справля|устал|страшно|'
-    r'психолог|отношени|муж|жена|пап|послеродов|лактац|гв|смес|прикорм|'
-    r'развит|задерж|не говорит|не ходит|не сидит|не полз|истерик|сон.*плох|'
+    r'психолог|конфликт|ссор|послеродов|лактац|гв|смес|прикорм|'
+    r'задерж|не говорит|не ходит|не сидит|не полз|истерик|сон.*плох|'
     r'регресс|адаптац|садик|аутиз|сдвг|невролог'
 )
 
@@ -237,8 +237,9 @@ def chat_answer(question, context_text):
     auth_token = proxy_token if using_proxy else direct_api_key
     if not auth_token:
         raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
+    model = choose_chat_model(question)
     payload = json.dumps({
-        'model': choose_chat_model(question),
+        'model': model,
         'messages': [
             {'role': 'system', 'content': CHAT_SYSTEM_PROMPT},
             {'role': 'system', 'content': context_text},
