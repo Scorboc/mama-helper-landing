@@ -41,6 +41,7 @@ export class AccountStore {
   constructor(state, env) {
     this.s = state.storage;
     this.env = env;
+    this.accountLocks = new Map();
   }
   async fetch(req) {
     try {
@@ -55,7 +56,7 @@ export class AccountStore {
       return json({ error: "Сервис временно недоступен." }, 500);
     }
   }
-  async handle(d, cookies, authorization) {
+  async handle(d, cookies, authorization, locked = false) {
     const a = d.action;
     if (a === "health")
       return json({ ok: true, database: true, platform: "cloudflare" });
@@ -147,7 +148,22 @@ export class AccountStore {
       return this.loginResponse(u, recovery);
     }
     const i = await this.identity(cookies, authorization);
-    if (a === "session") return json(pub(i.u));
+    if (!locked) {
+      const previous = this.accountLocks.get(i.u.id) || Promise.resolve();
+      let release;
+      const current = new Promise(resolve => { release = resolve; });
+      this.accountLocks.set(i.u.id, current);
+      await previous;
+      try { return await this.handle(d, cookies, authorization, true); }
+      finally {
+        release();
+        if (this.accountLocks.get(i.u.id) === current) this.accountLocks.delete(i.u.id);
+      }
+    }
+    if (a === "session") {
+      const used = /^test-account-[234]$/.test(i.u.id) ? (await this.s.get("ai-quota-v1:" + i.u.id) || 0) : null;
+      return json({ ...pub(i.u), ...(used !== null ? { quota: { limit: 70, used, remaining: Math.max(0, 70 - used) } } : {}) });
+    }
     if (a === "logout") {
       await this.s.delete("s:" + i.token);
       return json({ ok: true }, 200, clearCookie());
@@ -214,15 +230,17 @@ export class AccountStore {
     }
     if (u.state.messages.length >= 80)
       throw new AppError(400, "История слишком длинная. Начните новый чат.");
-    const answer = emergency(q)
-      ? EMERGENCY
-      : restricted(q)
-        ? MEDICAL_BOUNDARY
-        : ageGuard(q, u.state.profile)
-          ? ageGuard(q, u.state.profile)
-        : inScope(q, u.state)
-          ? await ai(q, u.state, this.env)
-          : SCOPE_BOUNDARY;
+    const automatic = emergency(q) ? EMERGENCY
+      : restricted(q) ? MEDICAL_BOUNDARY
+      : ageGuard(q, u.state.profile)
+        || (!inScope(q, u.state) ? SCOPE_BOUNDARY : null);
+    const limited = /^test-account-[234]$/.test(u.id);
+    const quotaKey = "ai-quota-v1:" + u.id;
+    const used = limited ? (await this.s.get(quotaKey) || 0) : 0;
+    if (!automatic && limited && used >= 70)
+      throw new AppError(429, "Тестовый лимит исчерпан: использовано 70 из 70 AI-ответов. Обратитесь к организатору теста.");
+    const answer = automatic || await ai(q, u.state, this.env);
+    const charged = limited && !automatic;
     const cardEntry = answer === SCOPE_BOUNDARY || ageGuard(q, u.state.profile) ? null : fact(q);
     if (cardEntry)
       u.state.medicalCard = [cardEntry, ...u.state.medicalCard].slice(0, 120);
@@ -233,8 +251,12 @@ export class AccountStore {
     });
     u.state = valid(u.state);
     u.revision++;
-    await this.s.put("u:" + u.id, u);
+    await this.s.put({
+      ["u:" + u.id]: u,
+      ...(charged ? { [quotaKey]: used + 1 } : {}),
+    });
     return json({
+      ...(limited ? { quota: { limit: 70, used: used + (charged ? 1 : 0), remaining: Math.max(0, 70 - used - (charged ? 1 : 0)) } } : {}),
       answer,
       state: u.state,
       revision: u.revision,
