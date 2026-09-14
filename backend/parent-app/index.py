@@ -555,7 +555,7 @@ def handle_action(db, action, data, headers, ip):
         question = question.strip()
         state_row = db.query('SELECT encrypted_data,revision FROM mh_state WHERE user_id=?', (user[0],)).fetchone()
         state = normalize_state(unseal(state_row[0])) if state_row else blank_state()
-        if not state_row or state_row[1] != revision:
+        if not state_row or state_row[1] not in (revision, revision + 1):
             raise AppError(409, 'Данные изменились в другой вкладке. Перезагрузите страницу перед отправкой.')
 
         # A retry with the same client message id is idempotent. This matters when
@@ -565,10 +565,12 @@ def handle_action(db, action, data, headers, ip):
                 if message['role'] != 'user' or message['text'] != question:
                     raise AppError(409, 'Идентификатор сообщения уже использован.')
                 if index + 1 < len(state['messages']) and state['messages'][index + 1]['role'] == 'assistant':
-                    return {'answer': state['messages'][index + 1]['text'], 'state': state, 'revision': revision}, None
+                    return {'answer': state['messages'][index + 1]['text'], 'state': state, 'revision': state_row[1]}, None
                 state['messages'] = state['messages'][:index + 1]
                 break
         else:
+            if state_row[1] != revision:
+                raise AppError(409, 'Данные изменились в другой вкладке. Перезагрузите страницу перед отправкой.')
             state['messages'].append({'id': message_id, 'role': 'user', 'text': question})
 
         if len(state['messages']) >= 80:
