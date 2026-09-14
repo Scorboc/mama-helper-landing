@@ -545,38 +545,71 @@ def handle_action(db, action, data, headers, ip):
         question = data.get('question')
         if not isinstance(question, str) or not question.strip() or len(question) > 2000:
             raise AppError(400, 'Напишите вопрос длиной до 2000 символов.')
+        revision = data.get('revision')
+        if type(revision) is not int:
+            raise AppError(400, 'Неизвестная версия переписки.')
+        message_id = data.get('messageId')
+        if not isinstance(message_id, str) or not re.fullmatch(r'[a-zA-Z0-9-]{1,100}', message_id):
+            raise AppError(400, 'Неверный идентификатор сообщения.')
         rate_limit(db, 'chat:' + user[0], 30, 900)
         question = question.strip()
-        if EMERGENCY_PATTERN.search(question.lower().replace('ё', 'е')):
-            return {'answer': EMERGENCY_TEXT}, None
-        state_row = db.query('SELECT encrypted_data FROM mh_state WHERE user_id=?', (user[0],)).fetchone()
+        state_row = db.query('SELECT encrypted_data,revision FROM mh_state WHERE user_id=?', (user[0],)).fetchone()
         state = normalize_state(unseal(state_row[0])) if state_row else blank_state()
-        try:
-            answer = chat_answer(question, build_chat_context(state, question))
-        except AppError:
-            raise
-        except (urllib.error.URLError, TimeoutError, ChatTimeout, KeyError, ValueError, IndexError) as exc:
-            diag_code = 'timeout'
-            diag_status = ''
-            if isinstance(exc, urllib.error.HTTPError):
-                diag_status = str(exc.code)
-                try:
-                    err_body = json.loads(exc.read().decode())
-                    diag_code = ((err_body.get('error') or {}).get('code')
-                                 or (err_body.get('error') or {}).get('type')
-                                 or 'http_error')
-                except Exception:
-                    diag_code = 'http_error'
-            elif isinstance(exc, (ChatTimeout, TimeoutError)):
+        if not state_row or state_row[1] != revision:
+            raise AppError(409, 'Данные изменились в другой вкладке. Перезагрузите страницу перед отправкой.')
+
+        # A retry with the same client message id is idempotent. This matters when
+        # the server committed the answer but the browser lost the response.
+        for index, message in enumerate(state['messages']):
+            if message['id'] == message_id:
+                if message['role'] != 'user' or message['text'] != question:
+                    raise AppError(409, 'Идентификатор сообщения уже использован.')
+                if index + 1 < len(state['messages']) and state['messages'][index + 1]['role'] == 'assistant':
+                    return {'answer': state['messages'][index + 1]['text'], 'state': state, 'revision': revision}, None
+                state['messages'] = state['messages'][:index + 1]
+                break
+        else:
+            state['messages'].append({'id': message_id, 'role': 'user', 'text': question})
+
+        if len(state['messages']) >= 80:
+            raise AppError(400, 'История слишком длинная. Начните новый чат.')
+        if EMERGENCY_PATTERN.search(question.lower().replace('ё', 'е')):
+            answer = EMERGENCY_TEXT
+        else:
+            try:
+                answer = chat_answer(question, build_chat_context(state, question))
+            except AppError:
+                raise
+            except (urllib.error.URLError, TimeoutError, ChatTimeout, KeyError, ValueError, IndexError) as exc:
                 diag_code = 'timeout'
-            elif isinstance(exc, urllib.error.URLError):
-                diag_code = f'network_error:{exc.reason}'
-            else:
-                diag_code = 'parse_error'
-            print(f'CHAT_DIAG status={diag_status} code={diag_code}')
-            answer = fallback_chat_answer(question, state)
+                diag_status = ''
+                if isinstance(exc, urllib.error.HTTPError):
+                    diag_status = str(exc.code)
+                    try:
+                        err_body = json.loads(exc.read().decode())
+                        diag_code = ((err_body.get('error') or {}).get('code')
+                                     or (err_body.get('error') or {}).get('type')
+                                     or 'http_error')
+                    except Exception:
+                        diag_code = 'http_error'
+                elif isinstance(exc, (ChatTimeout, TimeoutError)):
+                    diag_code = 'timeout'
+                elif isinstance(exc, urllib.error.URLError):
+                    diag_code = f'network_error:{exc.reason}'
+                else:
+                    diag_code = 'parse_error'
+                print(f'CHAT_DIAG status={diag_status} code={diag_code}')
+                answer = fallback_chat_answer(question, state)
         card_entry = extract_medical_card_entry(question)
-        response = {'answer': answer}
+        if card_entry:
+            state['medicalCard'] = [card_entry, *state['medicalCard']][:120]
+        state['messages'].append({'id': secrets.token_hex(16), 'role': 'assistant', 'text': answer})
+        state = validate_state(state)
+        cur = db.query('UPDATE mh_state SET encrypted_data=?,revision=revision+1 WHERE user_id=? AND revision=?',
+                       (seal(state), user[0], revision))
+        if cur.rowcount != 1:
+            raise AppError(409, 'Данные изменились в другой вкладке. Перезагрузите страницу перед отправкой.')
+        response = {'answer': answer, 'state': state, 'revision': revision + 1}
         if card_entry:
             response['cardEntry'] = card_entry
         return response, None
