@@ -140,7 +140,7 @@ class AccountsTest(unittest.TestCase):
         try:
             first,body=self.call('chat',c,question='Во что поиграть?',messageId='stable-message-id',revision=0)
             stale,_=self.call('chat',c,question='Другой вопрос',messageId='other-message-id',revision=0)
-            retry,retried=self.call('chat',c,question='Во что поиграть?',messageId='stable-message-id',revision=1)
+            retry,retried=self.call('chat',c,question='Во что поиграть?',messageId='stable-message-id',revision=0)
         finally:
             app.chat_answer=original
         self.assertEqual(first['statusCode'],200)
