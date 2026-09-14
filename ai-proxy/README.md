@@ -15,5 +15,13 @@ Poehali backend secrets after deploy:
 - CHEAPAI_API_URL=https://your-worker.workers.dev
 - CHEAPAI_PROXY_TOKEN=<same PROXY_TOKEN>
 
-The current backend sends Authorization: Bearer CHEAPAI_API_KEY directly to CHEAPAI_API_URL.
-If this proxy is used, update backend to send PROXY_TOKEN to the proxy and let the proxy add the CheapAI key upstream.
+The backend is already prepared: when CHEAPAI_API_URL differs from the default CheapAI endpoint, it sends Authorization: Bearer CHEAPAI_PROXY_TOKEN to this proxy. The proxy then adds CHEAPAI_API_KEY only for the upstream CheapAI request.
+
+Deploy:
+```bash
+npm install
+npx wrangler login
+npx wrangler secret put CHEAPAI_API_KEY
+npx wrangler secret put PROXY_TOKEN
+npm run deploy
+```
