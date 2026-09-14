@@ -45,6 +45,16 @@ class AccountsTest(unittest.TestCase):
         for question in ('Боюсь задержки развития', 'Ребенок не говорит', 'У меня паника', 'Как выбрать лечебную смесь?'):
             self.assertEqual(app.choose_chat_model(question), app.CHAT_DEEP_MODEL, question)
 
+    def test_current_question_is_not_duplicated_in_ai_history(self):
+        state=app.blank_state()
+        state['messages']=[
+            {'id':'old','role':'assistant','text':'Старый ответ'},
+            {'id':'new','role':'user','text':'Во что поиграть?'},
+        ]
+        context=app.build_chat_context(state,'Во что поиграть?')
+        self.assertIn('Старый ответ',context)
+        self.assertNotIn('Во что поиграть?',context)
+
     def test_short_test_login(self):
         r,b=self.call('login',email='1',password='1')
         self.assertEqual(r['statusCode'],200,b)
