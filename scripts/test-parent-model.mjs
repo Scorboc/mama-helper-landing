@@ -19,6 +19,6 @@ state.profile.topics=['wellbeing'];assert.equal(dueMilestones(state,new Date('20
 const initialized=stateWithProfile(emptyState(),born('2024-01-01'));
 assert.equal(initialized.events['child-0'].status,'hidden');
 assert.match(demoAnswer('Я хочу навредить себе'),/112/);
-assert.match(demoAnswer('Дайте дозировку лекарства'),/не могу безопасно/);
+assert.match(demoAnswer('Дайте дозировку лекарства'),/не рассчитываю дозы/);
 assert.match(demoAnswer('Мне нужна поддержка'),/пауз/);
 console.log('Parent model checks passed: dates, thresholds, postponement, filters, safe demo fallback.');
