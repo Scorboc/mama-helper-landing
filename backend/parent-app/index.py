@@ -231,11 +231,12 @@ def chat_answer(question, context_text):
     if not CHAT_LIVE_ENABLED:
         raise ChatTimeout()
     direct_api_key = os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')
-    using_proxy = CHAT_API_URL != DEFAULT_CHAT_API_URL
-    auth_token = os.environ.get('CHEAPAI_PROXY_TOKEN') if using_proxy else direct_api_key
+    proxy_token = os.environ.get('CHEAPAI_PROXY_TOKEN')
+    using_proxy = CHAT_API_URL != DEFAULT_CHAT_API_URL and bool(proxy_token)
+    request_url = CHAT_API_URL if using_proxy else DEFAULT_CHAT_API_URL
+    auth_token = proxy_token if using_proxy else direct_api_key
     if not auth_token:
-        message = 'Прокси чат-помощника не настроен.' if using_proxy else 'Владелец ещё не подключил ключ чат-помощника.'
-        raise AppError(503, message)
+        raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
     payload = json.dumps({
         'model': choose_chat_model(question),
         'messages': [
@@ -246,7 +247,7 @@ def chat_answer(question, context_text):
         'max_tokens': 450,
         'temperature': 0.5,
     }).encode()
-    request = urllib.request.Request(CHAT_API_URL, data=payload, method='POST', headers={
+    request = urllib.request.Request(request_url, data=payload, method='POST', headers={
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': 'Bearer ' + auth_token,
