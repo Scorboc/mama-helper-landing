@@ -25,7 +25,8 @@ SESSION_AGE = 7 * 86400
 COOKIE = 'mh_session'
 TOPICS = {'pregnancy', 'feeding', 'sleep', 'care', 'play', 'movement', 'wellbeing', 'dad'}
 
-CHAT_API_URL = os.environ.get('CHEAPAI_API_URL', 'https://cheapai.io/v1/chat/completions')
+DEFAULT_CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
+CHAT_API_URL = os.environ.get('CHEAPAI_API_URL', DEFAULT_CHAT_API_URL)
 # CheapAI uses OpenAI-compatible model ids. Keep it configurable so the model can
 # be changed in server secrets without publishing a new frontend build.
 CHAT_SIMPLE_MODEL = os.environ.get('CHEAPAI_SIMPLE_MODEL', 'gpt-5.6-luna')
@@ -242,10 +243,13 @@ def chat_answer(question, context_text):
         'max_tokens': 450,
         'temperature': 0.5,
     }).encode()
+    auth_token = os.environ.get('CHEAPAI_PROXY_TOKEN') if CHAT_API_URL != DEFAULT_CHAT_API_URL else api_key
+    if not auth_token:
+        raise AppError(503, 'Прокси чат-помощника не настроен.')
     request = urllib.request.Request(CHAT_API_URL, data=payload, method='POST', headers={
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': 'Bearer ' + api_key,
+        'Authorization': 'Bearer ' + auth_token,
         'User-Agent': 'MamaHelper/0.1 (+https://mama-helper-landing--preview.poehali.dev)',
         'Connection': 'close',
     })
