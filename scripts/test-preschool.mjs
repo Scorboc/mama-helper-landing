@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const source=readFileSync(new URL('../src/lib/parent-model.ts',import.meta.url),'utf8');
+const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ES2022,target:ts.ScriptTarget.ES2022}}).outputText;
+const {defaultProfile,emptyState,demoPrompts,demoAnswer,dueMilestones,ageValue}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
+const now=new Date();const profile=months=>({...defaultProfile(),stage:'child',birthDate:new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-months,1)).toISOString().slice(0,10)});
+assert.match(demoPrompts(profile(36)).join(' '),/детскому саду/);
+assert.match(demoPrompts(profile(72)).join(' '),/школе/);
+assert.ok(!demoPrompts(profile(2)).join(' ').includes('школе'));
+assert.match(demoAnswer('Ребёнок не дышит перед школой',profile(72)),/112/);
+assert.match(demoAnswer('Как готовиться к школе?',profile(72)),/не проверка готовности/);
+assert.equal(ageValue(profile(83)),83);
+const state={...emptyState(),profile:profile(72)};
+assert.ok(dueMilestones(state).some(m=>m.id==='child-72'));
+state.profile.topics=['school'];assert.ok(dueMilestones(state).every(m=>m.topic==='school'));
+console.log('Preschool UI/model checks passed: prompts, age, emergency priority, milestones and topic filtering.');

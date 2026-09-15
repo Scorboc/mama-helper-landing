@@ -26,8 +26,8 @@ const Hero = () => {
             Поддержка для <span className="mark-hl">мамы и папы</span>.
           </h1>
           <p className="mt-3 max-w-[520px] text-[14px] leading-[1.5] text-muted-foreground sm:text-[15px]">
-            Беременность и первые три года: ответы в чате, забота о себе,
-            идеи общения и возрастные напоминания. Всё в своём темпе.
+            От беременности до 6 лет включительно: ответы в чате, забота о себе,
+            игры, детский сад и подготовка к школе. Всё в своём темпе.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">

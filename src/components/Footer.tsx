@@ -12,7 +12,7 @@ const Footer = () => (
             <span className="font-heading text-[16px] font-medium">Мамин помощник</span>
           </div>
           <p className="mt-2 max-w-[320px] text-[13px] leading-[1.5] text-muted-foreground">
-            Забота о малыше и поддержка родителей — от беременности до трёх лет.
+            Забота о малыше и поддержка родителей — от беременности до 6 лет включительно.
           </p>
         </div>
 
