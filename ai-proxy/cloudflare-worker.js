@@ -129,7 +129,7 @@ export class AccountStore {
     }
     if (a === "login") {
       const login = String(d.email || "").trim();
-      const testNumber = /^[1-5]$/.test(login) && String(d.password || "") === login
+      const testNumber = /^[1-6]$/.test(login) && String(d.password || "") === login
         ? login
         : "";
       const test = !!testNumber;
@@ -201,7 +201,7 @@ export class AccountStore {
       }
     }
     if (a === "session") {
-      const used = /^test-account-[2345]$/.test(i.u.id) ? (await this.s.get("ai-quota-v1:" + i.u.id) || 0) : null;
+      const used = /^test-account-[23456]$/.test(i.u.id) ? (await this.s.get("ai-quota-v1:" + i.u.id) || 0) : null;
       return json({ ...pub(i.u), ...(used !== null ? { quota: { limit: 70, used, remaining: Math.max(0, 70 - used) } } : {}) });
     }
     if (a === "logout") {
@@ -291,7 +291,7 @@ export class AccountStore {
       : childAge(u.state.profile)?.months>=84 ? 'По дате рождения ребёнку уже 7 лет или больше. Сейчас помощник поддерживает беременность и детей до 6 лет включительно. Для индивидуальных вопросов школьного возраста обратитесь к подходящему специалисту. Если дата в профиле ошибочна, исправьте её.'
       : ageGuard(q, u.state.profile)
         || (!inScope(q, u.state) ? SCOPE_BOUNDARY : null);
-    const limited = /^test-account-[2345]$/.test(u.id);
+    const limited = /^test-account-[23456]$/.test(u.id);
     const quotaKey = "ai-quota-v1:" + u.id;
     const used = limited ? (await this.s.get(quotaKey) || 0) : 0;
     if (!automatic && limited && used >= 70)
