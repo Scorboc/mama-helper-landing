@@ -209,6 +209,8 @@ export class AccountStore {
       return json({ ok: true }, 200, clearCookie());
     }
     if (a === "save") {
+      if (d.state?.profile?.stage==='child' && !String(d.state.profile.childName || '').trim())
+        throw new AppError(400,'Укажите имя ребёнка или домашнее имя.');
       if (d.state?.profile?.stage==='child' && d.state.profile.birthDate!==i.u.state.profile?.birthDate && childAge(d.state.profile)?.months>=84)
         throw new AppError(400,'Укажите дату рождения ребёнка до 6 лет включительно — младше 7 лет.');
       if (!Number.isInteger(d.revision) || d.revision !== i.u.revision)
