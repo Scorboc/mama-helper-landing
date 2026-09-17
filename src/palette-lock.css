@@ -3,8 +3,7 @@
  * builds. Keep the original palette in a separate, last-loaded stylesheet so
  * an older cached stylesheet cannot repaint the interface after the app loads.
  */
-:root,
-:root.dark {
+:root:not(.dark) {
   color-scheme: light;
   --background: 250 60% 97% !important;
   --foreground: 254 45% 20% !important;
@@ -56,7 +55,7 @@
 }
 
 .parent-workspace .cabinet-tabs {
-  background: #fff !important;
+  background: hsl(var(--card)) !important;
   border-color: transparent !important;
   box-shadow: 0 4px 14px hsl(276 36% 33% / 0.03) !important;
 }
@@ -103,4 +102,61 @@ html,
 body,
 #root {
   transition: none !important;
+}
+
+/* Muted violet night palette; preserve the original light palette above. */
+:root.dark {
+  color-scheme: dark;
+  --background: 249 22% 12%;
+  --foreground: 250 30% 93%;
+  --card: 249 20% 17%;
+  --card-foreground: 250 30% 93%;
+  --popover: 249 20% 19%;
+  --popover-foreground: 250 30% 93%;
+  --primary: 258 65% 72%;
+  --primary-foreground: 254 40% 14%;
+  --secondary: 250 22% 24%;
+  --secondary-foreground: 250 30% 93%;
+  --muted: 250 18% 22%;
+  --muted-foreground: 250 18% 73%;
+  --accent: 178 35% 32%;
+  --accent-foreground: 178 30% 94%;
+  --destructive: 350 65% 66%;
+  --destructive-foreground: 254 40% 14%;
+  --border: 250 18% 31%;
+  --input: 250 18% 31%;
+  --ring: 258 65% 72%;
+  --mark: 35 45% 30%;
+  --sage: 178 40% 65%;
+  --sage-soft: 178 25% 22%;
+  --pink: 350 65% 75%;
+  --pink-soft: 330 25% 24%;
+  --inner: 250 20% 22%;
+  --gold: 33 70% 70%;
+  --cream: 35 25% 23%;
+  --night: 232 65% 75%;
+  --fur: 258 65% 72%;
+  --violet: 258 65% 72%;
+  --violet-soft: 258 28% 25%;
+  --blue: 232 65% 75%;
+  --blue-soft: 232 28% 25%;
+  --teal: 178 40% 65%;
+  --coral: 350 65% 75%;
+  --orange: 33 70% 70%;
+}
+.brand-theme { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.theme-control { display: inline-flex; align-items: center; gap: 4px; border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 0 8px; background: hsl(var(--inner)); color: hsl(var(--foreground)); flex-shrink: 0; }
+.theme-control select { background: transparent; color: inherit; min-height: 44px; max-width: 94px; font-size: 13px; cursor: pointer; }
+.theme-control select:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.theme-control option { background: hsl(var(--card)); color: hsl(var(--foreground)); }
+.dark .care-quick button, .dark .service-stack select, .dark .care-hub select,
+.dark .guide-search input, .dark .guide-search button, .dark select.bg-white { background: hsl(var(--card)); color: hsl(var(--foreground)); }
+.dark .test-pill, .dark .steps-list li>span, .dark .parent-workspace .count { color: hsl(var(--gold)) !important; }
+.dark .care-new, .dark .parent-workspace .save-notice { color: hsl(var(--sage)) !important; }
+.dark .parent-workspace .form-error, .dark .account-page .form-error { background: hsl(var(--pink-soft)) !important; border-color: hsl(var(--destructive)) !important; color: hsl(var(--pink)) !important; }
+.dark .parent-workspace .bubble.user,
+.dark .parent-workspace .cabinet-tabs>button[data-state='active'] { color: hsl(var(--primary-foreground)); }
+@media (max-width: 480px) {
+  .cabinet-header { flex-wrap: wrap; }
+  .brand-theme { gap: 6px; }
 }
