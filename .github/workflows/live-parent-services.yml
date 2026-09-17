@@ -1,0 +1,22 @@
+name: Live parenting chat scenarios
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - scripts/smoke-services.mjs
+      - .github/workflows/live-parent-services.yml
+permissions:
+  contents: read
+jobs:
+  live-stream-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/smoke-services.mjs
+        env:
+          MAMA_API_URL: https://mama-helper-ai-proxy.reborntechsar.workers.dev

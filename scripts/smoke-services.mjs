@@ -8,8 +8,15 @@ const password=crypto.randomUUID()+crypto.randomUUID(),email=`qa-${crypto.random
 let token='',session;const report=[];
 async function call(action,data={}){
  const start=performance.now();const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Origin:origin,...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({action,...data}),signal:AbortSignal.timeout(75000)});
- const b=await r.json();if(!r.ok||b.error)throw Error(`${action}: ${r.status} ${b.error||'error'}`);
- return {...b,elapsedMs:Math.round(performance.now()-start)};
+ let b,firstTextMs=null;
+ if(data.stream&&r.headers.get('content-type')?.includes('application/x-ndjson')){
+  const reader=r.body.getReader(),decoder=new TextDecoder();let buffer='';
+  const consume=line=>{if(!line.trim())return;const event=JSON.parse(line);if(event.type==='error')throw Error(`${action}: ${event.status} ${event.error}`);if(event.type==='delta'&&event.text&&firstTextMs===null)firstTextMs=Math.round(performance.now()-start);if(event.type==='result')b=event.data;};
+  try{while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});let end;while((end=buffer.indexOf('\n'))>=0){consume(buffer.slice(0,end));buffer=buffer.slice(end+1);}}buffer+=decoder.decode();consume(buffer);}finally{await reader.cancel();}
+  if(!b)throw Error('Stream ended without a confirmed result');
+ }else b=await r.json();
+ if(!r.ok||b.error)throw Error(`${action}: ${r.status} ${b.error||'error'}`);
+ return {...b,elapsedMs:Math.round(performance.now()-start),firstTextMs};
 }
 try{
  await call('health');
@@ -32,7 +39,7 @@ try{
  ['emergency','Ребёнок не дышит'],
  ];
  for(const [name,question] of questions){
-  try{const result=await call('chat',{question,messageId:crypto.randomUUID(),revision:session.revision,checkSources:name==='sources'});assert.ok(result.answer?.length>15);if(name==='scope')assert.match(result.answer,/родител|беремен|ребён|ребен/);if(name==='emergency')assert.match(result.answer,/112/);assert.equal(result.state.care.diary.length,1);assert.equal(result.state.care.tasks.length,5);session={...session,...result};report.push({scenario:name,ok:true,elapsedMs:result.elapsedMs,model:result.state.messages.at(-1).model,sources:result.state.messages.at(-1).evidence?.sources.length||0});}
+  try{const result=await call('chat',{question,stream:true,messageId:crypto.randomUUID(),revision:session.revision,checkSources:name==='sources'});assert.ok(result.answer?.length>15);if(name==='scope')assert.match(result.answer,/родител|беремен|ребён|ребен/);if(name==='emergency')assert.match(result.answer,/112/);assert.equal(result.state.care.diary.length,1);assert.equal(result.state.care.tasks.length,5);session={...session,...result};report.push({scenario:name,ok:true,elapsedMs:result.elapsedMs,firstTextMs:result.firstTextMs,model:result.state.messages.at(-1).model,sources:result.state.messages.at(-1).evidence?.sources.length||0});console.log(`Scenario ${name}: complete in ${result.elapsedMs} ms, first text ${result.firstTextMs??'automatic'} ms`);}
   catch(e){report.push({scenario:name,ok:false,error:e.message});session=await call('session');}
  }
 }finally{
