@@ -15,10 +15,12 @@ assert.ok(!dueMilestones(state,new Date('2026-10-06T00:00:00Z')).some(x=>x.id===
 assert.ok(dueMilestones(state,new Date('2026-10-07T00:00:00Z')).some(x=>x.id==='child-6'));
 state.events['child-6']={status:'read',until:0};
 assert.ok(!dueMilestones(state,new Date('2026-10-08T00:00:00Z')).some(x=>x.id==='child-6'));
-state.profile.topics=['wellbeing'];assert.equal(dueMilestones(state,new Date('2026-10-08T00:00:00Z')).length,0);
+state.profile.topics=['wellbeing'];assert.ok(dueMilestones(state,new Date('2026-10-08T00:00:00Z')).some(x=>x.id==='child-0'));
+const almostSixMonths={...emptyState(),profile:born('2026-03-13')};
+assert.ok(dueMilestones(almostSixMonths,new Date('2026-09-06T12:00:00Z')).some(x=>x.id==='child-6'));
 const initialized=stateWithProfile(emptyState(),born('2024-01-01'));
 assert.equal(initialized.events['child-0'].status,'hidden');
 assert.match(demoAnswer('Я хочу навредить себе'),/112/);
 assert.match(demoAnswer('Дайте дозировку лекарства'),/не рассчитываю дозы/);
 assert.match(demoAnswer('Мне нужна поддержка'),/маленький шаг/);
-console.log('Parent model checks passed: dates, thresholds, postponement, filters, safe demo fallback.');
+console.log('Parent model checks passed: dates, one-week threshold, postponement, all topics and safe demo fallback.');

@@ -1,6 +1,5 @@
 // Shared, deterministic care logic. No diagnoses, inferred milestones or hidden writes.
 export const serviceCatalog = [
-  ['now','Ситуация сейчас','Короткий план на ближайшие минуты','Что происходит сейчас?'],
   ['play','Игра из того, что дома','Занятие по возрасту, времени и доступным вещам','Что есть дома и что интересно ребёнку?'],
   ['behavior','Понять поведение','Возможные объяснения и слова для разговора','Опишите ситуацию без оценки ребёнка'],
   ['dad','Папин режим','Посильные дела и время с ребёнком','Сколько времени есть и какая помощь нужна?'],
@@ -59,6 +58,12 @@ export function makeWeek(profile,care=emptyCare(),date=localDay()){
   if(!pool.length)pool=games.filter(g=>age>=g.min&&age<g.max);
   const offset=Math.floor(Date.parse(date)/86400000)%pool.length;
   return Array.from({length:5},(_,i)=>{const g=pool[(i+offset)%pool.length];return {id:`week-${date}-${g.id}-${i}`,template:g.id,title:g.title,detail:g.detail,date:addDays(date,i),status:'planned',feedback:''};});
+}
+export function dayIdeas(profile,care=emptyCare(),date=localDay()){
+  return makeWeek(profile,care,date).slice(0,4).map((item,index)=>({...item,id:`idea-${date}-${item.template}-${index}`,date}));
+}
+export function makeDayPlan(profile,care=emptyCare(),date=localDay()){
+  return dayIdeas(profile,care,date).slice(0,3).map((item,index)=>({...item,id:`day-${date}-${item.template}-${index}`}));
 }
 export function diarySummary(care,until=localDay()){
   const entries=care.diary.filter(d=>d.date>=addDays(until,-6)&&d.date<=until);

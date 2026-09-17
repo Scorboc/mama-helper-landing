@@ -13,5 +13,5 @@ assert.match(demoAnswer('Как готовиться к школе?',profile(72)
 assert.equal(ageValue(profile(83)),83);
 const state={...emptyState(),profile:profile(72)};
 assert.ok(dueMilestones(state).some(m=>m.id==='child-72'));
-state.profile.topics=['school'];assert.ok(dueMilestones(state).every(m=>m.topic==='school'));
-console.log('Preschool UI/model checks passed: prompts, age, emergency priority, milestones and topic filtering.');
+state.profile.topics=['school'];assert.ok(dueMilestones(state).some(m=>m.topic!=='school'));
+console.log('Preschool UI/model checks passed: prompts, age, emergency priority, milestones and all-topic access.');

@@ -11,6 +11,8 @@ export function localDay(now?:Date):string;
 export function addDays(date:string,n:number):string;
 export function monthsOld(profile:Profile|null,now?:Date):number|null;
 export function makeWeek(profile:Profile|null,care?:CareState,date?:string):CareTask[];
+export function dayIdeas(profile:Profile|null,care?:CareState,date?:string):CareTask[];
+export function makeDayPlan(profile:Profile|null,care?:CareState,date?:string):CareTask[];
 export function diarySummary(care:CareState,until?:string):{entries:number;sleepMinutes:number;sleepRecords:number;difficultDays:number;completed:number};
 export function safetyItems(care:CareState):string[][];
 export function careContext(care?:CareState):string;

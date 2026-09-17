@@ -50,8 +50,17 @@ export const milestones:Milestone[]=[
 ];
 export function dueMilestones(state:ParentState,now=new Date()):Milestone[]{
   const p=state.profile;if(!p)return [];
-  const age=ageValue(p,now);
-  return milestones.filter(m=>m.stage===p.stage && m.age<=age && (!p.topics.length||p.topics.includes(m.topic))).filter(m=>{
+  const available=(m:Milestone)=>{
+    const ready=new Date(now.getTime()+7*86400000);
+    if(p.stage==='pregnancy'){
+      const target=new Date(p.weekDate+'T00:00:00Z');target.setUTCDate(target.getUTCDate()+(m.age-p.week)*7);
+      return target<=ready;
+    }
+    const born=new Date(p.birthDate+'T00:00:00Z');
+    const target=new Date(Date.UTC(born.getUTCFullYear(),born.getUTCMonth()+m.age,Math.min(born.getUTCDate(),new Date(Date.UTC(born.getUTCFullYear(),born.getUTCMonth()+m.age+1,0)).getUTCDate())));
+    return target<=ready;
+  };
+  return milestones.filter(m=>m.stage===p.stage && available(m)).filter(m=>{
     const event=state.events[m.id];return !event || (event.status==='later' && event.until<=now.getTime());
   });
 }
@@ -68,11 +77,11 @@ const match = (text:string, expression:RegExp) => expression.test(text);
 
 function profileContext(profile:Profile|null) {
   if (!profile) return 'Сначала заполните профиль — тогда помощник сможет учитывать возраст или срок. ';
-  return `Сейчас в профиле: ${contextLabel(profile).toLowerCase()}. `;
+  return '';
 }
 
 function listReply(profile:Profile|null, intro:string, steps:string[], ending?:string) {
-  return `${profileContext(profile)}${intro}\n\n${steps.map((step,index)=>`${index+1}. ${step}`).join('\n')}\n\n${ending ?? 'Это безопасный демонстрационный сценарий: он не ставит диагнозы и не назначает лечение.'}`;
+  return `${profileContext(profile)}${intro}\n\n${steps.map((step,index)=>`${index+1}. ${step}`).join('\n')}${ending ? `\n\n${ending}` : ''}`;
 }
 
 function childAgeGroup(profile:Profile|null) {
@@ -106,7 +115,7 @@ export function demoAnswer(question:string, profile:Profile|null=null):string {
   const age = childAgeGroup(profile);
 
   if (match(q,/не дыш|задыха|судорог|без созн|подавил|подавилась|подавился|отравил|проглотил батарейк|сильн.*кровотеч|не хочу жить|суицид|покончить|убить себя|навредить себе|навредить ребенку/)) {
-    return 'Если прямо сейчас есть угроза жизни, затруднённое дыхание, судороги, потеря сознания, сильное кровотечение, отравление или риск навредить себе либо ребёнку — звоните 112. Не ждите ответа чата. Если рядом есть взрослый, которому доверяете, позовите его сейчас.';
+    return 'Сейчас нужна срочная помощь: позвоните 112. Не ждите ответа чата.';
   }
 
   if (match(q,/лекарств|таблетк|дозир|дозу|антибиотик|жаропонижа|витамин|капл[ие]/)) {
@@ -121,7 +130,7 @@ export function demoAnswer(question:string, profile:Profile|null=null):string {
     return listReply(profile, 'По описанию нельзя надёжно оценить состояние и назвать причину.', [
       'Отметьте, когда началось, что меняется и как ребёнок или мама чувствует себя между эпизодами.',
       'Не используйте чат для подбора лекарств, доз или диагноза.',
-      'Свяжитесь с врачом; при трудном дыхании, необычной сонливости, судорогах, сильной боли, сильном кровотечении или резком ухудшении — 112.'
+      'Если состояние быстро ухудшается, не продолжайте переписку и обратитесь за срочной помощью.'
     ], 'В полноценной версии помощник поможет подготовить короткий список наблюдений для врача, но не заменит осмотр.');
   }
 
@@ -139,7 +148,7 @@ export function demoAnswer(question:string, profile:Profile|null=null):string {
       'Назовите одному близкому конкретную просьбу: «побудь с ребёнком 20 минут», «привези еду» или «просто побудь на связи».',
       'Уберите одну необязательную задачу из сегодняшнего списка.',
       'Если тяжёлое состояние держится, мешает жить или появляются мысли о самоповреждении — обратитесь за очной психологической или медицинской помощью.'
-    ], 'Это не терапия, а бережный первый шаг. При риске навредить себе — 112.');
+    ], 'Это не терапия, а бережный первый шаг.');
   }
 
   if (match(q,/пап|муж|партнер.*помо|отец/)) {
@@ -303,5 +312,5 @@ export function demoAnswer(question:string, profile:Profile|null=null):string {
     'Развитие: «Во что поиграть?» или «Ребёнок не говорит — что делать?»',
     'Поддержка: «Мне тяжело» или «Как папе помочь?»',
     'Уход и покупки: «Как выбрать игрушку?» или «Как ухаживать за кожей?»'
-  ], 'Вопросы о симптомах, лекарствах и срочных состояниях демо не решает: там нужен врач, а при угрозе жизни — 112.');
+  ], 'Медицинские вопросы требуют отдельной оценки подходящего специалиста.');
 }
