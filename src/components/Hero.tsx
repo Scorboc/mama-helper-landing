@@ -4,10 +4,10 @@ const Hero = () => {
   return (
     <section id="top" className="px-3 pt-3 sm:px-5 sm:pt-5">
       <div className="tile relative mx-auto max-w-[1120px] overflow-hidden px-5 py-7 sm:px-8 sm:py-9">
-        <span className="blob -left-16 -top-16 h-56 w-56 bg-violet/25" />
-        <span className="blob -right-12 -top-10 h-52 w-52 bg-orange/25" />
-        <span className="blob -bottom-16 left-1/3 h-56 w-56 bg-teal/25" />
-        <span className="blob -bottom-12 -right-16 h-52 w-52 bg-coral/25" />
+        <span className="blob -left-16 -top-16 h-56 w-56 bg-violet/40" />
+        <span className="blob -right-12 -top-10 h-52 w-52 bg-orange/40" />
+        <span className="blob -bottom-16 left-1/3 h-56 w-56 bg-teal/40" />
+        <span className="blob -bottom-12 -right-16 h-52 w-52 bg-coral/40" />
 
         <Rattle className="pointer-events-none absolute left-2 top-6 hidden h-16 w-16 -rotate-12 lg:block" />
         <Socks className="pointer-events-none absolute right-3 top-8 hidden h-16 w-16 rotate-12 lg:block" />
@@ -33,7 +33,7 @@ const Hero = () => {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <a
               href="/account"
-              className="rounded-full bg-gradient-to-r from-violet to-blue px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5"
+              className="glass-btn px-6 py-3 text-[14px] font-semibold"
             >
               Создать личный кабинет
             </a>

@@ -131,6 +131,14 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
+    background-image:
+      radial-gradient(at 12% 8%, hsl(258 85% 62% / 0.5) 0, transparent 52%),
+      radial-gradient(at 88% 12%, hsl(33 92% 62% / 0.4) 0, transparent 48%),
+      radial-gradient(at 15% 88%, hsl(178 65% 55% / 0.35) 0, transparent 48%),
+      radial-gradient(at 92% 90%, hsl(350 80% 66% / 0.38) 0, transparent 48%),
+      radial-gradient(at 50% 45%, hsl(232 75% 62% / 0.2) 0, transparent 60%);
+    background-attachment: fixed;
+    background-color: hsl(var(--background));
   }
 
   h1,
@@ -143,7 +151,17 @@
 
 @layer components {
   .tile {
-    @apply rounded-[22px] bg-card p-4 shadow-[0_6px_20px_-8px_hsl(258_62%_49%_/_0.18)];
+    @apply relative rounded-[22px] border border-white/40 bg-white/55 p-4 shadow-[0_8px_28px_-10px_hsl(258_62%_49%_/_0.35)] backdrop-blur-xl;
+    background-image: linear-gradient(
+      155deg,
+      hsl(0 0% 100% / 0.65),
+      hsl(0 0% 100% / 0.15)
+    );
+  }
+
+  .tile::before {
+    content: "";
+    @apply pointer-events-none absolute inset-x-3 top-0 h-px rounded-full bg-gradient-to-r from-transparent via-white/80 to-transparent;
   }
 
   .cap {
@@ -156,5 +174,30 @@
 
   .blob {
     @apply pointer-events-none absolute rounded-full blur-3xl;
+  }
+
+  .glass-nav {
+    @apply relative border border-white/45 bg-white/45 backdrop-blur-2xl;
+    background-image: linear-gradient(
+      155deg,
+      hsl(0 0% 100% / 0.6),
+      hsl(0 0% 100% / 0.1)
+    );
+    box-shadow:
+      0 10px 32px -14px hsl(258 62% 49% / 0.4),
+      inset 0 1px 0 hsl(0 0% 100% / 0.6);
+  }
+
+  .glass-btn {
+    @apply relative overflow-hidden rounded-full bg-gradient-to-r from-violet via-blue to-violet bg-[length:200%_100%] text-white shadow-[0_10px_26px_-8px_hsl(258_62%_49%_/_0.65),inset_0_1px_0_hsl(0_0%_100%/0.5)] transition-all duration-300 hover:bg-[position:100%_0] hover:-translate-y-0.5;
+  }
+
+  .glass-btn::after {
+    content: "";
+    @apply pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-gradient-to-b from-white/40 to-transparent;
+  }
+
+  .glass-pill {
+    @apply relative rounded-full border border-white/50 bg-white/50 backdrop-blur-xl shadow-[inset_0_1px_0_hsl(0_0%_100%/0.6),0_6px_18px_-8px_hsl(258_62%_49%_/_0.35)];
   }
 }

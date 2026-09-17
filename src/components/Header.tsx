@@ -12,7 +12,7 @@ const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-5">
-      <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-3 rounded-[14px] bg-card/95 px-3 py-2 backdrop-blur">
+      <div className="glass-nav mx-auto flex max-w-[1120px] items-center justify-between gap-3 rounded-[18px] px-3 py-2">
         <a href="#top" className="flex items-center gap-2">
           <img src="/logo-mark.png" alt="Мамин помощник" className="h-10 w-auto" />
           <span className="font-heading text-[15px] font-medium">Мамин помощник</span>
@@ -33,14 +33,14 @@ const Header = () => {
         <div className="flex items-center gap-2">
           <a
             href="/cabinet"
-            className="hidden rounded-full bg-gradient-to-r from-violet to-blue px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_6px_16px_-6px_hsl(258_62%_49%_/_0.6)] transition-transform hover:-translate-y-0.5 sm:block"
+            className="glass-btn hidden px-5 py-2.5 text-[13px] font-semibold sm:block"
           >
             Личный кабинет
           </a>
           <button
             aria-label="Меню"
             onClick={() => setOpen((v) => !v)}
-            className="grid h-9 w-9 place-items-center rounded-[11px] bg-inner lg:hidden"
+            className="glass-pill grid h-9 w-9 place-items-center lg:hidden"
           >
             <Icon name={open ? 'X' : 'Menu'} size={18} />
           </button>
@@ -48,7 +48,7 @@ const Header = () => {
       </div>
 
       {open && (
-        <div className="mx-auto mt-2 max-w-[1120px] rounded-[14px] bg-card p-2 lg:hidden">
+        <div className="glass-nav mx-auto mt-2 max-w-[1120px] rounded-[18px] p-2 lg:hidden">
           {links.map((l) => (
             <a
               key={l.href}
