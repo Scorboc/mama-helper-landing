@@ -14,6 +14,7 @@ import { topics } from '@/data/parent-guide';
 import { ageValue, contextLabel, defaultProfile, demoPrompts, dueMilestones, emptyState, milestones, ParentState, Profile, stateWithProfile, today } from '@/lib/parent-model';
 import { ChatContext, AnswerFeedback, ConversationControls, MemoryReview } from '@/components/ChatCare';
 import { api, Session, Quota, streamChat } from '@/lib/parent-api';
+import ParentServices, {SaveAction, EvidencePassport, VoiceInput, ReadAnswer} from '@/components/ParentServices';
 import './parent-app.css';
 
 export default function ParentWorkspace({initialTab='home'}:{initialTab?:string}){
@@ -22,6 +23,7 @@ export default function ParentWorkspace({initialTab='home'}:{initialTab?:string}
   const [tab,setTab]=useState(initialTab);const [error,setError]=useState('');const [notice,setNotice]=useState('');
   const [busy,setBusy]=useState(false);const lock=useRef(false);const [chatBusy,setChatBusy]=useState(false);
   const [quota,setQuota]=useState<Quota>();const [partial,setPartial]=useState('');const [retryRequest,setRetryRequest]=useState<{question:string;messageId:string;revision:number}|null>(null);
+  const [checkSources,setCheckSources]=useState(false);
   const [draft,setDraft]=useState('');const [profileDraft,setProfileDraft]=useState<Profile>(defaultProfile);
   const [deleteOpen,setDeleteOpen]=useState(false);const [deletePassword,setDeletePassword]=useState('');
   const bottom=useRef<HTMLDivElement>(null);const [clock,setClock]=useState(Date.now());
@@ -42,7 +44,7 @@ export default function ParentWorkspace({initialTab='home'}:{initialTab?:string}
     if(state.messages.length>=78&&!retry){setError('Начните новый чат, чтобы продолжить.');return;}
     lock.current=true;setBusy(true);setChatBusy(true);setError('');setNotice('');
     const messageId=retryRequest?.question===q?retryRequest.messageId:retry?last.id:crypto.randomUUID();
-    const request={question:q,messageId,revision:retryRequest?.question===q?retryRequest.revision:revision};
+    const request={question:q,messageId,checkSources,revision:retryRequest?.question===q?retryRequest.revision:revision};
     setRetryRequest(request);setPartial('');setDraft('');
     const withUser=retry?state:{...state,messages:[...state.messages,{id:messageId,role:'user' as const,text:q}]};
     setState(withUser);
@@ -88,20 +90,20 @@ export default function ParentWorkspace({initialTab='home'}:{initialTab?:string}
     <main className="cabinet-main"><div className="cabinet-greeting"><div><span className="cap">{state.profile?.role==='dad'?'Папа, вы тоже важны':'Забота о малыше начинается с заботы о вас'}</span><h1>{state.profile?'Рады, что вы здесь':'Давайте познакомимся'}</h1><p className="muted mt-2">{contextLabel(state.profile)}</p></div><HeartCloud className="h-24 w-24 hidden sm:block"/></div>
     <Tabs value={tab} onValueChange={v=>{setTab(v);setError('');setNotice('');}}><TabsList className="cabinet-tabs"><TabsTrigger value="home"><Heart size={18}/>Мой день</TabsTrigger><TabsTrigger value="chat"><MessageCircle size={18}/>Чат</TabsTrigger><TabsTrigger value="advisor"><Bell size={18}/>Советник{due.length>0&&<span className="count">{due.length}</span>}</TabsTrigger><TabsTrigger value="card"><ClipboardList size={18}/>Карта{state.medicalCard.length>0&&<span className="count">{state.medicalCard.length}</span>}</TabsTrigger><TabsTrigger value="profile"><UserRound size={18}/>Профиль</TabsTrigger><TabsTrigger value="settings"><Settings size={18}/>Настройки</TabsTrigger></TabsList>
     {error&&<p role="alert" className="form-error my-4">{error}</p>}{notice&&<p role="status" className="save-notice">{notice}</p>}
-    <TabsContent value="home"><div className="home-grid"><section className="tile featured-card"><Fox className="h-16 w-16 mb-4"/><h2>{state.profile?'Не нужно разбираться во всём сразу':'Сначала — ваш этап'}</h2><p>{state.profile?'Задайте один вопрос в чате — помощник подскажет следующий понятный шаг.':'Укажите срок беременности или дату рождения. Так советник сможет показать подходящие возрастные темы.'}</p><Button onClick={()=>setTab(state.profile?'chat':'profile')}>{state.profile?'Открыть чат':'Заполнить профиль'}</Button></section><section className="tile"><Bell className="text-primary mb-4"/><h2>Возрастной советник</h2><p>Рекомендации по сроку беременности или возрасту ребёнка находятся в отдельном разделе и не отвлекают сразу после входа.</p><Button variant="outline" onClick={()=>setTab('advisor')}>Открыть советник</Button></section></div></TabsContent>
+    <TabsContent value="home"><ParentServices state={state} busy={busy||chatBusy} save={save} ask={q=>{setTab('chat');setDraft(q);}} onProfile={()=>setTab('profile')}/></TabsContent>
     <TabsContent value="chat"><section className="tile chat-card">
       <h2>Здесь можно спросить и выдохнуть</h2>
       <ChatContext state={state} quota={quota} onProfile={()=>setTab('profile')}/>
       <ConversationControls state={state} save={async (s,n)=>{const ok=await save(s,n);if(ok){setRetryRequest(null);setDraft('');}return ok;}} busy={busy||chatBusy}/>
       <div className="chat-log" role="log" aria-label="Переписка" aria-live="polite">
         {!state.messages.length&&<div className="bubble assistant"><span>Мамин помощник</span><p>Помогу обсудить сон, кормление, игры, уход, детский сад, подготовку к школе и то, как вы сами себя чувствуете. Маме и папе тоже нужна поддержка. Для советов по возрасту заполните профиль. Диагнозы и назначения — к врачу.</p></div>}
-        {state.messages.map(m=><div key={m.id} className={`bubble ${m.role}`}><span>{m.role==='user'?'Вы':'Мамин помощник'}</span><p>{m.text}</p>{m.role==='assistant'&&<><small className="muted">Интернет-поиск не выполнялся. Ответ может содержать ошибки.</small><AnswerFeedback message={m}/></>}</div>)}
+        {state.messages.map(m=><div key={m.id} className={`bubble ${m.role}`}><span>{m.role==='user'?'Вы':'Мамин помощник'}</span><p>{m.text}</p>{m.role==='assistant'&&<><EvidencePassport message={m}/><ReadAnswer text={m.text}/><SaveAction message={m} state={state} save={save} busy={busy||chatBusy}/><AnswerFeedback message={m}/></>}</div>)}
         {chatBusy&&<div className="bubble assistant"><span>Мамин помощник · ответ формируется</span><p>{partial||'Готовим ответ с учётом вашего профиля…'}</p></div>}<div ref={bottom}/>
       </div>
       {!chatBusy&&retryRequest&&<Button className="my-3" variant="outline" disabled={busy} onClick={()=>void send(retryRequest.question)}>Повторить отправку</Button>}
       <MemoryReview state={state} save={save} busy={busy} pendingOnly/>
       <div className="chat-prompts">{[...demoPrompts(state.profile).slice(0,4),state.profile?.role==='dad'?'Я папа, чувствую себя лишним':'Я мама, устала и чувствую вину','Как разделить заботу о ребёнке с партнёром?'].map(q=><button key={q} disabled={busy||chatBusy} onClick={()=>void send(q)}>{q}</button>)}</div>
-      <form className="chat-form" onSubmit={e=>{e.preventDefault();void send(draft);}}><Textarea value={draft} maxLength={2000} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();void send(draft);}}} placeholder="Напишите свой вопрос…" aria-label="Ваш вопрос"/><Button type="submit" disabled={busy||chatBusy||!draft.trim()} aria-label="Отправить"><Send size={20}/></Button></form>
+      <VoiceInput disabled={busy||chatBusy} onText={text=>setDraft(current=>(current?current+' ':'')+text)}/><label className="care-check mb-3 text-sm"><input type="checkbox" checked={checkSources} disabled={busy||chatBusy} onChange={e=>setCheckSources(e.target.checked)}/>Подключить официальный материал по теме (до 4 секунд дополнительно)</label><p className="muted text-sm mb-3">Загружаем подходящую страницу из ограниченного каталога. Это не поиск по всему интернету и не проверка каждого утверждения.</p><form className="chat-form" onSubmit={e=>{e.preventDefault();void send(draft);}}><Textarea value={draft} maxLength={2000} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();void send(draft);}}} placeholder="Напишите свой вопрос…" aria-label="Ваш вопрос"/><Button type="submit" disabled={busy||chatBusy||!draft.trim()} aria-label="Отправить"><Send size={20}/></Button></form>
       <p className="muted text-sm mt-3">Enter — отправить, Shift+Enter — новая строка. Ошибки сервиса не расходуют лимит.</p>
       <p className="muted text-sm mt-1">Помощник не ставит диагнозы и не назначает лечение. При угрозе жизни — 112. Не ждите ответа чата.</p>
     </section></TabsContent>

@@ -4,6 +4,7 @@ import Voices from '@/components/Voices';
 import HowItWorks from '@/components/HowItWorks';
 import Pricing from '@/components/Pricing';
 import Footer from '@/components/Footer';
+import WhatsNew from '@/components/WhatsNew';
 
 const Index = () => {
   return (
@@ -12,6 +13,7 @@ const Index = () => {
       <main>
         <Hero />
         <Voices />
+        <WhatsNew />
         <HowItWorks />
         <Pricing />
       </main>

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AccountStore } from './cloudflare-worker.js';
+import {emptyCare} from './services.js';
 
 function setup(n=5,used=0) {
   const data=new Map(), clone=v=>structuredClone(v);
@@ -15,6 +16,10 @@ function setup(n=5,used=0) {
   return {app,data,id,tasks,storage,calls:()=>calls,upstream:v=>upstream=v,cleanup:()=>globalThis.fetch=previousFetch,async ask(question='Во что поиграть с ребёнком?',messageId=crypto.randomUUID(),emit){const u=await storage.get('u:'+id);return app.handle({action:'chat',question,messageId,revision:u.revision},'','',false,emit);}};
 }
 async function scenario(fn,n=5,used=0){const s=setup(n,used);try{await fn(s);}finally{s.cleanup();}}
+
+test('care plan persists and is sent to AI, without archived conversations',()=>scenario(async s=>{const u=s.data.get('u:'+s.id);const care={...emptyCare(),tasks:[{id:'task',title:'Наша игра',detail:'Смотрели книгу',date:'2026-09-17',status:'done',result:'hard',feedback:'CARE_RESULT_SENTINEL'}]};await s.app.handle({action:'save',revision:0,state:{...u.state,care}},'','');s.upstream(options=>{assert.match(options.body,/CARE_RESULT_SENTINEL/);return Response.json({choices:[{message:{content:'Предложим более простую игру.'}}]});});await s.ask('Адаптируй игру для ребёнка');assert.equal(s.data.get('u:'+s.id).state.care.tasks.length,1);}));
+test('invalid diary is rejected before any write',()=>scenario(async s=>{const u=s.data.get('u:'+s.id);await assert.rejects(s.app.handle({action:'save',revision:0,state:{...u.state,care:{diary:[{minutes:-5}]}}},'',''),/дневник/);assert.equal(s.data.get('u:'+s.id).revision,0);}));
+test('answer passport does not claim independent validation',()=>scenario(async s=>{const b=await(await s.ask()).json();const e=b.state.messages.at(-1).evidence;assert.equal(e.sources.length,0);assert.match(e.limitation,/не запрашивалась/);}));
 
 test('accounts 2–6 each allow the 70th but not the 71st answer',async()=>{for(const n of [2,3,4,5,6])await scenario(async s=>{const b=await(await s.ask()).json();assert.equal(b.quota.remaining,0);await assert.rejects(s.ask(),/70 из 70/);assert.equal(s.calls(),1);},n,69);});
 test('account 1 has no test quota',()=>scenario(async s=>{await s.ask();assert.equal(s.calls(),1);},1,70));

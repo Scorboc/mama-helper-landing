@@ -1,0 +1,17 @@
+import type {Profile} from '../src/lib/parent-model';
+export type CareTask={id:string;template?:string;title:string;detail:string;date:string;status:'planned'|'done'|'skip';reviewDate?:string;result?:'helped'|'neutral'|'hard';feedback:string};
+export type DiaryEntry={id:string;date:string;kind:'sleep'|'feeding'|'mood'|'note';note:string;minutes?:number;mood?:''|'easy'|'mixed'|'hard'};
+export type Achievement={id:string;date:string;kind:'roll'|'crawl'|'stand'|'walk'|'custom';note:string};
+export type Appointment={id:string;date:string;reason:string;questions:string;instructions:string};
+export type CareState={tasks:CareTask[];diary:DiaryEntry[];achievements:Achievement[];appointments:Appointment[];checked:string[];followups:boolean};
+export const serviceCatalog:string[][];
+export function emptyCare():CareState;
+export function validateCare(raw?:unknown):CareState;
+export function localDay(now?:Date):string;
+export function addDays(date:string,n:number):string;
+export function monthsOld(profile:Profile|null,now?:Date):number|null;
+export function makeWeek(profile:Profile|null,care?:CareState,date?:string):CareTask[];
+export function diarySummary(care:CareState,until?:string):{entries:number;sleepMinutes:number;sleepRecords:number;difficultDays:number;completed:number};
+export function safetyItems(care:CareState):string[][];
+export function careContext(care?:CareState):string;
+export const CARE_RULES:string;

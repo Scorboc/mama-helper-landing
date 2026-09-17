@@ -1,12 +1,14 @@
+import type {CareState} from '../../ai-proxy/services';
 export type Profile = {
   childName?: string;
   role: 'mom' | 'dad'; stage: 'pregnancy' | 'child'; birthDate: string;
   week: number; weekDate: string; feeding: 'unknown'|'breast'|'formula'|'mixed'|'solids';
   sleep: string; health: string; healthConfirmed: boolean; topics: string[];
 };
-export type Message = {id:string;role:'user'|'assistant';text:string;model?:string;sourcesChecked?:boolean};
+export type Message = {id:string;role:'user'|'assistant';text:string;model?:string;sourcesChecked?:boolean;evidence?:{basis:string;checkedAt?:string;sources:{title:string;url:string}[];limitation:string}};
 export type MedicalCardEntry = {id:string;date:string;text:string;source:'chat'|'manual';confirmation?:'pending'|'parent'|'doctor'};
 export type ParentState = {
+  care?:CareState;
   profile: Profile|null; saved:string[]; completed:string[];
   events:Record<string,{status:'read'|'hidden'|'later';until:number}>;
   preferences:{repeat:'never'|'day'|'week';push:boolean;answerStyle?:'short'|'steps'|'detail'}; messages:Message[];

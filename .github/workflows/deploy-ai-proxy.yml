@@ -34,7 +34,7 @@ jobs:
           node-version: '22'
 
       - name: Test parenting safeguards
-        run: node --test care.test.mjs
+        run: node --test care.test.mjs services.test.mjs
 
       - name: Check required secrets
         run: |
@@ -63,3 +63,8 @@ jobs:
         with:
           name: worker-url
           path: ai-proxy/worker-url.txt
+
+      - name: Test ten live scenarios in a synthetic account
+        env:
+          MAMA_API_URL: https://mama-helper-ai-proxy.reborntechsar.workers.dev
+        run: node ../scripts/smoke-services.mjs
