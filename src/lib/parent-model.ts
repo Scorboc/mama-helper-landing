@@ -15,6 +15,8 @@ export type ParentState = {
   pendingMemory?:MedicalCardEntry[];
   conversations?:{id:string;title:string;messages:Message[]}[];
   conversationTitle?:string;
+  conversationId?:string;
+  conversationOrder?:string[];
   medicalCard:MedicalCardEntry[];
 };
 export const today = () => new Date().toISOString().slice(0,10);

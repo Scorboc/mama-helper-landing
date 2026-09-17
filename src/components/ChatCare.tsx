@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { conversationList, openConversation } from '@/lib/conversations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -19,17 +20,41 @@ export function AnswerFeedback({message}:{message?:Message}) {
 
 export function ConversationControls({state,save,busy}:{state:ParentState;save:Save;busy:boolean}) {
   const [title,setTitle]=useState('');
-  async function change(id?:string){
-    const threads=state.conversations || [];
-    const target=threads.find(t=>t.id===id);
-    if(!id&&threads.length>=20)return;
-    const nextTitle=title.trim().slice(0,80);
-    if(!id&&!nextTitle)return;
-    const previous={id:crypto.randomUUID(),title:state.conversationTitle || 'Общий разговор',messages:state.messages};
-    const saved=await save({...state,messages:target?.messages || [],conversationTitle:target?.title || nextTitle,conversations:[...(state.messages.length?[previous]:[]),...threads.filter(t=>t.id!==id)]},'Диалог открыт');
-    if(saved)setTitle('');
+  const [creating,setCreating]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const locked=busy||saving;
+  const threads=conversationList(state);
+  const activeId=state.conversationId || 'legacy-active';
+  async function change(request:{id:string}|{title:string}){
+    if(locked)return;
+    const next=openConversation(state,request);
+    if(next===state)return;
+    setSaving(true);
+    try { if(await save(next,'Диалог открыт')){setTitle('');setCreating(false);} }
+    finally {setSaving(false);}
   }
-  return <div className="space-y-3 mb-4"><div className="flex flex-wrap gap-2 items-center"><strong>{state.conversationTitle || 'Общий разговор'}</strong><select aria-label="Формат ответа" className="rounded-lg border bg-white p-2" disabled={busy} value={state.preferences.answerStyle || 'short'} onChange={e=>void save({...state,preferences:{...state.preferences,answerStyle:e.target.value as 'short'|'steps'|'detail'}},'Формат сохранён')}><option value="short">Коротко</option><option value="steps">По шагам</option><option value="detail">Подробнее</option></select></div><div className="flex flex-wrap gap-2"><Input className="max-w-xs" value={title} maxLength={80} disabled={busy} onChange={e=>setTitle(e.target.value)} placeholder="Тема нового диалога: сон, игры…" aria-label="Название нового диалога"/><Button variant="outline" disabled={busy||!title.trim()||(state.conversations?.length || 0)>=20} onClick={()=>void change()}>Новый диалог</Button></div>{!!state.conversations?.length&&<div className="flex flex-wrap gap-2">{state.conversations.map(t=><div key={t.id} className="flex rounded-lg border"><button type="button" className="px-3 py-2" disabled={busy} onClick={()=>void change(t.id)}>{t.title}</button><button type="button" className="px-2" aria-label={`Удалить диалог ${t.title}`} disabled={busy} onClick={()=>{if(window.confirm('Удалить этот диалог?'))void save({...state,conversations:state.conversations?.filter(x=>x.id!==t.id)},'Диалог удалён');}}>×</button></div>)}</div>}</div>;
+  return <div className="space-y-3 mb-4">
+    <nav aria-label="Диалоги" className="flex flex-wrap gap-2">
+      {threads.map(t=><button type="button" key={t.id} aria-current={t.id===activeId?'page':undefined}
+        disabled={locked} onClick={()=>void change({id:t.id})}
+        className={`min-h-11 max-w-full rounded-xl border px-4 py-2 text-left text-sm break-words transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${t.id===activeId?'bg-primary text-primary-foreground border-primary':'bg-background/40 hover:bg-secondary'}`}>{t.title}</button>)}
+      <Button type="button" variant="outline" disabled={locked||threads.length>=21} onClick={()=>setCreating(v=>!v)} aria-expanded={creating}>+ Новый диалог</Button>
+    </nav>
+    {creating&&<form className="flex flex-wrap gap-2" onSubmit={e=>{e.preventDefault();void change({title});}}>
+      <Input autoFocus className="max-w-xs" value={title} maxLength={80} disabled={locked} onChange={e=>setTitle(e.target.value)} placeholder="Например: Сон малыша" aria-label="Название нового диалога"/>
+      <Button type="submit" disabled={locked||!title.trim()}>Создать</Button>
+      <Button type="button" variant="ghost" disabled={locked} onClick={()=>setCreating(false)}>Отмена</Button>
+    </form>}
+    {threads.length>=21&&<p className="text-sm muted">Достигнут лимит: 21 диалог. Удалите ненужный в списке ниже.</p>}
+    <div className="flex flex-wrap gap-2 items-center">
+      <label className="text-sm">Формат ответа <select aria-label="Формат ответа" className="rounded-lg border bg-background p-2" disabled={locked} value={state.preferences.answerStyle || 'short'} onChange={e=>void save({...state,preferences:{...state.preferences,answerStyle:e.target.value as 'short'|'steps'|'detail'}},'Формат сохранён')}>
+        <option value="short">Коротко</option><option value="steps">По шагам</option><option value="detail">Подробнее</option>
+      </select></label>
+      {!!state.conversations?.length&&<details className="text-sm"><summary className="cursor-pointer p-2">Удаление диалогов</summary>
+        <div className="flex flex-wrap gap-2 p-2">{state.conversations.map(t=><Button key={t.id} type="button" variant="ghost" disabled={locked} aria-label={`Удалить диалог ${t.title}`} onClick={()=>{if(window.confirm(`Удалить диалог «${t.title}»?`))void save({...state,conversations:state.conversations?.filter(x=>x.id!==t.id),conversationOrder:state.conversationOrder?.filter(id=>id!==t.id)},'Диалог удалён');}}>Удалить «{t.title}»</Button>)}</div>
+      </details>}
+    </div>
+  </div>;
 }
 
 function MemoryItem({entry,pending,onSave,onRemove,busy}:{entry:MedicalCardEntry;pending:boolean;onSave:(entry:MedicalCardEntry)=>void;onRemove:()=>void;busy:boolean}) {
