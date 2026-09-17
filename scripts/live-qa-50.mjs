@@ -2,6 +2,7 @@ const API=process.env.MAMA_HELPER_API||'https://mama-helper-ai-proxy.reborntechs
 const ORIGIN=process.env.MAMA_HELPER_ORIGIN||'https://mama-helper-landing--preview.poehali.dev';
 const LOGIN=process.env.MAMA_HELPER_TEST_LOGIN;
 const PASSWORD=process.env.MAMA_HELPER_TEST_PASSWORD;
+const KEEP_DIALOG=process.env.MAMA_HELPER_KEEP_QA_DIALOG==='1';
 if(!LOGIN||!PASSWORD)throw Error('Set MAMA_HELPER_TEST_LOGIN and MAMA_HELPER_TEST_PASSWORD.');
 const questions=[
   'Ребёнок спит только на руках, как постепенно пробовать перекладывать?',
@@ -76,13 +77,27 @@ const results=[];
 try{
   for(const item of selected){
     const i=item.number-1;
-    await save({...state,messages:[],pendingMemory:[],conversations:[],conversationTitle:`Проверка ${String(item.number).padStart(2,'0')}`});
+    if(!KEEP_DIALOG)await save({...state,messages:[],pendingMemory:[],conversations:[],conversationTitle:`Проверка ${String(item.number).padStart(2,'0')}`});
+    else if(state.conversationTitle!=='Проверка 50 вопросов')await save({...state,messages:[],pendingMemory:[],conversations:[],conversationTitle:'Проверка 50 вопросов'});
     const messageId=crypto.randomUUID();let body,error='';
     for(let attempt=1;attempt<=2;attempt++){
       try{body=await call('chat',{question:item.question,messageId,revision});break;}
       catch(e){error=e.message;if(attempt<2)process.stderr.write(`[${item.number}/50] повтор после ошибки: ${error}\n`);}
     }
-    if(!body){results.push({number:item.number,question:item.question,answer:'',error,unwantedWarning:false,ageMention:false});process.stderr.write(`[${item.number}/50] не получен ответ\n`);continue;}
+    if(!body){
+      if(KEEP_DIALOG){
+        const refreshed=await call('login',{email:LOGIN,password:PASSWORD});revision=refreshed.revision;state=refreshed.state;
+        const at=state.messages.findIndex(message=>message.id===messageId);
+        const recovered=at>=0&&state.messages[at+1]?.role==='assistant'?state.messages[at+1].text:'';
+        if(recovered)body={revision,state,answer:recovered};
+        else{
+          const messages=state.messages.filter(message=>message.id!==messageId);
+          messages.push({id:messageId,role:'user',text:item.question},{id:crypto.randomUUID(),role:'assistant',text:'Ответ не получен из-за внешнего сетевого сбоя во время проверки.'});
+          await save({...state,messages,conversationTitle:'Проверка 50 вопросов'});
+        }
+      }
+      if(!body){results.push({number:item.number,question:item.question,answer:'',error,unwantedWarning:false,ageMention:false});process.stderr.write(`[${item.number}/50] не получен ответ\n`);continue;}
+    }
     revision=body.revision;state=body.state;
     const answer=body.answer||'';
     const ordinary=i!==47;
@@ -92,8 +107,9 @@ try{
     process.stderr.write(`[${item.number}/50] готово\n`);
   }
 }finally{
-  await save({...cleared(state),...preservedChat});
+  if(KEEP_DIALOG)await save({...cleared(state),messages:state.messages,conversationTitle:'Проверка 50 вопросов',conversations:[]});
+  else await save({...cleared(state),...preservedChat});
 }
-const report={runAt:new Date().toISOString(),count:results.length,unwantedWarnings:results.filter(r=>r.unwantedWarning).length,ageMentions:results.filter(r=>r.ageMention).length,failed:results.filter(r=>r.error||!r.answer).length,results};
+const report={runAt:new Date().toISOString(),mode:KEEP_DIALOG?'keep-review-dialogue':'restore-dialogue',count:results.length,unwantedWarnings:results.filter(r=>r.unwantedWarning).length,ageMentions:results.filter(r=>r.ageMention).length,failed:results.filter(r=>r.error||!r.answer).length,results};
 process.stdout.write(JSON.stringify(report,null,2)+'\n');
 if(report.count!==selected.length||report.failed||report.unwantedWarnings||report.ageMentions)process.exitCode=1;

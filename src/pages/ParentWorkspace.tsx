@@ -39,7 +39,7 @@ export default function ParentWorkspace({initialTab='home'}:{initialTab?:string}
     if(!q||busy||chatBusy||lock.current)return;
     const last=state.messages[state.messages.length-1];
     const retry=last?.role==='user'&&last.text===q;
-    if(state.messages.length>=78&&!retry){setError('Начните новый чат, чтобы продолжить.');return;}
+    if(state.messages.length>=118&&!retry){setError('Начните новый чат, чтобы продолжить.');return;}
     lock.current=true;setBusy(true);setChatBusy(true);setError('');setNotice('');
     const messageId=retryRequest?.question===q?retryRequest.messageId:retry?last.id:crypto.randomUUID();
     const request={question:q,messageId,revision:retryRequest?.question===q?retryRequest.revision:revision};

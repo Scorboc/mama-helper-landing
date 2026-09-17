@@ -285,7 +285,7 @@ export class AccountStore {
         );
       u.state.messages.push({ id: mid, role: "user", text: q });
     }
-    if (u.state.messages.length >= 80)
+    if (u.state.messages.length >= 120)
       throw new AppError(400, "История слишком длинная. Начните новый чат.");
     const automatic = emergency(q) ? EMERGENCY
       : restricted(q) ? MEDICAL_BOUNDARY
@@ -489,7 +489,7 @@ function valid(s) {
   }
   if (!Array.isArray(v.conversations || []) || (v.conversations || []).length > 20) throw new AppError(400,'Можно сохранить до 20 диалогов.');
   for (const thread of v.conversations || []) {
-    if (!thread || typeof thread.id!=='string' || typeof thread.title!=='string' || thread.title.length>80 || !Array.isArray(thread.messages) || thread.messages.length>80 || thread.messages.some(m=>!m || typeof m.id!=='string' || !['user','assistant'].includes(m.role) || typeof m.text!=='string' || m.text.length>2500)) throw new AppError(400,'Неверный диалог.');
+    if (!thread || typeof thread.id!=='string' || typeof thread.title!=='string' || thread.title.length>80 || !Array.isArray(thread.messages) || thread.messages.length>120 || thread.messages.some(m=>!m || typeof m.id!=='string' || !['user','assistant'].includes(m.role) || typeof m.text!=='string' || m.text.length>2500)) throw new AppError(400,'Неверный диалог.');
   }
   if (v.profile) {
     if (!['child','pregnancy'].includes(v.profile.stage) || !['mom','dad'].includes(v.profile.role)) throw new AppError(400,'Проверьте этап и роль в профиле.');
@@ -499,7 +499,7 @@ function valid(s) {
   }
   if (
     !Array.isArray(v.messages) ||
-    v.messages.length > 80 ||
+    v.messages.length > 120 ||
     v.messages.some(
       (m) =>
         !m ||
