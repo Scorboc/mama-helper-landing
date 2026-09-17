@@ -150,18 +150,43 @@
 }
 
 @layer components {
+  /* Liquid Glass: сильное размытие + радужная преломлённая кромка + блик */
   .tile {
-    @apply relative rounded-[22px] border border-white/40 bg-white/55 p-4 shadow-[0_8px_28px_-10px_hsl(258_62%_49%_/_0.35)] backdrop-blur-xl;
+    @apply relative rounded-[24px] border border-white/50 bg-white/35 p-4 shadow-[0_10px_36px_-10px_hsl(258_62%_49%_/_0.45),inset_0_1px_0_hsl(0_0%_100%/0.7),inset_0_-1px_0_hsl(258_62%_40%/0.12)] backdrop-blur-2xl backdrop-saturate-[1.8];
     background-image: linear-gradient(
       155deg,
-      hsl(0 0% 100% / 0.65),
-      hsl(0 0% 100% / 0.15)
+      hsl(0 0% 100% / 0.55),
+      hsl(0 0% 100% / 0.08) 55%,
+      hsl(258 60% 90% / 0.15)
     );
+    isolation: isolate;
   }
 
   .tile::before {
     content: "";
-    @apply pointer-events-none absolute inset-x-3 top-0 h-px rounded-full bg-gradient-to-r from-transparent via-white/80 to-transparent;
+    @apply pointer-events-none absolute inset-x-3 top-0 h-px rounded-full bg-gradient-to-r from-transparent via-white/90 to-transparent;
+  }
+
+  .tile::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-[24px];
+    padding: 1px;
+    background: conic-gradient(
+      from 200deg at 30% 0%,
+      hsl(280 90% 75% / 0.55),
+      hsl(35 90% 70% / 0.4) 25%,
+      transparent 45%,
+      transparent 65%,
+      hsl(178 70% 60% / 0.4) 85%,
+      hsl(280 90% 75% / 0.55)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    z-index: -1;
+    opacity: 0.9;
   }
 
   .cap {
@@ -177,27 +202,56 @@
   }
 
   .glass-nav {
-    @apply relative border border-white/45 bg-white/45 backdrop-blur-2xl;
+    @apply relative border border-white/55 bg-white/30 backdrop-blur-2xl backdrop-saturate-[1.8];
     background-image: linear-gradient(
       155deg,
-      hsl(0 0% 100% / 0.6),
-      hsl(0 0% 100% / 0.1)
+      hsl(0 0% 100% / 0.55),
+      hsl(0 0% 100% / 0.06)
     );
     box-shadow:
-      0 10px 32px -14px hsl(258 62% 49% / 0.4),
-      inset 0 1px 0 hsl(0 0% 100% / 0.6);
+      0 12px 36px -14px hsl(258 62% 49% / 0.5),
+      inset 0 1px 0 hsl(0 0% 100% / 0.75),
+      inset 0 -1px 0 hsl(258 62% 40% / 0.1);
+  }
+
+  .glass-nav::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-[inherit];
+    padding: 1px;
+    background: conic-gradient(
+      from 180deg at 50% 0%,
+      hsl(280 90% 75% / 0.5),
+      hsl(35 90% 70% / 0.35) 30%,
+      transparent 50%,
+      hsl(178 70% 60% / 0.35) 75%,
+      hsl(280 90% 75% / 0.5)
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
   }
 
   .glass-btn {
-    @apply relative overflow-hidden rounded-full bg-gradient-to-r from-violet via-blue to-violet bg-[length:200%_100%] text-white shadow-[0_10px_26px_-8px_hsl(258_62%_49%_/_0.65),inset_0_1px_0_hsl(0_0%_100%/0.5)] transition-all duration-300 hover:bg-[position:100%_0] hover:-translate-y-0.5;
+    @apply relative overflow-hidden rounded-full bg-gradient-to-r from-violet via-blue to-violet bg-[length:200%_100%] text-white shadow-[0_10px_28px_-8px_hsl(258_62%_49%_/_0.7),inset_0_1px_0_hsl(0_0%_100%/0.6),inset_0_-2px_4px_hsl(258_62%_25%/0.25)] backdrop-blur-md transition-all duration-300 hover:bg-[position:100%_0] hover:-translate-y-0.5 hover:shadow-[0_16px_34px_-8px_hsl(258_62%_49%_/_0.8),inset_0_1px_0_hsl(0_0%_100%/0.7)];
   }
 
   .glass-btn::after {
     content: "";
-    @apply pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-gradient-to-b from-white/40 to-transparent;
+    @apply pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-gradient-to-b from-white/50 to-transparent;
+  }
+
+  .glass-btn::before {
+    content: "";
+    @apply pointer-events-none absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-gradient-to-r from-white/30 to-transparent;
   }
 
   .glass-pill {
-    @apply relative rounded-full border border-white/50 bg-white/50 backdrop-blur-xl shadow-[inset_0_1px_0_hsl(0_0%_100%/0.6),0_6px_18px_-8px_hsl(258_62%_49%_/_0.35)];
+    @apply relative rounded-full border border-white/60 bg-white/40 backdrop-blur-xl backdrop-saturate-[1.8] shadow-[inset_0_1px_0_hsl(0_0%_100%/0.7),0_8px_22px_-8px_hsl(258_62%_49%_/_0.4)];
+  }
+
+  .glass-field {
+    @apply relative rounded-[14px] border border-white/55 bg-white/40 backdrop-blur-xl backdrop-saturate-[1.6] shadow-[inset_0_1px_2px_hsl(258_62%_40%/0.08),inset_0_1px_0_hsl(0_0%_100%/0.7)] transition-colors focus-within:border-primary/50 focus-within:bg-white/55;
   }
 }
