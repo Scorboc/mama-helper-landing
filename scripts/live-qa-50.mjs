@@ -55,6 +55,8 @@ const questions=[
   'Как безопасно организовать игровое место дома?',
   'Как составить простой план дня с ребёнком и не перегрузить его?',
 ];
+const requested=(process.env.MAMA_HELPER_QUESTION_NUMBERS||'').split(',').map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=questions.length);
+const selected=requested.length?requested.map(n=>({number:n,question:questions[n-1]})):questions.map((question,index)=>({number:index+1,question}));
 
 let cookie='',revision=0,state;
 async function call(action,data={}){
@@ -72,18 +74,26 @@ await save(cleared(state));
 await save({...state,profile:{childName:'Тест',role:'mom',stage:'child',birthDate:'2023-09-17',feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]}});
 const results=[];
 try{
-  for(let i=0;i<questions.length;i++){
-    await save({...state,messages:[],pendingMemory:[],conversations:[],conversationTitle:`Проверка ${String(i+1).padStart(2,'0')}`});
-    const body=await call('chat',{question:questions[i],messageId:crypto.randomUUID(),revision});
+  for(const item of selected){
+    const i=item.number-1;
+    await save({...state,messages:[],pendingMemory:[],conversations:[],conversationTitle:`Проверка ${String(item.number).padStart(2,'0')}`});
+    const messageId=crypto.randomUUID();let body,error='';
+    for(let attempt=1;attempt<=2;attempt++){
+      try{body=await call('chat',{question:item.question,messageId,revision});break;}
+      catch(e){error=e.message;if(attempt<2)process.stderr.write(`[${item.number}/50] повтор после ошибки: ${error}\n`);}
+    }
+    if(!body){results.push({number:item.number,question:item.question,answer:'',error,unwantedWarning:false,ageMention:false});process.stderr.write(`[${item.number}/50] не получен ответ\n`);continue;}
     revision=body.revision;state=body.state;
     const answer=body.answer||'';
     const ordinary=i!==47;
     const unwanted=ordinary&&/синюш|судорог|потер[яеию].*созн|\b112\b/i.test(answer);
-    results.push({number:i+1,question:questions[i],answer,unwantedWarning:unwanted});
+    const ageMention=/\bв (?:этом|таком) возрасте\b|\b\d+\s*(?:год|года|лет|месяц|месяца|месяцев|недел)/i.test(answer);
+    results.push({number:item.number,question:item.question,answer,unwantedWarning:unwanted,ageMention});
+    process.stderr.write(`[${item.number}/50] готово\n`);
   }
 }finally{
   await save({...cleared(state),...preservedChat});
 }
-const report={runAt:new Date().toISOString(),count:results.length,unwantedWarnings:results.filter(r=>r.unwantedWarning).length,failed:results.filter(r=>!r.answer).length,results};
+const report={runAt:new Date().toISOString(),count:results.length,unwantedWarnings:results.filter(r=>r.unwantedWarning).length,ageMentions:results.filter(r=>r.ageMention).length,failed:results.filter(r=>r.error||!r.answer).length,results};
 process.stdout.write(JSON.stringify(report,null,2)+'\n');
-if(report.count!==50||report.failed||report.unwantedWarnings)process.exitCode=1;
+if(report.count!==selected.length||report.failed||report.unwantedWarnings||report.ageMentions)process.exitCode=1;
