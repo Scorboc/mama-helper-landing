@@ -653,6 +653,9 @@ function inScope(q, state) {
   )
     return true;
   const last = [...state.messages].reverse().find(m=>m.role==='assistant');
+  const ageReply = /^(?:(?:ему|ей|реб[её]нку)\s+)?(?:[0-6]|один|одна|два|две|три|четыре|пять|шесть)\s*(?:год(?:а|иков)?|лет|месяц(?:а|ев)?)?\.?$/i.test(text);
+  const asksAge = /(?:сколько\s+(?:(?:ему|ей|реб[её]нку)\s*)?(?:лет|месяц(?:ев|а)?))|(?:какой\s+возраст)|(?:укажите\s+(?:его\s+)?возраст)|(?:возраст\s+реб[её]нка)/i.test(last?.text || '');
+  if (ageReply && asksAge && last?.text !== SCOPE_BOUNDARY) return true;
   return (
     text.length <= 60 &&
     /^(а |и |но |еще|как|почему|подробнее|что дальше|можно ли|какие)/i.test(text) &&
