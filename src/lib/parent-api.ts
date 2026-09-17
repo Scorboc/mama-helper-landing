@@ -115,7 +115,7 @@ async function localApi<T>(action:string,data:Record<string,unknown>):Promise<T>
   throw new ApiError('Неизвестное действие.',400);
 }
 
-export async function api<T>(action:string,data:Record<string,unknown>={},timeoutMs=15000):Promise<T>{
+export async function api<T>(action:string,data:Record<string,unknown>={},timeoutMs=60000):Promise<T>{
   const url=await apiUrl();
   if(!url)return localApi<T>(action,data);
   const controller=new AbortController();const timer=window.setTimeout(()=>controller.abort(),timeoutMs);
@@ -123,7 +123,8 @@ export async function api<T>(action:string,data:Record<string,unknown>={},timeou
     const token=localStorage.getItem(REMOTE_SESSION_KEY);
     const headers:Record<string,string>={'Content-Type':'application/json'};
     if(token)headers.Authorization=`Bearer ${token}`;
-    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify({action,...data}),signal:controller.signal});
+    const usesTokenOrCreatesOne=!!token||['login','register','recover'].includes(action);
+    const response=await fetch(url,{method:'POST',credentials:usesTokenOrCreatesOne?'omit':'include',headers,body:JSON.stringify({action,...data}),signal:controller.signal});
     const raw=await response.text();let body:Record<string,unknown>={};
     try{body=raw?JSON.parse(raw):{};}catch{body={};}
     if(!response.ok){
@@ -148,7 +149,7 @@ export async function streamChat(data:Record<string,unknown>,onText:(text:string
   try {
     const headers:Record<string,string>={'Content-Type':'application/json'};
     const token=localStorage.getItem(REMOTE_SESSION_KEY);if(token)headers.Authorization=`Bearer ${token}`;
-    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify({action:'chat',...data,stream:true}),signal:controller.signal});
+    const response=await fetch(url,{method:'POST',credentials:token?'omit':'include',headers,body:JSON.stringify({action:'chat',...data,stream:true}),signal:controller.signal});
     if(!response.ok){const b=await response.json().catch(()=>({}));throw new ApiError(b.error || 'Сервис не ответил.',response.status);}
     if(!response.body)throw new ApiError('Пустой ответ сервера.',502);
     if(!response.headers.get('Content-Type')?.includes('application/x-ndjson'))return await response.json();
