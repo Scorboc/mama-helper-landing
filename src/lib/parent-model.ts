@@ -1,6 +1,7 @@
 import type {CareState} from '../../ai-proxy/services';
 export type Profile = {
   childName?: string;
+  childSex?: 'female'|'male'|'unknown';
   role: 'mom' | 'dad'; stage: 'pregnancy' | 'child'; birthDate: string;
   week: number; weekDate: string; feeding: 'unknown'|'breast'|'formula'|'mixed'|'solids';
   sleep: string; health: string; healthConfirmed: boolean; topics: string[];
@@ -21,7 +22,7 @@ export type ParentState = {
 };
 export const today = () => new Date().toISOString().slice(0,10);
 export const emptyState = (): ParentState => ({profile:null,saved:[],completed:[],events:{},preferences:{repeat:'never',push:false},messages:[],medicalCard:[]});
-export const defaultProfile = (): Profile => ({childName:'',role:'mom',stage:'pregnancy',birthDate:'',week:20,weekDate:today(),feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]});
+export const defaultProfile = (): Profile => ({childName:'',childSex:'unknown',role:'mom',stage:'pregnancy',birthDate:'',week:20,weekDate:today(),feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]});
 export function ageValue(p:Profile,now=new Date()) {
   if(p.stage==='pregnancy') return p.week + Math.floor((Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())-Date.parse(p.weekDate+'T00:00:00Z'))/604800000);
   const d=new Date(p.birthDate+'T00:00:00Z');
