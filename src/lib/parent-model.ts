@@ -1,3 +1,4 @@
+import agePlayCatalog from '../../ai-proxy/age-play-catalog.json';
 import type {CareState} from '../../ai-proxy/services';
 export type Profile = {
   childName?: string;
@@ -9,10 +10,13 @@ export type Profile = {
 export type Message = {id:string;role:'user'|'assistant';text:string;model?:string;sourcesChecked?:boolean;evidence?:{basis:string;checkedAt?:string;sources:{title:string;url:string}[];limitation:string}};
 export type MedicalCardEntry = {id:string;date:string;text:string;source:'chat'|'manual';confirmation?:'pending'|'parent'|'doctor'};
 export type ParentState = {
+  activeChildId?:string;
+  children?:import('./family').ChildRecord[];
+  favorites?:import('./family').Favorite[];
   care?:CareState;
   profile: Profile|null; saved:string[]; completed:string[];
   events:Record<string,{status:'read'|'hidden'|'later';until:number}>;
-  preferences:{repeat:'never'|'day'|'week';push:boolean;answerStyle?:'short'|'steps'|'detail'}; messages:Message[];
+  preferences:{repeat:'never'|'day'|'week';push:boolean;answerStyle?:'short'|'steps'|'detail';timezone?:string;morningHour?:number;secondReminder?:boolean}; messages:Message[];
   pendingMemory?:MedicalCardEntry[];
   conversations?:{id:string;title:string;messages:Message[]}[];
   conversationTitle?:string;
@@ -46,7 +50,7 @@ export const milestones:Milestone[]=[
   {id:'child-6',stage:'child',age:6,topic:'feeding',title:'Вопросы о начале прикорма',text:'Возрастной ориентир для разговора с педиатром. Персональный план зависит от здоровья и готовности ребёнка.',guide:'feeding-notes'},
   {id:'child-12',stage:'child',age:12,topic:'play',title:'Новые идеи времени вместе',text:'Вернитесь к простым играм и общению с учётом интересов ребёнка.',guide:'talk-play'},
   {id:'child-24',stage:'child',age:24,topic:'play',title:'Общение в повседневных делах',text:'Выберите спокойное занятие вместе, без проверки навыков.',guide:'talk-play'},
-  {id:'child-36',stage:'child',age:36,topic:'preschool',title:'Детский сад и самостоятельность',text:'Можно обсудить знакомство с садиком и посильные бытовые дела. Это тема для разговора, не обязательный срок поступления.',guide:'preschool'},
+  {id:'child-36',stage:'child',age:36,topic:'preschool',title:'Детский сад и самостоятельность',text:'Начните с короткого знакомства с садиком и посильных бытовых дел. Готовность к поступлению индивидуальна.',guide:'preschool'},
   {id:'child-48',stage:'child',age:48,topic:'communication',title:'Играем и договариваемся',text:'Обсудите сюжетные игры, дружбу и понятные правила общения с учётом интересов ребёнка.',guide:'preschool'},
   {id:'child-60',stage:'child',age:60,topic:'school',title:'Подготовка к школе через игру',text:'Идеи для общения, самостоятельности и знакомства со словами и числами — без экзамена и обязательных навыков к дате.',guide:'school'},
   {id:'child-72',stage:'child',age:72,topic:'school',title:'Собираем вопросы о школе',text:'Поговорите о будущем распорядке и переживаниях ребёнка. Условия и сроки поступления уточняйте в выбранной школе.',guide:'school'},
@@ -54,7 +58,8 @@ export const milestones:Milestone[]=[
 export function dueMilestones(state:ParentState,now=new Date()):Milestone[]{
   const p=state.profile;if(!p)return [];
   const available=(m:Milestone)=>{
-    const ready=new Date(now.getTime()+7*86400000);
+    if(ageValue(p,now)>=m.age+(p.stage==='pregnancy'?8:m.age<12?3:m.age<36?6:12))return false;
+    const ready=now;
     if(p.stage==='pregnancy'){
       const target=new Date(p.weekDate+'T00:00:00Z');target.setUTCDate(target.getUTCDate()+(m.age-p.week)*7);
       return target<=ready;
@@ -93,12 +98,12 @@ function childAgeGroup(profile:Profile|null) {
   if (months < 6) return '0-5';
   if (months < 12) return '6-11';
   if (months < 24) return '12-23';
-  if (months >= 36 && months < 84) return 'preschool';
+  if (months >= 36 && months <= 84) return 'preschool';
   return '24-36';
 }
 
 export function demoPrompts(profile:Profile|null):string[] {
-  if(profile?.stage==='child'&&ageValue(profile)>=36&&ageValue(profile)<84) return ageValue(profile)<60
+  if(profile?.stage==='child'&&ageValue(profile)>=36&&ageValue(profile)<=84) return ageValue(profile)<60
     ? ['Как помочь ребёнку привыкнуть к детскому саду?', 'Во что поиграть для развития речи?', 'Как учить ребёнка договариваться?', 'Как поддержать самостоятельность ребёнка?']
     : ['Как готовиться к школе через игру?', 'Во что поиграть со словами и числами?', 'Ребёнок не хочет заниматься — как помочь?', 'Как обсудить с ребёнком страх перед школой?'];
   if (!profile) return ['Как заполнить профиль?', 'Как работает демо?', 'Мне нужна поддержка', 'Как папе помочь?', 'Как работают напоминания?'];
@@ -106,11 +111,12 @@ export function demoPrompts(profile:Profile|null):string[] {
     'Как подготовиться к приёму?', 'Как собрать сумку?', 'Как справиться с тревогой?',
     'Как папе помочь?', 'Как отдохнуть?', 'Как работают напоминания?'
   ];
-  return [
-    'Как организовать сон?', 'Как выбрать смесь?', 'Как вводить прикорм?',
-    'Во что поиграть?', 'Ребёнок капризничает', 'Как папе помочь?',
-    'Как выбрать игрушку?', 'Как работают напоминания?'
-  ];
+  const age=ageValue(profile);
+  const common=['Во что поиграть для развития?', 'Как поддержать речь?', 'Как папе помочь?', 'Как работают напоминания?'];
+  if(age<5)return ['Как устроить короткую игру с малышом?', 'Как организовать безопасный сон?', 'Вопрос об уходе за младенцем', ...common.slice(2)];
+  if(age<9)return ['Какие игры подходят сейчас?', 'Как поддержать свободные движения?', 'Что уточнить о прикорме?', ...common.slice(2)];
+  if(age<18)return ['Во что поиграть для координации рук?', 'Как поддержать жесты и первые слова?', 'Как чистить первые зубы без борьбы?', ...common.slice(2)];
+  return ['Какие сюжетные игры попробовать?', 'Как поддержать речь в игре?', 'Как помочь с самостоятельностью?', ...common.slice(2)];
 }
 
 export function demoAnswer(question:string, profile:Profile|null=null):string {
@@ -136,14 +142,6 @@ export function demoAnswer(question:string, profile:Profile|null=null):string {
       'Если состояние быстро ухудшается, не продолжайте переписку и обратитесь за срочной помощью.'
     ], 'В полноценной версии помощник поможет подготовить короткий список наблюдений для врача, но не заменит осмотр.');
   }
-
-  if(age==='preschool'&&/школ|садик|детск.*сад|букв|чтен|читать|сч[её]т|цифр|занима|друж|самостоятель|игр|реч|внимани/i.test(q)) return listReply(profile,
-    'Можно выбрать совместную игру по интересу ребёнка. Это не проверка готовности к школе.',
-    ['Предложите выбор: рассмотреть знакомую книгу или придумать историю с игрушками.',
-     'Попросите ребёнка выбрать героя и рассказать, что случится дальше. Если трудно, начните сами и предложите продолжить.',
-     'Меняйтесь ролями. Можно упростить игру до выбора картинки или усложнить, придумав другой конец истории.',
-     'Если ребёнок устал или не хочет продолжать, остановитесь. Навыки не нужно проверять сравнением с другими детьми.'],
-    'Это демонстрационный пример. Персональный AI-чат может предложить другие занятия с учётом вашего вопроса.');
 
   if (match(q,/стресс|тревог|паник|устал|выгор|тяжело|не справля|плачу|одиноко|поддержк|депрес/)) {
     return listReply(profile, 'Сейчас не нужно решать всю жизнь за один вечер. Выберите один маленький шаг на ближайшие 10 минут.', [
@@ -200,24 +198,20 @@ export function demoAnswer(question:string, profile:Profile|null=null):string {
   }
 
   if (match(q,/игр|играт|занят|развива|игрушк|скук|чем заняться/)) {
-    const ideas:Record<string,string[]> = {
-      '0-5':['говорить с ребёнком о том, что происходит вокруг','медленно показывать один безопасный предмет и ждать реакции','делать паузы в песенке или игре «ку-ку»'],
-      '6-11':['искать спрятанный безопасный предмет','перекладывать крупные безопасные предметы из ёмкости в ёмкость','повторять короткие звуки, жесты и песенки с паузами'],
-      '12-23':['строить и разрушать башню','искать знакомый предмет по простой подсказке','включать ребёнка в безопасное бытовое дело: положить, принести, выбрать'],
-      '24-36':['сюжетно играть с куклой или машинкой','сортировать предметы по простому признаку','называть действия на прогулке и оставлять ребёнку время ответить'],
-      unknown:[
-        'выбрать спокойное занятие для себя: прогулку, музыку или разговор с близким',
-        'подготовить один вопрос, который хочется задать врачу или близкому человеку',
-        'сделать небольшую паузу без цели «быть продуктивной»'
-      ]
-    };
-    return listReply(profile, 'Хорошая игра не обязана быть развивающей игрушкой. Главное — контакт, безопасность и интерес ребёнка.', [
-      `Попробуйте: ${ideas[age][0]}.`,
-      `Ещё вариант: ${ideas[age][1]}.`,
-      `И ещё: ${ideas[age][2]}.`,
-      'Начните с 5–10 минут и закончите, пока всем ещё интересно — результат проверять не нужно.'
-    ]);
+    if (!profile || profile.stage !== 'child' || !profile.birthDate) return 'Для подбора игры нужен возраст ребёнка. Укажите его в профиле.';
+    const months=ageValue(profile);
+    // Same upper/lower boundaries as the server. The demo offers activities
+    // without props or movement requirements, rather than guessing conditions.
+    const pool=agePlayCatalog.filter(g=>months>=g.min&&months<g.max&&g.materials==='Ничего'&&!['Движение','Координация'].includes(g.area));
+    if (!pool.length) return 'Для этого возраста в каталоге пока нет подходящей проверенной игры.';
+    const game=pool[0];
+    return listReply(profile, `Игра «${game.title}».`, [game.detail], 'Остановитесь, если ребёнок устал или потерял интерес.');
   }
+
+  if(age==='preschool'&&/школ|садик|детск.*сад|букв|чтен|читать|сч[её]т|цифр|друж|самостоятель/i.test(q)) return listReply(profile,
+    'Это не проверка готовности к школе. Важен конкретный вопрос и интерес ребёнка.',
+    ['Уточните, что сейчас трудно: расставаться со взрослым, общаться, осваивать новое правило или заниматься вместе.',
+     'Возраст сам по себе не означает, что ребёнок уже освоил чтение, счёт или самостоятельные сборы.']);
 
   if (match(q,/говорит|реч|слова|молчит|понимает|не ход|не сид|не полза|не прыга|развит/)) {
     return listReply(profile, 'Навыки развиваются не по секундомеру, и по одному сообщению нельзя сделать вывод о норме или проблеме.', [

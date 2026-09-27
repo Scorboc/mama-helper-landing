@@ -75,6 +75,15 @@ export class AccountStore {
   }
   async handle(d, cookies, authorization, locked = false, emit) {
     const a = d.action;
+    if (a === 'migration-export') {
+      const token = this.env.MIGRATION_EXPORT_TOKEN;
+      if (!token || authorization !== `Bearer ${token}`) throw new AppError(403,'Доступ только для временного экспорта.');
+      const cursor = typeof d.cursor === 'string' ? d.cursor : '';
+      if (cursor.length > 512) throw new AppError(400,'Некорректный курсор экспорта.');
+      const records = await this.s.list({limit:100,startAfter:cursor || undefined});
+      const entries = [...records.entries()];
+      return json({entries,cursor:entries.length===100 ? entries.at(-1)[0] : null});
+    }
     if (a === 'feedback-export' || a === 'invite-create') {
       if (!this.env.PROXY_TOKEN || authorization !== `Bearer ${this.env.PROXY_TOKEN}`) throw new AppError(403,'Доступ только организатору.');
       if (a === 'feedback-export') {

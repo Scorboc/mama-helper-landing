@@ -5,16 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { api, Quota } from '@/lib/parent-api';
+import { randomId } from '@/lib/id';
 import { contextLabel, MedicalCardEntry, Message, ParentState } from '@/lib/parent-model';
 
 type Save=(next:ParentState,notice?:string)=>Promise<boolean>;
 export function ChatContext({state,quota,onProfile}:{state:ParentState;quota?:Quota;onProfile:()=>void}) {
+  if(state.profile)return quota?<p className="text-sm muted my-3" role="status">{quota.paid?`Доступно ${quota.remaining} AI-ответов. Из них подарочных: ${quota.bonusRemaining || 0}.`:`Осталось ${quota.remaining} из ${quota.limit} AI-ответов на тест.`}</p>:null;
   return <div className="rounded-2xl border bg-cream p-4 my-4 flex flex-wrap justify-between gap-3 items-center"><div><strong>{contextLabel(state.profile)}</strong><p className="text-sm muted">Учитываем профиль, подтверждённые вами заметки и текущий диалог.</p>{quota&&<p className="text-sm mt-1" role="status">Осталось {quota.remaining} из {quota.limit} AI-ответов на тест.</p>}</div><Button variant="outline" onClick={onProfile}>Исправить профиль</Button></div>;
 }
 
 export function AnswerFeedback({message}:{message?:Message}) {
   const [kind,setKind]=useState(''),[comment,setComment]=useState(''),[consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[status,setStatus]=useState('');
-  async function submit(){setBusy(true);setStatus('');try{await api('feedback',{kind,messageId:message?.id,comment,consentContext:consent,requestId:crypto.randomUUID()});setKind('');setComment('');setConsent(false);setStatus('Спасибо! Отзыв сохранён для разработчика.');}catch(e){setStatus((e as Error).message);}finally{setBusy(false);}}
+  async function submit(){setBusy(true);setStatus('');try{await api('feedback',{kind,messageId:message?.id,comment,consentContext:consent,requestId:randomId()});setKind('');setComment('');setConsent(false);setStatus('Спасибо! Отзыв сохранён для разработчика.');}catch(e){setStatus((e as Error).message);}finally{setBusy(false);}}
   return <div className="mt-3 text-sm"><div className="flex flex-wrap gap-2">{(message?[['helpful','Помогло'],['unhelpful','Не помогло'],['unsafe','Неверный / опасный совет']]:[['idea','Предложить улучшение']]).map(([value,title])=><button type="button" className="rounded-lg border px-3 py-2 hover:bg-cream" key={value} onClick={()=>{setKind(value);setStatus('');}}>{title}</button>)}</div>{status&&<p role="status" className="mt-2">{status}</p>}<Dialog open={!!kind} onOpenChange={v=>{if(!busy&&!v)setKind('');}}><DialogContent><DialogHeader><DialogTitle>Обратная связь разработчику</DialogTitle><DialogDescription>Обращения хранятся приватно. Не используйте форму для срочной помощи.</DialogDescription></DialogHeader><label>Комментарий — необязательно<Textarea value={comment} maxLength={1000} onChange={e=>setComment(e.target.value)} placeholder="Что улучшить? Не указывайте контакты и личные сведения."/></label><label className="flex gap-3 items-start text-sm"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>Разрешаю приложить профиль и последние сообщения этого диалога, включая сведения о здоровье. Без согласия отправятся только моя оценка, комментарий и технические идентификаторы.</label>{status&&<p role="alert">{status}</p>}<Button disabled={busy} onClick={()=>void submit()}>{busy?'Отправляем…':'Отправить'}</Button></DialogContent></Dialog></div>;
 }
 

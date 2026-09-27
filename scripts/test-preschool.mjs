@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import ts from 'typescript';
-const source=readFileSync(new URL('../src/lib/parent-model.ts',import.meta.url),'utf8');
+const catalog=JSON.parse(readFileSync(new URL('../ai-proxy/age-play-catalog.json',import.meta.url),'utf8'));
+const source=readFileSync(new URL('../src/lib/parent-model.ts',import.meta.url),'utf8').replace("import agePlayCatalog from '../../ai-proxy/age-play-catalog.json';",'const agePlayCatalog='+JSON.stringify(catalog)+';');
 const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ES2022,target:ts.ScriptTarget.ES2022}}).outputText;
 const {defaultProfile,emptyState,demoPrompts,demoAnswer,dueMilestones,ageValue}=await import('data:text/javascript;base64,'+Buffer.from(js).toString('base64'));
 const now=new Date();const profile=months=>({...defaultProfile(),stage:'child',birthDate:new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()-months,1)).toISOString().slice(0,10)});
@@ -13,5 +14,6 @@ assert.match(demoAnswer('Как готовиться к школе?',profile(72)
 assert.equal(ageValue(profile(83)),83);
 const state={...emptyState(),profile:profile(72)};
 assert.ok(dueMilestones(state).some(m=>m.id==='child-72'));
-state.profile.topics=['school'];assert.ok(dueMilestones(state).some(m=>m.topic!=='school'));
+state.profile.topics=['wellbeing'];assert.ok(dueMilestones(state).some(m=>m.id==='child-72'));
+assert.ok(!dueMilestones(state).some(m=>m.id==='child-36'));
 console.log('Preschool UI/model checks passed: prompts, age, emergency priority, milestones and all-topic access.');

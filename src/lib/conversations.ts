@@ -1,4 +1,5 @@
 import type { ParentState } from './parent-model';
+import { randomId } from './id';
 
 export function conversationList(state: ParentState) {
   const active = { id: state.conversationId || 'legacy-active', title: state.conversationTitle || 'Общий разговор', messages: state.messages };
@@ -10,7 +11,7 @@ export function conversationList(state: ParentState) {
   });
 }
 
-export function openConversation(state: ParentState, request: { id: string } | { title: string }, newId = () => crypto.randomUUID()): ParentState {
+export function openConversation(state: ParentState, request: { id: string } | { title: string }, newId = randomId): ParentState {
   const items = conversationList(state);
   const activeId = state.conversationId || 'legacy-active';
   if ('id' in request && request.id === activeId) return state;

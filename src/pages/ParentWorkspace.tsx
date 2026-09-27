@@ -1,6 +1,12 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import SimpleMyDay from '@/components/SimpleMyDay';
+import AgeGuidance from '@/components/AgeGuidance';
+import GuideWelcome from '@/components/GuideWelcome';
+import FirstAid from "@/components/FirstAid";
+import Favorites, {FavoriteButton} from '@/components/Favorites';
+import {familyList, switchChild, addChild} from '@/lib/family';
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import ThemeControl from "@/components/ThemeControl";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Bell,
   Heart,
@@ -11,6 +17,7 @@ import {
   Send,
   LogOut,
   ClipboardList,
+  Cross,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -52,8 +59,8 @@ import {
   MemoryReview,
 } from "@/components/ChatCare";
 import { api, Session, Quota, streamChat } from "@/lib/parent-api";
-import ParentServices, {
-  SaveAction,
+import { randomId } from "@/lib/id";
+import {
   EvidencePassport,
   VoiceInput,
   ReadAnswer,
@@ -69,13 +76,39 @@ export default function ParentWorkspace({
   const [revision, setRevision] = useState(0);
   const [user, setUser] = useState<Session["user"] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState(initialTab);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const allowedTabs = ['home','chat','first-aid','favorites','advisor','card','profile','settings'];
+  const requestedTab = new URLSearchParams(location.search).get('tab');
+  const tab = requestedTab && allowedTabs.includes(requestedTab) ? requestedTab : initialTab;
+  const tabNavigation = useRef<HTMLDivElement | null>(null);
+  const previousTab = useRef(tab);
+  function setTab(next: string) {
+    if(next === tab) {
+      tabNavigation.current?.scrollIntoView({block:'start',behavior:'smooth'});
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    params.set('tab',next);
+    navigate({pathname:location.pathname,search:params.toString()}, {state:{cabinetSection:true}});
+  }
+  useEffect(()=>{
+    if(previousTab.current===tab)return;
+    previousTab.current=tab;
+    setError('');setNotice('');
+    const frame=requestAnimationFrame(()=>tabNavigation.current?.scrollIntoView({block:'start',behavior:'auto'}));
+    return()=>cancelAnimationFrame(frame);
+  },[tab]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const [chatBusy, setChatBusy] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
   const [quota, setQuota] = useState<Quota>();
+  const [birthday,setBirthday]=useState<Session['birthday']>();
+  const guidanceTopic=new URLSearchParams(location.search).get('topic');
+  const guidanceChild=new URLSearchParams(location.search).get('child');
   const [partial, setPartial] = useState("");
   const [retryRequest, setRetryRequest] = useState<{
     question: string;
@@ -86,15 +119,29 @@ export default function ParentWorkspace({
   const [profileDraft, setProfileDraft] = useState<Profile>(defaultProfile);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
-  const bottom = useRef<HTMLDivElement>(null);
+  const chatLog = useRef<HTMLDivElement | null>(null);
+  const responseStart = useRef<HTMLDivElement | null>(null);
+  const responseAnchored = useRef(false);
+  const [answerMinHeight,setAnswerMinHeight] = useState(0);
+  const mountChatLog = useCallback((node: HTMLDivElement | null) => {
+    chatLog.current = node;
+    if (node) node.scrollTop = node.scrollHeight;
+  }, []);
   const [clock, setClock] = useState(Date.now());
   useEffect(() => {
     let active = true;
     api<Session>("session")
-      .then((s) => {
+      .then(async (s) => {
+        const requestedChild=new URLSearchParams(window.location.search).get('child');
+        if(requestedChild && familyList(s.state).some(child=>child.id===requestedChild) && requestedChild!==(s.state.activeChildId || 'primary')) {
+          const next=switchChild(s.state,requestedChild);
+          const saved=await api<{revision:number}>('save',{state:next,revision:s.revision});
+          s={...s,state:next,revision:saved.revision};
+        }
         if (active) {
           setUser(s.user);
           setQuota(s.quota);
+          setBirthday(s.birthday);
           setState(s.state);
           setRevision(s.revision);
           setProfileDraft(s.state.profile ?? defaultProfile());
@@ -111,8 +158,25 @@ export default function ParentWorkspace({
     };
   }, []);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "nearest" });
-  }, [state.messages.length, tab, partial]);
+    if (tab !== "chat" || loading) return;
+    const frame = requestAnimationFrame(() => {
+      const log = chatLog.current;
+      if (log) log.scrollTop = log.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [loading, state.activeChildId, state.conversationId, tab]);
+  useEffect(() => {
+    if(tab !== 'chat' || !chatBusy || responseAnchored.current)return;
+    const frame=requestAnimationFrame(()=>{
+      const log=chatLog.current;
+      const answer=responseStart.current;
+      if(!log || !answer)return;
+      // Anchor once to the start; streaming must not override manual reading.
+      log.scrollTop += answer.getBoundingClientRect().top-log.getBoundingClientRect().top-16;
+      responseAnchored.current=true;
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[tab,chatBusy]);
   useEffect(() => {
     const tick = () => setClock(Date.now());
     const timer = window.setInterval(tick, 60000);
@@ -123,6 +187,13 @@ export default function ParentWorkspace({
     };
   }, []);
   const due = dueMilestones(state, new Date(clock));
+  async function changeChild(next: ParentState, adding = false) {
+    if (await save(next, adding ? 'Заполните профиль ребёнка' : 'Профиль переключён')) {
+      setProfileDraft(next.profile || defaultProfile());
+      setDraft(''); setRetryRequest(null); setPartial('');
+      if (adding || !next.profile) setTab('profile');
+    }
+  }
   async function save(next: ParentState, success = "Сохранено") {
     if (lock.current) return false;
     lock.current = true;
@@ -158,6 +229,8 @@ export default function ParentWorkspace({
     lock.current = true;
     setBusy(true);
     setChatBusy(true);
+    responseAnchored.current=false;
+    setAnswerMinHeight(Math.max(0,(chatLog.current?.clientHeight || 0)-32));
     setError("");
     setNotice("");
     const messageId =
@@ -165,7 +238,7 @@ export default function ParentWorkspace({
         ? retryRequest.messageId
         : retry
           ? last.id
-          : crypto.randomUUID();
+          : randomId();
     const request = {
       question: q,
       messageId,
@@ -211,7 +284,7 @@ export default function ParentWorkspace({
   }
   async function submitProfile(e: FormEvent) {
     e.preventDefault();
-    const p = profileDraft;
+    const p = state.profile ? {...state.profile, childName: profileDraft.childName?.trim()} : profileDraft;
     if (p.stage === "child" && !p.childName?.trim()) {
       setError("Укажите имя ребёнка или домашнее имя. Фамилия не нужна.");
       return;
@@ -229,7 +302,8 @@ export default function ParentWorkspace({
       setError("Добавляйте только особенности, подтверждённые специалистом.");
       return;
     }
-    if (await save(stateWithProfile(state, { ...p, topics: [] })))
+    if (!state.profile && !window.confirm('Проверьте сведения. Профиль ребёнка заполняется один раз: после сохранения можно изменить только имя. Дату рождения, этап, кормление и другие поля изменить самостоятельно нельзя. Продолжить?')) return;
+    if (await save(stateWithProfile(state, p)))
       setTab("home");
   }
   async function logout() {
@@ -249,6 +323,7 @@ export default function ParentWorkspace({
     }
   }
   async function pushToggle(enable: boolean) {
+    if (pushBusy) return;
     if (!enable) {
       try {
         await api("unsubscribe");
@@ -271,7 +346,24 @@ export default function ParentWorkspace({
       );
       return;
     }
+    setPushBusy(true);
+    setError('');
+    setNotice('Разрешите уведомления в запросе браузера. Если запрос не появился, проверьте настройки разрешений сайта.');
+    const timeout = async <T,>(promise: Promise<T>): Promise<T> => {
+      let timer: ReturnType<typeof setTimeout>;
+      try {
+        return await Promise.race([promise, new Promise<T>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Браузер не завершил подключение уведомлений. Откройте сайт в Chrome, Edge или Safari и разрешите уведомления в настройках сайта.')), 20000);
+        })]);
+      } finally { clearTimeout(timer!); }
+    };
     try {
+      // Request inside the click gesture, before any network await.
+      const permission = await timeout(Notification.requestPermission());
+      if (permission !== 'granted') {
+        setError('Уведомления не разрешены. Изменить это можно в настройках браузера.');
+        return;
+      }
       const { pushKey } = await api<{ pushKey: string }>("config");
       if (!pushKey) {
         setError(
@@ -279,25 +371,19 @@ export default function ParentWorkspace({
         );
         return;
       }
-      if ((await Notification.requestPermission()) !== "granted") {
-        setError(
-          "Уведомления не разрешены. Изменить это можно в настройках браузера.",
-        );
-        return;
-      }
       const registration =
         await navigator.serviceWorker.register("/parent-sw.js");
-      await navigator.serviceWorker.ready;
+      await timeout(navigator.serviceWorker.ready);
       const bytes = Uint8Array.from(
         atob(pushKey.replace(/-/g, "+").replace(/_/g, "/")),
         (c) => c.charCodeAt(0),
       );
       const subscription =
         (await registration.pushManager.getSubscription()) ??
-        (await registration.pushManager.subscribe({
+        (await timeout(registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: bytes,
-        }));
+        })));
       await api("subscribe", { subscription: subscription.toJSON() });
       await save({
         ...state,
@@ -305,6 +391,9 @@ export default function ParentWorkspace({
       });
     } catch (e) {
       setError((e as Error).message || "Не удалось включить уведомления.");
+    } finally {
+      setPushBusy(false);
+      setNotice('');
     }
   }
   const markEvent = (id: string, status: "read" | "hidden" | "later") =>
@@ -322,17 +411,6 @@ export default function ParentWorkspace({
         },
       },
     });
-  function discussMilestone(title: string, topic: string) {
-    const prompts: Record<string, string> = {
-      sleep: "Как сделать сон спокойнее?",
-      feeding: "Как говорить о прикорме?",
-      play: "Во что поиграть?",
-      dad: "Как папе помочь?",
-      pregnancy: "Мне нужна поддержка",
-    };
-    setTab("chat");
-    void send(prompts[topic] ?? `Расскажи о теме: ${title}`);
-  }
   if (loading)
     return (
       <main className="account-page">
@@ -356,7 +434,7 @@ export default function ParentWorkspace({
           )}
           <div className="flex flex-wrap gap-3 mt-6">
             <Button asChild>
-              <Link to="/account">Регистрация и вход</Link>
+              <Link to={'/account?next='+encodeURIComponent('/cabinet'+location.search)}>Регистрация и вход</Link>
             </Button>
           </div>
         </div>
@@ -367,7 +445,7 @@ export default function ParentWorkspace({
       <header className="cabinet-header">
         <div className="brand-theme">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo-mark.png" alt="" className="h-12" />
+            <img src="/logo-mark.png" alt="" className="site-logo h-12" />
             <strong>Мамин помощник</strong>
           </Link>
           <ThemeControl />
@@ -385,6 +463,7 @@ export default function ParentWorkspace({
         </div>
       </header>
       <main className="cabinet-main">
+        <GuideWelcome key={user.id} />
         <div className="cabinet-greeting">
           <div>
             <span className="cap">
@@ -399,6 +478,15 @@ export default function ParentWorkspace({
           </div>
           <HeartCloud className="h-24 w-24 hidden sm:block" />
         </div>
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <label className="flex items-center gap-2">Ребёнок
+            <select aria-label="Выбрать ребёнка" className="rounded-lg border p-2 bg-background max-w-full" value={state.activeChildId || 'primary'} disabled={busy || chatBusy} onChange={e=>void changeChild(switchChild(state,e.target.value))}>
+              {familyList(state).map((child,index)=><option key={child.id} value={child.id}>{child.data.profile?.childName || (child.data.profile?.stage === 'pregnancy' ? 'Ожидание малыша' : `Ребёнок ${index+1}`)}</option>)}
+            </select>
+          </label>
+          <Button variant="outline" disabled={busy || chatBusy || familyList(state).length >= 10 || !state.profile} onClick={()=>void changeChild(addChild(state),true)}>Добавить ребёнка</Button>
+        </div>
+        {!!birthday?.children.length&&<section className="tile birthday-card" role="status"><h2>С днём рождения!</h2><p>{birthday.children.map(c=>c.name).join(', ')} — поздравляем вашу семью! Вспомните вместе любимое событие года и придумайте маленькую праздничную традицию.</p>{birthday.giftPerChild>0&&<p>Подарок: по 5 дополнительных AI-ответов за каждого именинника. Подарочных ответов осталось: {quota?.bonusRemaining ?? birthday.giftRemaining}.</p>}</section>}
         <Tabs
           value={tab}
           onValueChange={(v) => {
@@ -407,7 +495,9 @@ export default function ParentWorkspace({
             setNotice("");
           }}
         >
-          <TabsList className="cabinet-tabs">
+          <div ref={tabNavigation} className="cabinet-navigation">
+            {tab!=='home'&&<Button type="button" variant="ghost" className="mb-2" onClick={()=>location.state?.cabinetSection ? navigate(-1) : setTab('home')}><ArrowLeft size={17}/>Назад</Button>}
+          <TabsList className="cabinet-tabs" aria-label="Разделы личного кабинета">
             <TabsTrigger value="home">
               <Heart size={18} />
               Мой день
@@ -416,6 +506,11 @@ export default function ParentWorkspace({
               <MessageCircle size={18} />
               Чат
             </TabsTrigger>
+            <TabsTrigger value="first-aid">
+              <Cross size={18} />
+              Первая помощь
+            </TabsTrigger>
+            <TabsTrigger value="favorites"><Heart size={18}/>Избранное</TabsTrigger>
             <TabsTrigger value="advisor">
               <Bell size={18} />
               Советник
@@ -437,6 +532,7 @@ export default function ParentWorkspace({
               Настройки
             </TabsTrigger>
           </TabsList>
+          </div>
           {error && (
             <p role="alert" className="form-error my-4">
               {error}
@@ -448,18 +544,16 @@ export default function ParentWorkspace({
             </p>
           )}
           <TabsContent value="home">
-            <ParentServices
-              state={state}
-              busy={busy || chatBusy}
-              save={save}
-              ask={(q) => {
-                setTab("chat");
-                setDraft(q);
-              }}
-              onProfile={() => setTab("profile")}
-            />
+            <SimpleMyDay state={state} onProfile={() => setTab("profile")} />
+          </TabsContent>
+          <TabsContent value="first-aid">
+            <FirstAid />
+          </TabsContent>
+          <TabsContent value="favorites">
+            <Favorites state={state} busy={busy || chatBusy} save={save}/>
           </TabsContent>
           <TabsContent value="chat">
+            {state.profile?.stage==='child'&&guidanceTopic&&(!guidanceChild||guidanceChild===(state.activeChildId||'primary'))&&<AgeGuidance childId={state.activeChildId||'primary'} topic={guidanceTopic}/>}
             <section className="tile chat-card">
               <h2>Здесь можно спросить и выдохнуть</h2>
               <ChatContext
@@ -481,6 +575,7 @@ export default function ParentWorkspace({
               />
               <div
                 className="chat-log"
+                ref={mountChatLog}
                 role="log"
                 aria-label="Переписка"
                 aria-live="polite"
@@ -497,14 +592,14 @@ export default function ParentWorkspace({
                   </div>
                 )}
                 {state.messages.map((m) => (
-                  <div key={m.id} className={`bubble ${m.role}`}>
+                  <div key={m.id} className={`bubble ${m.role}`} style={m.role==='assistant' && m===state.messages[state.messages.length-1] ? {minHeight:answerMinHeight || undefined} : undefined}>
                     <span>{m.role === "user" ? "Вы" : "Мамин помощник"}</span>
                     <p>{m.text}</p>
                     {m.role === "assistant" && (
                       <>
                         <EvidencePassport message={m} />
                         <ReadAnswer text={m.text} />
-                        <SaveAction
+                        <FavoriteButton
                           message={m}
                           state={state}
                           save={save}
@@ -516,12 +611,11 @@ export default function ParentWorkspace({
                   </div>
                 ))}
                 {chatBusy && (
-                  <div className="bubble assistant">
+                  <div className="bubble assistant" ref={responseStart} style={{minHeight:answerMinHeight || undefined}}>
                     <span>Мамин помощник · ответ формируется</span>
                     <p>{partial || "Готовим ответ с учётом вашего профиля…"}</p>
                   </div>
                 )}
-                <div ref={bottom} />
               </div>
               {!chatBusy && retryRequest && (
                 <Button
@@ -581,6 +675,7 @@ export default function ParentWorkspace({
             </section>
           </TabsContent>
           <TabsContent value="advisor">
+            {state.profile?.stage==='child'&&<AgeGuidance browse childId={state.activeChildId||'primary'}/>}
             <div className="section-title">
               <div>
                 <h2>Важное — в своё время</h2>
@@ -591,8 +686,7 @@ export default function ParentWorkspace({
               <Rattle className="h-16 w-16" />
             </div>
             <p className="mb-5">
-              Тема появится не раньше чем за неделю до возрастного этапа.
-              Нажмите «Обсудить в чате», чтобы разобрать её для вашей семьи.
+              Карточки соответствуют текущему возрасту ребёнка или сроку беременности.
             </p>
             {!state.profile && (
               <Button onClick={() => setTab("profile")}>
@@ -608,9 +702,6 @@ export default function ParentWorkspace({
                   <h3>{m.title}</h3>
                   <p>{m.text}</p>
                   <div className="flex flex-wrap gap-2 mt-4">
-                    <Button onClick={() => discussMilestone(m.title, m.topic)}>
-                      Обсудить в чате
-                    </Button>
                     <Button
                       variant="outline"
                       disabled={busy}
@@ -636,8 +727,7 @@ export default function ParentWorkspace({
               <div className="tile my-5">
                 <h3>Новых карточек нет</h3>
                 <p>
-                  Новая тема откроется, когда до подходящего этапа останется не
-                  больше недели.
+                  Новая тема появится в подходящем возрастном периоде.
                 </p>
               </div>
             )}
@@ -656,17 +746,7 @@ export default function ParentWorkspace({
                             : `До ${new Date(v.until).toLocaleDateString("ru-RU")}`}
                         </small>
                       </span>
-                      <Button
-                        variant="ghost"
-                        onClick={() =>
-                          discussMilestone(
-                            m?.title ?? "Эта тема",
-                            m?.topic ?? "care",
-                          )
-                        }
-                      >
-                        Обсудить
-                      </Button>
+
                     </div>
                   );
                 })}
@@ -692,11 +772,15 @@ export default function ParentWorkspace({
           </TabsContent>
           <TabsContent value="profile">
             <section className="tile profile-panel">
-              <h2>Ваш личный профиль</h2>
+              <h2>Профиль ребёнка</h2>
               <p className="muted">
-                Один ребёнок. Данные другого родителя сюда не попадают.
+                У каждого ребёнка свои диалоги, советы и карта наблюдений.
               </p>
               <form onSubmit={submitProfile} className="mt-6 space-y-5">
+                <p role="note" className="rounded-xl border p-4 text-sm">
+                  {state.profile ? 'Профиль уже заполнен. Можно изменить только имя ребёнка.' : 'Заполнить профиль можно один раз. Внимательно проверьте сведения: после сохранения можно изменить только имя ребёнка.'}
+                  {' '}Дата рождения, этап, кормление, сведения о сне и здоровье фиксируются. Возраст рассчитывается автоматически. Для другого своего ребёнка можно добавить отдельный профиль. При ошибке в данных обратитесь через «Предложить улучшение» в настройках.
+                </p>
                 <label className="form-field">
                   Имя ребёнка или домашнее имя
                   {profileDraft.stage === "pregnancy"
@@ -715,6 +799,7 @@ export default function ParentWorkspace({
                     placeholder="Например, Миша. Фамилия не нужна."
                   />
                 </label>
+                <fieldset disabled={!!state.profile || busy} className="space-y-5 disabled:opacity-70">
                 <div className="form-grid">
                   <label className="form-field">
                     Кто вы
@@ -832,8 +917,7 @@ export default function ParentWorkspace({
                   </div>
                 )}
                 <p className="muted text-sm">
-                  Возраст и срок обновляются автоматически. После рождения
-                  переключите этап и укажите дату рождения.
+                  Возраст и срок обновляются автоматически. После рождения добавьте отдельный профиль ребёнка с датой рождения.
                 </p>
                 <label className="form-field">
                   Кормление · необязательно
@@ -912,8 +996,9 @@ export default function ParentWorkspace({
                   Помощник учитывает все темы, связанные с ребёнком и
                   родительством.
                 </p>
+                </fieldset>
                 <Button type="submit" disabled={busy}>
-                  {busy ? "Сохраняем…" : "Сохранить профиль"}
+                  {busy ? "Сохраняем…" : state.profile ? "Сохранить имя" : "Сохранить профиль один раз"}
                 </Button>
               </form>
             </section>
@@ -922,39 +1007,22 @@ export default function ParentWorkspace({
             <div className="home-grid">
               <section className="tile">
                 <h2>Напоминания</h2>
-                <label className="form-field mt-5">
-                  Повтор непрочитанного
-                  <Select
-                    value={state.preferences.repeat}
-                    onValueChange={(v) =>
-                      void save({
-                        ...state,
-                        preferences: {
-                          ...state.preferences,
-                          repeat: v as "never" | "day" | "week",
-                        },
-                      })
-                    }
-                    disabled={busy}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="never">Не повторять</SelectItem>
-                      <SelectItem value="day">Через день</SelectItem>
-                      <SelectItem value="week">Через неделю</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <p className="muted mt-3">Утром — подсказка по возрасту, поздравление в день рождения или готовые занятия. Не больше двух уведомлений в день на всю семью. Возрастная подсказка открывает чат нужного ребёнка; одинаковые темы не повторяются. Повтор о занятиях не приходит после просмотра подборки.</p>
+                <label className="form-field mt-4">Часовой пояс
+                  <select value={state.preferences.timezone || 'Europe/Moscow'} disabled={busy} onChange={e=>void save({...state,preferences:{...state.preferences,timezone:e.target.value}})}>
+                    {['Europe/Kaliningrad','Europe/Moscow','Europe/Samara','Asia/Yekaterinburg','Asia/Omsk','Asia/Krasnoyarsk','Asia/Irkutsk','Asia/Yakutsk','Asia/Vladivostok','Asia/Magadan','Asia/Kamchatka'].map(zone=><option key={zone} value={zone}>{zone.split('/')[1].replace(/_/g,' ')}</option>)}
+                  </select>
                 </label>
-                <p className="muted text-sm mt-3">
-                  Повторы касаются только наступившего возрастного события и
-                  прекращаются после прочтения или скрытия.
-                </p>
+                <label className="form-field mt-4">Утреннее уведомление
+                  <select value={state.preferences.morningHour ?? 9} disabled={busy} onChange={e=>void save({...state,preferences:{...state.preferences,morningHour:Number(e.target.value)}})}>
+                    {[7,8,9,10,11,12].map(hour=><option key={hour} value={hour}>{hour}:00</option>)}
+                  </select>
+                </label>
+                <label className="flex items-center gap-3 mt-4"><Checkbox checked={state.preferences.secondReminder || false} disabled={busy} onCheckedChange={value=>void save({...state,preferences:{...state.preferences,secondReminder:value===true}})}/>Ещё одно напоминание через 6 часов, если подборка не просмотрена</label>
                 <div className="mt-6">
                   <Button
                     variant="outline"
-                    disabled={busy}
+                    disabled={busy || pushBusy}
                     onClick={() => void pushToggle(!state.preferences.push)}
                   >
                     {state.preferences.push
@@ -962,8 +1030,7 @@ export default function ParentWorkspace({
                       : "Включить push"}
                   </Button>
                   <p className="muted text-sm mt-3">
-                    На экране блокировки будет только нейтральное сообщение, без
-                    возраста и сведений о здоровье.
+                    В уведомлении могут быть имя ребёнка и возрастная тема. Сведения о здоровье не включаются. Скрыть текст на экране блокировки можно в настройках уведомлений телефона.
                   </p>
                 </div>
               </section>
@@ -1006,6 +1073,7 @@ export default function ParentWorkspace({
             <ArrowLeft size={16} />
             На главную
           </Link>
+          <a href="/mamin-pomoshchnik-instruction.pdf" target="_blank" rel="noreferrer">Инструкция — скачать PDF</a>
           <span>Информационный помощник для родителей</span>
         </div>
       </main>
@@ -1070,3 +1138,4 @@ export default function ParentWorkspace({
     </div>
   );
 }
+

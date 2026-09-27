@@ -17,7 +17,7 @@ const Hero = () => {
         <div className="relative mx-auto flex max-w-[680px] flex-col items-center text-center">
           <div className="mb-1 flex items-center gap-3">
             <Pacifier className="h-9 w-9" />
-            <img src="/logo-mark.png" alt="Мамин помощник" className="h-20 w-auto" />
+            <img src="/logo-mark.png" alt="Мамин помощник" className="site-logo h-20 w-auto" />
             <Bib className="h-9 w-9" />
           </div>
           <h1 className="mt-3 font-heading text-[28px] font-normal leading-[1.12] tracking-[-0.02em] sm:text-[38px]">

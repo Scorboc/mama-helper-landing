@@ -2,7 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import ts from 'typescript';
-const code=ts.transpileModule(readFileSync(new URL('../src/lib/conversations.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
+const idCode=ts.transpileModule(readFileSync(new URL('../src/lib/id.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
+const idUrl='data:text/javascript;base64,'+Buffer.from(idCode).toString('base64');
+const code=ts.transpileModule(readFileSync(new URL('../src/lib/conversations.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText.replace(/(['"])\.\/id\1/g,JSON.stringify(idUrl));
 const {conversationList,openConversation}=await import('data:text/javascript;base64,'+Buffer.from(code).toString('base64'));
 const initial=()=>({messages:[{id:'q',role:'user',text:'Старая переписка'}],conversationTitle:'Проверка 50 вопросов',conversations:[],profile:null});
 test('named empty conversations survive switching and reload',()=>{

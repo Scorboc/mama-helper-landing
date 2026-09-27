@@ -1,0 +1,35 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+function load(file) {
+  const filename = path.resolve(__dirname, '../src/lib', file + '.ts');
+  const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+  const result={exports:{}};
+  new Function('require','module','exports',code)(name=>load(name.replace('./','')),result,result.exports);
+  return result.exports;
+}
+const {emptyState,defaultProfile}=load('parent-model');
+const {addChild,switchChild,favoriteAnswer}=load('family');
+const message={id:'answer-1',role:'assistant',text:'Первый ответ'};
+const original={...emptyState(),profile:{...defaultProfile(),childName:'Первый'},messages:[{id:'q1',role:'user',text:'Вопрос'},message],medicalCard:[{id:'note',date:'2026-09-20',text:'Заметка первого',source:'manual'}],conversationId:'first-dialog'};
+const saved=favoriteAnswer(original,message);
+assert.equal(saved.favorites.length,1);
+assert.equal(favoriteAnswer(saved,message).favorites.length,1);
+assert.equal(saved.favorites[0].question,'Вопрос');
+const second=addChild(saved);
+assert.equal(second.profile,null);
+assert.deepEqual(second.messages,[]);
+assert.deepEqual(second.medicalCard,[]);
+assert.equal(second.conversationId,undefined);
+assert.equal(second.favorites.length,1);
+const changed={...second,profile:{...defaultProfile(),childName:'Второй'},messages:[{id:'second-answer',role:'assistant',text:'Второй ответ'}]};
+const firstAgain=switchChild(changed,'primary');
+assert.deepEqual(firstAgain.messages,original.messages);
+assert.deepEqual(firstAgain.medicalCard,original.medicalCard);
+assert.equal(firstAgain.profile.childName,'Первый');
+const secondAgain=switchChild(JSON.parse(JSON.stringify(firstAgain)),second.activeChildId);
+assert.equal(secondAgain.profile.childName,'Второй');
+assert.equal(secondAgain.messages[0].text,'Второй ответ');
+assert.equal(secondAgain.favorites[0].text,'Первый ответ');
+console.log('PASS: legacy profile, child isolation, roundtrip and favorites deduplication');

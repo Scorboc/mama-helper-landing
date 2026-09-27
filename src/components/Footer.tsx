@@ -8,7 +8,7 @@ const Footer = () => (
       <div className="relative flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <img src="/logo-mark.png" alt="Мамин помощник" className="h-10 w-auto" />
+            <img src="/logo-mark.png" alt="Мамин помощник" className="site-logo h-10 w-auto" />
             <span className="font-heading text-[16px] font-medium">Мамин помощник</span>
           </div>
           <p className="mt-2 max-w-[320px] text-[13px] leading-[1.5] text-muted-foreground">
@@ -21,6 +21,7 @@ const Footer = () => (
             { href: '#voices', label: 'Чем поможем' },
             { href: '#how', label: 'Как это работает' },
             { href: '/account', label: 'Регистрация' },
+            { href: '/mamin-pomoshchnik-instruction.pdf', label: 'Инструкция PDF' },
           ].map((l) => (
             <a key={l.href} href={l.href} className="transition-colors hover:text-foreground">
               {l.label}

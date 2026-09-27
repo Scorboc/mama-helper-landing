@@ -1,7 +1,7 @@
 import { demoAnswer, emptyState, MedicalCardEntry, ParentState } from './parent-model';
 
-export type Quota = {limit:number;used:number;remaining:number};
-export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string;sessionToken?:string;quota?:Quota};
+export type Quota = {limit:number;used:number;remaining:number;paid?:boolean;bonusRemaining?:number};
+export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string;sessionToken?:string;quota?:Quota;birthday?:{children:{childId:string;name:string;years:number}[];giftPerChild:number;giftRemaining:number}};
 type LocalAccount = {id:string;email:string;salt:string;passwordHash:string;recoveryHash:string;state:ParentState;revision:number};
 
 const ACCOUNTS_KEY='mh_local_accounts_v1';
@@ -19,7 +19,11 @@ async function apiUrl(){
     if(!url)return null;
     if(typeof url!=='string')throw new Error();
     const parsed=new URL(url,window.location.origin);
-    if(parsed.protocol!=='https:' && parsed.hostname!=='localhost' && parsed.hostname!=='127.0.0.1')throw new Error();
+    // The test deployment is served over plain HTTP behind the Yandex load
+    // balancer. Keep same-origin API paths usable there while still requiring
+    // HTTPS for cross-origin API endpoints in production.
+    const sameOrigin=parsed.origin===window.location.origin;
+    if(parsed.protocol!=='https:' && !sameOrigin && parsed.hostname!=='localhost' && parsed.hostname!=='127.0.0.1')throw new Error();
     return parsed.href;
   }).catch(()=>{endpoint=undefined;throw new ApiError('Не удалось подключиться к сервису аккаунтов. Попробуйте позже.',503);});
   return endpoint;
@@ -121,10 +125,15 @@ export async function api<T>(action:string,data:Record<string,unknown>={},timeou
   const controller=new AbortController();const timer=window.setTimeout(()=>controller.abort(),timeoutMs);
   try{
     const token=localStorage.getItem(REMOTE_SESSION_KEY);
-    const headers:Record<string,string>={'Content-Type':'application/json'};
+    // text/plain keeps the free HTTP test origin usable even in browsers that
+    // treat the load-balancer hostname as cross-origin and would otherwise
+    // block the JSON preflight before the login POST reaches the VM.
+    const headers:Record<string,string>={'Content-Type':'text/plain;charset=UTF-8'};
     if(token)headers.Authorization=`Bearer ${token}`;
-    const usesTokenOrCreatesOne=!!token||['login','register','recover'].includes(action);
-    const response=await fetch(url,{method:'POST',credentials:usesTokenOrCreatesOne?'omit':'include',headers,body:JSON.stringify({action,...data}),signal:controller.signal});
+    // Authentication is cookie based on the Yandex backend. Always include
+    // credentials so login/register can persist the Set-Cookie session and
+    // subsequent cabinet requests can use it.
+    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify({action,...data}),signal:controller.signal});
     const raw=await response.text();let body:Record<string,unknown>={};
     try{body=raw?JSON.parse(raw):{};}catch{body={};}
     if(!response.ok){
@@ -147,9 +156,9 @@ export async function streamChat(data:Record<string,unknown>,onText:(text:string
   if(!url)throw new ApiError('Для AI-чата нужен подключённый сервер.',503);
   const controller=new AbortController(),timer=window.setTimeout(()=>controller.abort(),75000);
   try {
-    const headers:Record<string,string>={'Content-Type':'application/json'};
+    const headers:Record<string,string>={'Content-Type':'text/plain;charset=UTF-8'};
     const token=localStorage.getItem(REMOTE_SESSION_KEY);if(token)headers.Authorization=`Bearer ${token}`;
-    const response=await fetch(url,{method:'POST',credentials:token?'omit':'include',headers,body:JSON.stringify({action:'chat',...data,stream:true}),signal:controller.signal});
+    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify({action:'chat',...data,stream:true}),signal:controller.signal});
     if(!response.ok){const b=await response.json().catch(()=>({}));throw new ApiError(b.error || 'Сервис не ответил.',response.status);}
     if(!response.body)throw new ApiError('Пустой ответ сервера.',502);
     if(!response.headers.get('Content-Type')?.includes('application/x-ndjson'))return await response.json();

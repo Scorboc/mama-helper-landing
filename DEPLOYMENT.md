@@ -4,6 +4,8 @@
 
 Frontend готов для существующего Vite-хостинга. Гостевое демо `/demo` и памятки работают без сервера. Настоящие регистрация, вход, восстановление, профиль и сохранение данных используют сервер. **Публикация файлов в GitHub сама по себе не создаёт базу и облачные функции.** Пустой `public/app-config.json` намеренно не имитирует регистрацию.
 
+Для одной VM в Yandex Cloud можно явно задать `APP_DB_DRIVER=sqlite`: база SQLite с WAL хранится на постоянном диске, а профиль и переписка шифруются `APP_DATA_KEY`. Это вариант для одного небольшого сервера; при росте нагрузки перенесите базу в Managed PostgreSQL. В облаке не включайте `APP_LOCAL`.
+
 ## Однократное подключение в проекте «Поехали»
 
 1. Включить «Ядро»: PostgreSQL и Python Cloud Function для `backend/parent-app/index.py`, обработчик `index.handler`, зависимости из `requirements.txt`. Включить передачу заголовков Cookie/Origin/Set-Cookie; CORS обрабатывает функция.
@@ -16,6 +18,8 @@ Frontend готов для существующего Vite-хостинга. Г�
 ## Чат-помощник
 
 Ключ CheapAI хранится только в серверном секрете `CHEAPAI_API_KEY` (для совместимости сервер также понимает старое имя `CHEAP_AI_API_KEY`). Простая модель задаётся секретом `CHEAPAI_SIMPLE_MODEL`; безопасное значение по умолчанию — `gpt-5.6-luna`. Не помещать ключ в `VITE_*`, `app-config.json`, frontend или GitHub.
+
+Для Yandex Cloud AI Studio сервер поддерживает `YANDEX_FOLDER_ID`, `YANDEX_API_KEY` и `YANDEX_MODEL` (по умолчанию `yandexgpt/latest`). Предпочтительно подключить к VM отдельный service account только с ролью `ai.languageModels.user`, задать `YANDEX_USE_METADATA_IAM=1` и не хранить API-ключ на VM. Краткоживущий IAM-токен берётся из metadata service. Запросы идут на OpenAI-совместимый API AI Studio с `x-data-logging-enabled: false`.
 
 Сервер передаёт модели этап, точный возраст по дате рождения, тип кормления, сведения о сне и выбранные темы. Он не передаёт email и не разрешает модели ставить диагнозы, назначать лечение или рассчитывать дозировки. `action=config` показывает, настроен ли чат, не раскрывая ключ; `action=health` проверяет соединение с базой и ключ шифрования.
 
@@ -40,3 +44,13 @@ Frontend: `npm ci`, `npm run build`, `npx tsc --noEmit`.
 Backend: `python -m unittest discover -s backend/parent-app -p 'test_*.py'`. Тесты используют временную SQLite и настоящие хеширование/шифрование, проверяют регистрацию, изоляцию аккаунтов, cookies, восстановление, лимиты, валидацию и дедупликацию. Обязателен дополнительный smoke-test с PostgreSQL и облачными cookies на «Поехали».
 
 Для локального сервера: `python backend/parent-app/local_server.py`. Требуется cryptography, переменные APP_DATA_KEY, APP_SQLITE_PATH (вне git), APP_ORIGINS=http://localhost:5173; локальный сервер выставляет APP_LOCAL=1. Vite proxy `/api` уже настроен на 127.0.0.1:8787; apiUrl можно задать `/api` для локального теста.
+
+## Проверка и ограничения 20.09.2026
+Актуальная публикация: https://mama-helper-158-160-188-235.sslip.io, same-origin /api, Yandex VM.
+Рабочий backend: /opt/mama-helper-yandex/releases/20260919-1425-yandex/backend/parent-app (старый current symlink не является источником истины). Веб-каталог: /var/www/mama-helper/current.
+После первого ненулевого профиля server-side enforce_profile_lock разрешает менять только childName; проверяются также неактивные дети, удаление/переименование id. Новые дети добавляются отдельно.
+Production adapter доверяет X-Real-IP только локальному nginx; nginx обязан перезаписывать заголовок. Очередь ThreadingHTTPServer: 128.
+Заметки из чата идут в pendingMemory; требуется подтверждение родителем.
+50 личных beta аккаунтов подготовлены через scripts/prepare_beta.py (приватный CSV вне repo) и provision_beta.py (только хеши). Не запускать prepare_beta повторно поверх выданных доступов. Никогда не коммитить CSV/хеши.
+Результат live beta_qa.py: 50/50 сессий, 50/50 ответов без fallback; два диалога по 25 вопросов. На 1000 одновременных пользователей нагрузка не проверена.
+Планировщик mama-helper-reminders.timer вызывает daily_job.py каждые 10 минут. Реальная доставка push остаётся непроверенной из-за отсутствия поддерживающего разрешения браузера в подключённом окружении. Не объявлять push проверенными только по исправности службы.

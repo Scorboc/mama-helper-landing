@@ -5,13 +5,14 @@ import {Input} from '@/components/ui/input';
 import {Textarea} from '@/components/ui/textarea';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {contextLabel,Message,ParentState} from '@/lib/parent-model';
+import {randomId} from '@/lib/id';
 import {addDays,CareTask,CareState,DiaryEntry,Achievement,Appointment,dayIdeas,diarySummary,emptyCare,localDay,makeDayPlan,makeWeek,monthsOld,safetyItems,serviceCatalog} from '../../ai-proxy/services';
 import './parent-services.css';
 
 type Props={state:ParentState;busy:boolean;save:(state:ParentState,notice?:string)=>Promise<boolean>;ask:(q:string)=>void;onProfile:()=>void};
 const labels:Record<string,string>={sleep:'Сон',feeding:'Кормление',mood:'Самочувствие родителя',note:'Наблюдение'};
 const eventLabels:Record<string,string>={roll:'Переворачивается',crawl:'Ползает',stand:'Встаёт у опоры',walk:'Ходит',custom:'Наше маленькое открытие'};
-const uid=()=>crypto.randomUUID();
+const uid=randomId;
 function download(name:string,text:string,type='text/plain;charset=utf-8'){
  const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
@@ -73,6 +74,12 @@ export default function ParentServices({state,busy,save,ask,onProfile}:Props){
   const generated=makeDayPlan(p,care,day),existing=new Set(care.tasks.map(t=>t.id));
   await update({...care,tasks:[...care.tasks,...generated.filter(t=>!existing.has(t.id))]},'План на сегодня составлен. Его можно менять.');
  }
+ // Create the age-appropriate daily plan the first time the cabinet is opened
+ // each day. The stable task IDs make this idempotent across reloads and devices.
+ useEffect(()=>{
+  if(!p||busy||care.tasks.some(t=>t.id.startsWith(`day-${day}-`)))return;
+  void generateDay();
+ },[p?.stage,p?.birthDate,p?.week,p?.weekDate,day,care.tasks,busy]);
  async function addIdea(item:CareTask){
   if(care.tasks.some(t=>t.id===item.id))return;
   await update({...care,tasks:[...care.tasks,item]},'Идея добавлена в план на сегодня.');
@@ -86,7 +93,7 @@ export default function ParentServices({state,busy,save,ask,onProfile}:Props){
    <section className="tile care-welcome"><div><span className="cap">Забота в действии</span><h2>{p?.role==='dad'?'Ваше время с ребёнком':'Сегодня достаточно одного шага'}</h2><p>План на день, игры и идеи развития подбираются по профилю ребёнка. Всё можно менять или пропускать.</p><div className="care-buttons"><Button variant="outline" onClick={()=>openService('calm')}><Heart size={16}/>Мне нужна поддержка</Button></div></div><Sparkles className="care-spark" size={60}/></section>
    <div className="care-quick">{[['plan','Мой план',CalendarDays],['diary','Дневник',ClipboardList],['safety','Развитие и дом',ShieldCheck],['visits','К врачу',Heart]].map(([id,title,Icon])=>{const I=Icon as typeof Heart;return <button key={id as string} onClick={()=>setPanel(id as string)}><I size={22}/>{title as string}</button>;})}</div>
    {!!reviews.length&&<section className="tile"><h3>Как получилось?</h3><p>Вы выбрали вернуться к этим действиям. Расскажите о результате, когда удобно.</p>{reviews.map(t=><button className="care-followup" key={t.id} onClick={()=>setPanel('plan')}>{t.title} <span>Поделиться результатом →</span></button>)}</section>}
-   <section className="tile"><h3>План на сегодня</h3>{tasks.length?tasks.slice(0,3).map(t=><div className="care-task-preview" key={t.id}><span>{t.title}</span><Button variant="outline" onClick={()=>setPanel('plan')}>Открыть</Button></div>):<p>Составьте небольшой план из трёх подходящих идей. Если день загруженный, можно выбрать только одну.</p>}<div className="care-buttons"><Button disabled={!p||busy||care.tasks.length>96} onClick={()=>void generateDay()}>Составить план на день</Button><Button variant="outline" onClick={()=>setPanel('plan')}>Мои задачи</Button></div></section>
+   <section className="tile"><h3>План на сегодня</h3><p className="muted">План создаётся автоматически утром по возрасту ребёнка: спокойные полезные действия, игры и упражнения. Выберите одно или несколько занятий, остальные можно пропустить.</p>{tasks.length?tasks.slice(0,3).map(t=><div className="care-task-preview" key={t.id}><span>{t.title}</span><Button variant="outline" onClick={()=>setPanel('plan')}>Открыть</Button></div>):<p>План появится при следующем открытии кабинета.</p>}<div className="care-buttons"><Button disabled={!p||busy||care.tasks.length>96} onClick={()=>void generateDay()}>Обновить план на день</Button><Button variant="outline" onClick={()=>setPanel('plan')}>Мои задачи</Button></div></section>
    <section><h3 className="mb-4">Игры и развитие</h3><div className="care-service-grid">{ideas.map(item=><article className="tile care-service" key={item.id}><strong>{item.title}</strong><span>{item.detail}</span><Button variant="outline" disabled={busy||care.tasks.length>=100||care.tasks.some(t=>t.id===item.id)} onClick={()=>void addIdea(item)}>{care.tasks.some(t=>t.id===item.id)?'В плане':'Добавить в план'}</Button></article>)}</div><div className="care-buttons mt-4"><Button variant="outline" disabled={!p||busy} onClick={()=>ask('Предложи ещё несколько безопасных игр и занятий для моего ребёнка на сегодня. Используй данные профиля молча, не повторяй возраст. Для каждой идеи дай короткие шаги и вариант упрощения.')}>Предложить ещё с AI</Button></div></section>
    <section className="tile"><h3>Ваша неделя — без сравнения с другими</h3><p>{summary.entries} записей в дневнике · {summary.completed} выполненных действий. Пропуски не уменьшают «оценку» — оценок здесь нет.</p><Button variant="outline" onClick={()=>setPanel('diary')}>Посмотреть наблюдения</Button></section>
   </>}

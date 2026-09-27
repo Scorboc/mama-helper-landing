@@ -4,7 +4,7 @@ import calendar
 import json
 import os
 import time
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 
 # Kept next to the function so a single function archive is deployable.
@@ -30,7 +30,8 @@ def due(state, today=None, now=None):
     result=[]
     repeat = state['preferences']['repeat']
     for eid,stage,moment,topic in EVENTS:
-        if stage!=profile['stage'] or age<moment or (profile['topics'] and topic not in profile['topics']):
+        expires=moment+(8 if stage=='pregnancy' else 3 if moment<12 else 6 if moment<36 else 12)
+        if stage!=profile['stage'] or not moment<=age<expires or (profile['topics'] and topic not in profile['topics']):
             continue
         progress=state['events'].get(eid)
         if progress and (progress['status'] in ('read','hidden') or progress['until']>now*1000):
@@ -40,6 +41,12 @@ def due(state, today=None, now=None):
 
 
 def run(db, unseal, webpush=None):
+    if os.environ.get('APP_DAILY_PLANS')=='1':
+        spec=importlib.util.spec_from_file_location('daily_job',Path(__file__).with_name('daily_job.py'))
+        job=importlib.util.module_from_spec(spec); spec.loader.exec_module(job)
+        spec=importlib.util.spec_from_file_location('daily_app',Path(__file__).with_name('index.py'))
+        app=importlib.util.module_from_spec(spec); spec.loader.exec_module(app)
+        return job.run(app,db,webpush)
     if not os.environ.get('VAPID_PRIVATE_KEY') or not os.environ.get('VAPID_SUBJECT'):
         raise RuntimeError('Push credentials are not configured')
     if webpush is None:
@@ -56,7 +63,24 @@ def run(db, unseal, webpush=None):
             break
         for uid,endpoint,encrypted,encrypted_state in rows:
             cursor=endpoint
-            for eid,interval in due(unseal(encrypted_state)):
+            state = unseal(encrypted_state)
+            if not state.get('preferences', {}).get('push'):
+                continue
+            # Keep the daily budget bounded: at most two reminders per parent.
+            # Age cards are retained first; task reminders fill the remaining slots.
+            scheduled = due(state)[:2]
+            today = date.today().isoformat()
+            care = state.get('care') or {}
+            for task in care.get('tasks', []):
+                if len(scheduled) >= 2:
+                    break
+                if task.get('date') == today and task.get('status') == 'planned':
+                    scheduled.append((f"daily-task-{today}-{task.get('id','')}", 86400))
+            day_start = int(datetime.fromtimestamp(now, timezone(timedelta(hours=3))).replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+            for eid,interval in scheduled:
+                used = db.query('SELECT COUNT(*) FROM mh_delivery WHERE user_id=? AND sent_at>=?', (uid, day_start)).fetchone()[0]
+                if used >= 2:
+                    break
                 cur=db.query('''INSERT INTO mh_delivery VALUES(?,?,?,?) ON CONFLICT(user_id,event_id,endpoint_hash)
                   DO UPDATE SET sent_at=? WHERE ? > 0 AND mh_delivery.sent_at<=? RETURNING sent_at''',
                   (uid,eid,endpoint,now,now,interval,now-interval))
@@ -65,7 +89,7 @@ def run(db, unseal, webpush=None):
                 if not claimed:
                     continue
                 try:
-                    webpush(subscription_info=unseal(encrypted), data=json.dumps({'type':'age-card'}),
+                    webpush(subscription_info=unseal(encrypted), data=json.dumps({'type':'daily-plan','eventId':eid}),
                             vapid_private_key=os.environ['VAPID_PRIVATE_KEY'],vapid_claims={'sub':os.environ['VAPID_SUBJECT']},timeout=8)
                     delivered+=1
                 except Exception as exc:

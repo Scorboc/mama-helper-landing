@@ -72,7 +72,7 @@ async function save(next){const body=await call('save',{state:next,revision});re
 const session=await call('login',{email:LOGIN,password:PASSWORD});revision=session.revision;state=session.state;
 const preservedChat={messages:structuredClone(state.messages||[]),conversations:structuredClone(state.conversations||[]),conversationTitle:state.conversationTitle||'Общий разговор'};
 await save(cleared(state));
-await save({...state,profile:{childName:'Тест',role:'mom',stage:'child',birthDate:'2023-09-17',feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]}});
+await save({...state,profile:{childName:'Тест',role:'mom',stage:'child',birthDate:'2023-09-17',week:20,weekDate:new Date().toISOString().slice(0,10),feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]}});
 const results=[];
 try{
   for(const item of selected){
