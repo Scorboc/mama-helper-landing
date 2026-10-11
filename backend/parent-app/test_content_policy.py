@@ -14,6 +14,14 @@ policy=module('content_policy')
 reminders=module('reminders')
 
 class ContentPolicyTest(unittest.TestCase):
+    def test_chat_rejects_another_child_or_mismatched_age(self):
+        profile={'stage':'child','birthDate':'2023-09-21','childName':'Яша'}
+        self.assertIsNotNone(policy.profile_scope_reply('А если ребёнку 6 месяцев?',profile))
+        self.assertIsNotNone(policy.profile_scope_reply('Вопрос про другого ребёнка',profile))
+        self.assertIsNone(policy.profile_scope_reply('Ребёнку 3 года, когда укладывать?',profile))
+        cleaned=policy.clean('Для Яши подходит текущий совет. Если вопрос про другого ребёнка, уточните его возраст.',profile)
+        self.assertIn('только для профиля «Яша»',cleaned)
+        self.assertNotIn('уточните его возраст',cleaned.lower())
     def test_month_boundaries_and_missing_age(self):
         for born,now,expected in [('2024-02-29','2025-02-28',12),('2025-01-31','2025-03-30',1),('2025-01-31','2025-03-31',2)]:
             self.assertEqual(policy.months({'stage':'child','birthDate':born},date.fromisoformat(now)),expected)

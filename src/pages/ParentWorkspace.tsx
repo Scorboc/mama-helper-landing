@@ -1,25 +1,28 @@
-import SimpleMyDay from '@/components/SimpleMyDay';
-import AgeGuidance from '@/components/AgeGuidance';
-import GuideWelcome from '@/components/GuideWelcome';
+import SimpleMyDay from "@/components/SimpleMyDay";
+import CareTools from "@/components/CareTools";
+import AgeGuidance from "@/components/AgeGuidance";
+import GuideWelcome from "@/components/GuideWelcome";
 import FirstAid from "@/components/FirstAid";
-import Favorites, {FavoriteButton} from '@/components/Favorites';
-import {familyList, switchChild, addChild} from '@/lib/family';
+import Favorites, { FavoriteButton } from "@/components/Favorites";
+import { familyList, switchChild, addChild } from "@/lib/family";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import ThemeControl from "@/components/ThemeControl";
+import ProductIdeas from "@/components/ProductIdeas";
+import ChatQuickCare from "@/components/ChatQuickCare";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Bell,
   Heart,
+  House,
   MessageCircle,
   UserRound,
-  Settings,
   ArrowLeft,
   Send,
   LogOut,
   ClipboardList,
-  Cross,
+  ChevronDown,
+  Check,
 } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -60,15 +63,15 @@ import {
 } from "@/components/ChatCare";
 import { api, Session, Quota, streamChat } from "@/lib/parent-api";
 import { randomId } from "@/lib/id";
+import { readChatDraft, writeChatDraft, clearChatDrafts } from "@/lib/chat-drafts";
 import {
   EvidencePassport,
   VoiceInput,
   ReadAnswer,
 } from "@/components/ParentServices";
-import "./parent-app.css";
 
 export default function ParentWorkspace({
-  initialTab = "home",
+  initialTab = "chat",
 }: {
   initialTab?: string;
 }) {
@@ -76,39 +79,132 @@ export default function ParentWorkspace({
   const [revision, setRevision] = useState(0);
   const [user, setUser] = useState<Session["user"] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionAttempt, setSessionAttempt] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
-  const allowedTabs = ['home','chat','first-aid','favorites','advisor','card','profile','settings'];
-  const requestedTab = new URLSearchParams(location.search).get('tab');
-  const tab = requestedTab && allowedTabs.includes(requestedTab) ? requestedTab : initialTab;
+  const allowedTabs = [
+    "home",
+    "chat",
+    "trackers",
+    "more",
+    "first-aid",
+    "favorites",
+    "advisor",
+    "card",
+    "profile",
+    "settings",
+  ];
+  const requestedTab = new URLSearchParams(location.search).get("tab");
+  const tab =
+    requestedTab && allowedTabs.includes(requestedTab)
+      ? requestedTab
+      : initialTab;
+  useEffect(() => {
+    if (user?.id) void api("event", { page: tab }).catch(() => {});
+  }, [tab, user?.id]);
   const tabNavigation = useRef<HTMLDivElement | null>(null);
   const previousTab = useRef(tab);
+  const lastProfileTab = useRef("more");
+  const detailParents = useRef<Record<string, string>>({});
+  const careDrafts = useRef<
+    Record<
+      string,
+      { note: string; value: string; sleepStart?: string; sleepEnd?: string }
+    >
+  >({});
+  const messageDrafts = useRef<Record<string, string>>({});
+  const profileDrafts = useRef<Record<string, Profile>>({});
+  const chatPositions = useRef<Record<string, number>>({});
+  const profileTabs = [
+    "more",
+    "profile",
+    "settings",
+    "advisor",
+    "card",
+    "first-aid",
+  ];
+  const sectionTitles: Record<string, string> = {
+    home: "Сегодня",
+    chat: "Чат",
+    trackers: "Записи",
+    favorites: "Избранное",
+    more: "Профиль",
+    profile: "Профиль ребёнка",
+    settings: "Настройки",
+    advisor: "Советник",
+    card: "Наблюдения и память",
+    "first-aid": "Первая помощь",
+  };
+  const draftKey = `${user?.id || "pending"}:${state.activeChildId || "primary"}:${state.conversationId || "legacy-active"}`;
+  const scrollPositions = useRef<Record<string, number>>({});
+  const [childPickerOpen, setChildPickerOpen] = useState(false);
+  const quickActions = useRef<HTMLDivElement>(null);
   function setTab(next: string) {
-    if(next === tab) {
-      tabNavigation.current?.scrollIntoView({block:'start',behavior:'smooth'});
+    if (next === tab) {
+      tabNavigation.current?.scrollIntoView({
+        block: "start",
+        behavior: "smooth",
+      });
       return;
     }
+    scrollPositions.current[tab] = window.scrollY;
+    if (profileTabs.includes(next)) {
+      lastProfileTab.current = next;
+      if (next !== "more" && next !== tab) detailParents.current[next] = tab;
+    }
     const params = new URLSearchParams(location.search);
-    params.set('tab',next);
-    navigate({pathname:location.pathname,search:params.toString()}, {state:{cabinetSection:true}});
+    params.set("tab", next);
+    navigate(
+      { pathname: location.pathname, search: params.toString() },
+      { state: { cabinetSection: true } },
+    );
   }
-  useEffect(()=>{
-    if(previousTab.current===tab)return;
-    previousTab.current=tab;
-    setError('');setNotice('');
-    const frame=requestAnimationFrame(()=>tabNavigation.current?.scrollIntoView({block:'start',behavior:'auto'}));
-    return()=>cancelAnimationFrame(frame);
-  },[tab]);
+  useEffect(() => {
+    if (previousTab.current === tab) return;
+    previousTab.current = tab;
+    setError("");
+    setNotice("");
+    const frame = requestAnimationFrame(() =>
+      window.scrollTo({
+        top:
+          scrollPositions.current[tab] ??
+          (tabNavigation.current?.getBoundingClientRect().top ?? 0) +
+            window.scrollY -
+            12,
+        behavior: "instant",
+      }),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [tab]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const [chatBusy, setChatBusy] = useState(false);
+  const [careVersion, setCareVersion] = useState<string>();
+  useEffect(() => {
+    let current = true;
+    let request = 0;
+    setCareVersion(undefined);
+    const refresh = async () => {
+      if (state.profile?.stage !== "child") return;
+      const ticket = ++request;
+      try {
+        const result = await api<{ contextVersion: string }>("care-list", { childId: state.activeChildId || "primary" });
+        if (current && ticket === request) setCareVersion(result.contextVersion);
+      } catch { if (current && ticket === request) setCareVersion(undefined); }
+    };
+    void refresh();
+    window.addEventListener("care-records-changed", refresh);
+    const visible = () => { if (document.visibilityState === "visible") void refresh(); };
+    document.addEventListener("visibilitychange", visible);
+    return () => { current = false; window.removeEventListener("care-records-changed", refresh); document.removeEventListener("visibilitychange", visible); };
+  }, [state.activeChildId, state.profile?.stage]);
   const [pushBusy, setPushBusy] = useState(false);
   const [quota, setQuota] = useState<Quota>();
-  const [birthday,setBirthday]=useState<Session['birthday']>();
-  const guidanceTopic=new URLSearchParams(location.search).get('topic');
-  const guidanceChild=new URLSearchParams(location.search).get('child');
+  const [birthday, setBirthday] = useState<Session["birthday"]>();
+  const guidanceTopic = new URLSearchParams(location.search).get("topic");
+  const guidanceChild = new URLSearchParams(location.search).get("child");
   const [partial, setPartial] = useState("");
   const [retryRequest, setRetryRequest] = useState<{
     question: string;
@@ -121,22 +217,46 @@ export default function ParentWorkspace({
   const [deletePassword, setDeletePassword] = useState("");
   const chatLog = useRef<HTMLDivElement | null>(null);
   const responseStart = useRef<HTMLDivElement | null>(null);
+  const composer = useRef<HTMLDivElement | null>(null);
+  const [composerHeight, setComposerHeight] = useState(80);
   const responseAnchored = useRef(false);
-  const [answerMinHeight,setAnswerMinHeight] = useState(0);
+  const [answerMinHeight, setAnswerMinHeight] = useState(0);
   const mountChatLog = useCallback((node: HTMLDivElement | null) => {
     chatLog.current = node;
     if (node) node.scrollTop = node.scrollHeight;
   }, []);
   const [clock, setClock] = useState(Date.now());
   useEffect(() => {
+    const node = composer.current;
+    if (tab !== "chat" || !node) return;
+    const resize = new ResizeObserver(() => setComposerHeight(node.getBoundingClientRect().height));
+    resize.observe(node);
+    return () => resize.disconnect();
+  }, [tab, loading]);
+  useEffect(() => {
     let active = true;
+    setLoading(true);
+    setError("");
     api<Session>("session")
       .then(async (s) => {
-        const requestedChild=new URLSearchParams(window.location.search).get('child');
-        if(requestedChild && familyList(s.state).some(child=>child.id===requestedChild) && requestedChild!==(s.state.activeChildId || 'primary')) {
-          const next=switchChild(s.state,requestedChild);
-          const saved=await api<{revision:number}>('save',{state:next,revision:s.revision});
-          s={...s,state:next,revision:saved.revision};
+        if (s.user.emailVerificationRequired) {
+          navigate("/account?mode=email-await", { replace: true });
+          return;
+        }
+        const requestedChild = new URLSearchParams(window.location.search).get(
+          "child",
+        );
+        if (
+          requestedChild &&
+          familyList(s.state).some((child) => child.id === requestedChild) &&
+          requestedChild !== (s.state.activeChildId || "primary")
+        ) {
+          const next = switchChild(s.state, requestedChild);
+          const saved = await api<{ revision: number }>("save", {
+            state: next,
+            revision: s.revision,
+          });
+          s = { ...s, state: next, revision: saved.revision };
         }
         if (active) {
           setUser(s.user);
@@ -156,27 +276,46 @@ export default function ParentWorkspace({
     return () => {
       active = false;
     };
-  }, []);
+  }, [sessionAttempt, navigate]);
+  useEffect(() => {
+    setDraft(messageDrafts.current[draftKey] ?? (user ? readChatDraft(draftKey) : ""));
+  }, [draftKey, user]);
   useEffect(() => {
     if (tab !== "chat" || loading) return;
+    const log = chatLog.current;
+    const positions = chatPositions.current;
+    const frame = requestAnimationFrame(() => {
+      if (log) {
+        const answers = log.querySelectorAll<HTMLElement>(".bubble.assistant");
+        const lastAnswer = answers[answers.length - 1];
+        log.scrollTop = positions[draftKey] ?? (lastAnswer
+          ? lastAnswer.getBoundingClientRect().top - log.getBoundingClientRect().top + log.scrollTop - 12
+          : log.scrollHeight);
+        if (log.querySelector(".bubble.user"))
+          (quickActions.current?.querySelector(".chat-quick-care") || log).scrollIntoView({ block: "start", behavior: "instant" });
+      }
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      if (log) positions[draftKey] = log.scrollTop;
+    };
+  }, [loading, draftKey, tab]);
+  useEffect(() => {
+    if (tab !== "chat" || !chatBusy || responseAnchored.current) return;
     const frame = requestAnimationFrame(() => {
       const log = chatLog.current;
-      if (log) log.scrollTop = log.scrollHeight;
+      const answer = responseStart.current;
+      if (!log || !answer) return;
+      // Anchor once to the start; streaming must not override manual reading.
+      log.scrollTop +=
+        answer.getBoundingClientRect().top -
+        log.getBoundingClientRect().top -
+        16;
+      log.scrollIntoView({ block: "start", behavior: "instant" });
+      responseAnchored.current = true;
     });
     return () => cancelAnimationFrame(frame);
-  }, [loading, state.activeChildId, state.conversationId, tab]);
-  useEffect(() => {
-    if(tab !== 'chat' || !chatBusy || responseAnchored.current)return;
-    const frame=requestAnimationFrame(()=>{
-      const log=chatLog.current;
-      const answer=responseStart.current;
-      if(!log || !answer)return;
-      // Anchor once to the start; streaming must not override manual reading.
-      log.scrollTop += answer.getBoundingClientRect().top-log.getBoundingClientRect().top-16;
-      responseAnchored.current=true;
-    });
-    return()=>cancelAnimationFrame(frame);
-  },[tab,chatBusy]);
+  }, [tab, chatBusy]);
   useEffect(() => {
     const tick = () => setClock(Date.now());
     const timer = window.setInterval(tick, 60000);
@@ -188,11 +327,29 @@ export default function ParentWorkspace({
   }, []);
   const due = dueMilestones(state, new Date(clock));
   async function changeChild(next: ParentState, adding = false) {
-    if (await save(next, adding ? 'Заполните профиль ребёнка' : 'Профиль переключён')) {
-      setProfileDraft(next.profile || defaultProfile());
-      setDraft(''); setRetryRequest(null); setPartial('');
-      if (adding || !next.profile) setTab('profile');
+    if (
+      !adding &&
+      (next.activeChildId || "primary") === (state.activeChildId || "primary")
+    )
+      return true;
+    profileDrafts.current[state.activeChildId || "primary"] = profileDraft;
+    if (
+      await save(
+        next,
+        adding ? "Заполните профиль ребёнка" : "Профиль переключён",
+      )
+    ) {
+      setProfileDraft(
+        profileDrafts.current[next.activeChildId || "primary"] ||
+          next.profile ||
+          defaultProfile(),
+      );
+      setRetryRequest(null);
+      setPartial("");
+      if (adding || !next.profile) setTab("profile");
+      return true;
     }
+    return false;
   }
   async function save(next: ParentState, success = "Сохранено") {
     if (lock.current) return false;
@@ -229,8 +386,8 @@ export default function ParentWorkspace({
     lock.current = true;
     setBusy(true);
     setChatBusy(true);
-    responseAnchored.current=false;
-    setAnswerMinHeight(Math.max(0,(chatLog.current?.clientHeight || 0)-32));
+    responseAnchored.current = false;
+    setAnswerMinHeight(Math.max(0, (chatLog.current?.clientHeight || 0) - 32));
     setError("");
     setNotice("");
     const messageId =
@@ -247,6 +404,8 @@ export default function ParentWorkspace({
     setRetryRequest(request);
     setPartial("");
     setDraft("");
+    messageDrafts.current[draftKey] = "";
+    writeChatDraft(draftKey, "");
     const withUser = retry
       ? state
       : {
@@ -267,11 +426,22 @@ export default function ParentWorkspace({
       setRetryRequest(null);
       setPartial("");
       setDraft("");
-      setNotice("Переписка сохранена");
+      messageDrafts.current[draftKey] = "";
+      writeChatDraft(draftKey, "");
+      setNotice(
+        result.sleepContext?.records
+          ? `Ответ подготовлен с записями сна: ${result.sleepContext.childName}, последние ${result.sleepContext.days} дней (${result.sleepContext.records} эпизодов).`
+          : "Переписка сохранена",
+      );
     } catch (e) {
       const detail = (e as Error).message;
       setPartial("");
-      setDraft((current) => current || q);
+      setDraft((current) => {
+        const next = current || q;
+        messageDrafts.current[draftKey] = next;
+        writeChatDraft(draftKey, next);
+        return next;
+      });
       setError(
         "Ответ не получен. Текст оставлен на экране и в поле ввода — можно отправить повторно. " +
           detail,
@@ -284,7 +454,9 @@ export default function ParentWorkspace({
   }
   async function submitProfile(e: FormEvent) {
     e.preventDefault();
-    const p = state.profile ? {...state.profile, childName: profileDraft.childName?.trim()} : profileDraft;
+    const p = state.profile
+      ? { ...state.profile, childName: profileDraft.childName?.trim() }
+      : profileDraft;
     if (p.stage === "child" && !p.childName?.trim()) {
       setError("Укажите имя ребёнка или домашнее имя. Фамилия не нужна.");
       return;
@@ -302,17 +474,24 @@ export default function ParentWorkspace({
       setError("Добавляйте только особенности, подтверждённые специалистом.");
       return;
     }
-    if (!state.profile && !window.confirm('Проверьте сведения. Профиль ребёнка заполняется один раз: после сохранения можно изменить только имя. Дату рождения, этап, кормление и другие поля изменить самостоятельно нельзя. Продолжить?')) return;
-    if (await save(stateWithProfile(state, p)))
-      setTab("home");
+    if (
+      !state.profile &&
+      !window.confirm(
+        "Проверьте сведения. Профиль ребёнка заполняется один раз: после сохранения можно изменить только имя. Дату рождения, этап, кормление и другие поля изменить самостоятельно нельзя. Продолжить?",
+      )
+    )
+      return;
+    if (await save(stateWithProfile(state, p))) setTab("chat");
   }
   async function logout() {
     setBusy(true);
     try {
       await api("logout");
+      if (user) clearChatDrafts(user.id);
       setRetryRequest(null);
       setPartial("");
       setDraft("");
+      messageDrafts.current[draftKey] = "";
       setUser(null);
       setState(emptyState());
       setError("");
@@ -347,21 +526,38 @@ export default function ParentWorkspace({
       return;
     }
     setPushBusy(true);
-    setError('');
-    setNotice('Разрешите уведомления в запросе браузера. Если запрос не появился, проверьте настройки разрешений сайта.');
+    setError("");
+    setNotice(
+      "Разрешите уведомления в запросе браузера. Если запрос не появился, проверьте настройки разрешений сайта.",
+    );
     const timeout = async <T,>(promise: Promise<T>): Promise<T> => {
       let timer: ReturnType<typeof setTimeout>;
       try {
-        return await Promise.race([promise, new Promise<T>((_, reject) => {
-          timer = setTimeout(() => reject(new Error('Браузер не завершил подключение уведомлений. Откройте сайт в Chrome, Edge или Safari и разрешите уведомления в настройках сайта.')), 20000);
-        })]);
-      } finally { clearTimeout(timer!); }
+        return await Promise.race([
+          promise,
+          new Promise<T>((_, reject) => {
+            timer = setTimeout(
+              () =>
+                reject(
+                  new Error(
+                    "Браузер не завершил подключение уведомлений. Откройте сайт в Chrome, Edge или Safari и разрешите уведомления в настройках сайта.",
+                  ),
+                ),
+              20000,
+            );
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer!);
+      }
     };
     try {
       // Request inside the click gesture, before any network await.
       const permission = await timeout(Notification.requestPermission());
-      if (permission !== 'granted') {
-        setError('Уведомления не разрешены. Изменить это можно в настройках браузера.');
+      if (permission !== "granted") {
+        setError(
+          "Уведомления не разрешены. Изменить это можно в настройках браузера.",
+        );
         return;
       }
       const { pushKey } = await api<{ pushKey: string }>("config");
@@ -380,10 +576,12 @@ export default function ParentWorkspace({
       );
       const subscription =
         (await registration.pushManager.getSubscription()) ??
-        (await timeout(registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: bytes,
-        })));
+        (await timeout(
+          registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: bytes,
+          }),
+        ));
       await api("subscribe", { subscription: subscription.toJSON() });
       await save({
         ...state,
@@ -393,7 +591,7 @@ export default function ParentWorkspace({
       setError((e as Error).message || "Не удалось включить уведомления.");
     } finally {
       setPushBusy(false);
-      setNotice('');
+      setNotice("");
     }
   }
   const markEvent = (id: string, status: "read" | "hidden" | "later") =>
@@ -422,7 +620,7 @@ export default function ParentWorkspace({
       <main className="account-page">
         <div className="tile account-card">
           <Fox className="h-20 w-20 mx-auto" />
-          <h1>Ваш личный кабинет</h1>
+          <h1>{error ? "Не удалось открыть кабинет" : "Ваш личный кабинет"}</h1>
           <p>
             Войдите, чтобы профиль, чат и настройки сохранялись между
             посещениями.
@@ -433,15 +631,27 @@ export default function ParentWorkspace({
             </p>
           )}
           <div className="flex flex-wrap gap-3 mt-6">
+            {error && <Button onClick={() => setSessionAttempt(value => value + 1)}>Повторить загрузку</Button>}
             <Button asChild>
-              <Link to={'/account?next='+encodeURIComponent('/cabinet'+location.search)}>Регистрация и вход</Link>
+              <Link
+                to={
+                  "/account?mode=login&next=" +
+                  encodeURIComponent(location.pathname + location.search)
+                }
+              >
+                Регистрация и вход
+              </Link>
             </Button>
           </div>
+          <Link className="standalone-link" to="/first-aid">Срочная помощь · 112</Link>
         </div>
       </main>
     );
   return (
-    <div className="parent-workspace">
+    <div
+      className={`parent-workspace ${tab === "trackers" ? "with-tracker-dock" : ""} ${tab === "chat" ? "chat-workspace" : ""}`}
+    >
+      <a className="skip-link" href="#main-content">К основному содержимому</a>
       <header className="cabinet-header">
         <div className="brand-theme">
           <Link to="/" className="flex items-center gap-2">
@@ -462,8 +672,7 @@ export default function ParentWorkspace({
           </Button>
         </div>
       </header>
-      <main className="cabinet-main">
-        <GuideWelcome key={user.id} />
+      <main id="main-content" tabIndex={-1} className="cabinet-main">
         <div className="cabinet-greeting">
           <div>
             <span className="cap">
@@ -471,22 +680,99 @@ export default function ParentWorkspace({
                 ? "Папа, вы тоже важны"
                 : "Забота о малыше начинается с заботы о вас"}
             </span>
-            <h1>
-              {state.profile ? "Рады, что вы здесь" : "Давайте познакомимся"}
-            </h1>
-            <p className="muted mt-2">{contextLabel(state.profile)}</p>
+            <h1>{sectionTitles[tab] || "Ваш кабинет"}</h1>
+            {tab !== "chat" && <p className="muted mt-2">{contextLabel(state.profile)}</p>}
           </div>
           <HeartCloud className="h-24 w-24 hidden sm:block" />
         </div>
-        <div className="flex flex-wrap items-center gap-3 mb-5">
-          <label className="flex items-center gap-2">Ребёнок
-            <select aria-label="Выбрать ребёнка" className="rounded-lg border p-2 bg-background max-w-full" value={state.activeChildId || 'primary'} disabled={busy || chatBusy} onChange={e=>void changeChild(switchChild(state,e.target.value))}>
-              {familyList(state).map((child,index)=><option key={child.id} value={child.id}>{child.data.profile?.childName || (child.data.profile?.stage === 'pregnancy' ? 'Ожидание малыша' : `Ребёнок ${index+1}`)}</option>)}
-            </select>
-          </label>
-          <Button variant="outline" disabled={busy || chatBusy || familyList(state).length >= 10 || !state.profile} onClick={()=>void changeChild(addChild(state),true)}>Добавить ребёнка</Button>
+        <div ref={quickActions} className={tab === "chat" ? "chat-daily-actions" : "hidden"}>
+          <ChatQuickCare key={state.activeChildId || "primary"} state={state} onTrackers={() => setTab("trackers")} onProfile={() => setChildPickerOpen(true)} profileBusy={busy || chatBusy} />
         </div>
-        {!!birthday?.children.length&&<section className="tile birthday-card" role="status"><h2>С днём рождения!</h2><p>{birthday.children.map(c=>c.name).join(', ')} — поздравляем вашу семью! Вспомните вместе любимое событие года и придумайте маленькую праздничную традицию.</p>{birthday.giftPerChild>0&&<p>Подарок: по 5 дополнительных AI-ответов за каждого именинника. Подарочных ответов осталось: {quota?.bonusRemaining ?? birthday.giftRemaining}.</p>}</section>}
+        {(tab !== "chat" || state.profile?.stage !== "child") && <Button
+          className="child-picker"
+          aria-label={`Выбрать ребёнка: ${contextLabel(state.profile)}`}
+          variant="outline"
+          disabled={busy || chatBusy}
+          onClick={() => setChildPickerOpen(true)}
+        >
+          <span className="child-avatar">
+            <UserRound size={20} />
+          </span>
+          <span>
+            <small>{tab === "chat" && state.profile ? contextLabel(state.profile).split(" · ").slice(1).join(" · ") : "Сейчас выбран"}</small>
+            <strong>
+              {state.profile?.childName ||
+                (state.profile?.stage === "pregnancy"
+                  ? "Ожидание малыша"
+                  : "Профиль ребёнка")}
+            </strong>
+          </span>
+          <ChevronDown size={18} />
+        </Button>}
+        <Dialog open={childPickerOpen} onOpenChange={setChildPickerOpen}>
+          <DialogContent className="ios-sheet">
+            <DialogHeader>
+              <DialogTitle>Ваши дети</DialogTitle>
+              <DialogDescription>
+                Выберите, для кого показать занятия, чат и записи.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="ios-list">
+              {familyList(state).map((child, index) => (
+                <Button
+                  key={child.id}
+                  variant="ghost"
+                  disabled={busy || chatBusy}
+                  onClick={async () => {
+                    if (await changeChild(switchChild(state, child.id)))
+                      setChildPickerOpen(false);
+                  }}
+                >
+                  <span>
+                    {child.data.profile?.childName ||
+                      (child.data.profile?.stage === "pregnancy"
+                        ? "Ожидание малыша"
+                        : `Ребёнок ${index + 1}`)}
+                  </span>
+                  {child.id === (state.activeChildId || "primary") && (
+                    <Check size={20} />
+                  )}
+                </Button>
+              ))}
+            </div>
+            <Button
+              disabled={
+                busy ||
+                chatBusy ||
+                familyList(state).length >= 10 ||
+                !state.profile
+              }
+              onClick={async () => {
+                if (await changeChild(addChild(state), true))
+                  setChildPickerOpen(false);
+              }}
+            >
+              Добавить ребёнка
+            </Button>
+          </DialogContent>
+        </Dialog>
+        {!!birthday?.children.length && (
+          <section className="tile birthday-card" role="status">
+            <h2>С днём рождения!</h2>
+            <p>
+              {birthday.children.map((c) => c.name).join(", ")} — поздравляем
+              вашу семью! Вспомните вместе любимое событие года и придумайте
+              маленькую праздничную традицию.
+            </p>
+            {birthday.giftPerChild > 0 && (
+              <p>
+                Подарок: по 5 дополнительных AI-ответов за каждого именинника.
+                Подарочных ответов осталось:{" "}
+                {quota?.bonusRemaining ?? birthday.giftRemaining}.
+              </p>
+            )}
+          </section>
+        )}
         <Tabs
           value={tab}
           onValueChange={(v) => {
@@ -496,44 +782,53 @@ export default function ParentWorkspace({
           }}
         >
           <div ref={tabNavigation} className="cabinet-navigation">
-            {tab!=='home'&&<Button type="button" variant="ghost" className="mb-2" onClick={()=>location.state?.cabinetSection ? navigate(-1) : setTab('home')}><ArrowLeft size={17}/>Назад</Button>}
-          <TabsList className="cabinet-tabs" aria-label="Разделы личного кабинета">
-            <TabsTrigger value="home">
-              <Heart size={18} />
-              Мой день
-            </TabsTrigger>
-            <TabsTrigger value="chat">
-              <MessageCircle size={18} />
-              Чат
-            </TabsTrigger>
-            <TabsTrigger value="first-aid">
-              <Cross size={18} />
-              Первая помощь
-            </TabsTrigger>
-            <TabsTrigger value="favorites"><Heart size={18}/>Избранное</TabsTrigger>
-            <TabsTrigger value="advisor">
-              <Bell size={18} />
-              Советник
-              {due.length > 0 && <span className="count">{due.length}</span>}
-            </TabsTrigger>
-            <TabsTrigger value="card">
-              <ClipboardList size={18} />
-              Карта
-              {state.medicalCard.length > 0 && (
-                <span className="count">{state.medicalCard.length}</span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="profile">
-              <UserRound size={18} />
-              Профиль
-            </TabsTrigger>
-            <TabsTrigger value="settings">
-              <Settings size={18} />
-              Настройки
-            </TabsTrigger>
-          </TabsList>
+            {!["home", "chat", "trackers", "favorites", "more"].includes(
+              tab,
+            ) && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="mb-2"
+                onClick={() => location.state?.cabinetSection ? navigate(-1) : setTab(detailParents.current[tab] || "more")}
+              >
+                <ArrowLeft size={17} />
+                Назад
+              </Button>
+            )}
+            <nav className="cabinet-tabs" aria-label="Разделы личного кабинета">
+              {(
+                [
+                  ["home", "Сегодня", House],
+                  ["chat", "Чат", MessageCircle],
+                  ["trackers", "Записи", ClipboardList],
+                  ["favorites", "Избранное", Heart],
+                  ["more", "Профиль", UserRound],
+                ] as const
+              ).map(([id, label, Icon]) => {
+                const selected =
+                  id === "more" ? profileTabs.includes(tab) : tab === id;
+                return (
+                  <button
+                    type="button"
+                    key={id}
+                    aria-current={selected ? "page" : undefined}
+                    data-state={selected ? "active" : "inactive"}
+                    onClick={() =>
+                      setTab(
+                        id === "more" && !selected
+                          ? lastProfileTab.current
+                          : id,
+                      )
+                    }
+                  >
+                    <Icon size={21} />
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
-          {error && (
+          {error && tab !== "chat" && (
             <p role="alert" className="form-error my-4">
               {error}
             </p>
@@ -543,31 +838,102 @@ export default function ParentWorkspace({
               {notice}
             </p>
           )}
-          <TabsContent value="home">
-            <SimpleMyDay state={state} onProfile={() => setTab("profile")} />
+          <TabsContent
+            forceMount
+            value="home"
+            className="workspace-pane data-[state=inactive]:hidden"
+          >
+            <SimpleMyDay
+              active={tab === "home"}
+              onNavigate={setTab}
+              state={state}
+              onProfile={() => setTab("profile")}
+            />
+          </TabsContent>
+          <TabsContent
+            forceMount
+            value="trackers"
+            className="workspace-pane data-[state=inactive]:hidden"
+          >
+            {state.profile ? (
+              <CareTools
+                key={state.activeChildId || "primary"}
+                active={tab === "trackers"}
+                drafts={careDrafts.current}
+                state={state}
+                onMood={() => {}}
+                expanded
+              />
+            ) : (
+              <Button onClick={() => setTab("profile")}>
+                Заполнить профиль
+              </Button>
+            )}
+          </TabsContent>
+          <TabsContent value="more">
+            <section className="tile">
+              <h2>Профиль</h2>
+              <p className="muted">Дети, настройки и полезные материалы</p>
+              <div className="workspace-more ios-list">
+                {[
+                  ["profile", "Профили детей"],
+                  ["advisor", "Советник"],
+                  ["card", "Наблюдения и память"],
+                  ["first-aid", "Первая помощь"],
+                  ["settings", "Настройки и уведомления"],
+                ].map(([id, label]) => (
+                  <Button key={id} variant="ghost" onClick={() => setTab(id)}>
+                    <span>{label}</span>
+                    <ChevronDown className="-rotate-90" size={18} />
+                  </Button>
+                ))}
+              </div>
+            </section>
+            <details className="tile mt-4">
+              <summary>Как пользоваться сайтом</summary>
+              <GuideWelcome key={user.id} />
+            </details>
           </TabsContent>
           <TabsContent value="first-aid">
             <FirstAid />
           </TabsContent>
-          <TabsContent value="favorites">
-            <Favorites state={state} busy={busy || chatBusy} save={save}/>
+          <TabsContent
+            forceMount
+            value="favorites"
+            className="workspace-pane data-[state=inactive]:hidden"
+          >
+            <Favorites state={state} busy={busy || chatBusy} save={save} />
           </TabsContent>
-          <TabsContent value="chat">
-            {state.profile?.stage==='child'&&guidanceTopic&&(!guidanceChild||guidanceChild===(state.activeChildId||'primary'))&&<AgeGuidance childId={state.activeChildId||'primary'} topic={guidanceTopic}/>}
-            <section className="tile chat-card">
-              <h2>Здесь можно спросить и выдохнуть</h2>
-              <ChatContext
-                state={state}
-                quota={quota}
-                onProfile={() => setTab("profile")}
-              />
+          <TabsContent
+            forceMount
+            value="chat"
+            className="workspace-pane data-[state=inactive]:hidden"
+          >
+            {state.profile?.stage === "child" &&
+              guidanceTopic &&
+              (!guidanceChild ||
+                guidanceChild === (state.activeChildId || "primary")) && (
+                <AgeGuidance
+                  childId={state.activeChildId || "primary"}
+                  topic={guidanceTopic}
+                />
+              )}
+            <section className="tile chat-card" style={{ paddingBottom: composerHeight + 24 }}>
+              <h2 className="sr-only">Чат с помощником</h2>
+              <div className={state.profile ? "chat-tools compact" : "chat-tools"}>
+                <ChatContext
+                  state={state}
+                  quota={quota}
+                  onProfile={() => state.profile ? setChildPickerOpen(true) : setTab("profile")}
+                />
+                <ProductIdeas />
+              </div>
               <ConversationControls
                 state={state}
                 save={async (s, n) => {
                   const ok = await save(s, n);
                   if (ok) {
                     setRetryRequest(null);
-                    setDraft("");
                   }
                   return ok;
                 }}
@@ -579,6 +945,7 @@ export default function ParentWorkspace({
                 role="log"
                 aria-label="Переписка"
                 aria-live="polite"
+                tabIndex={0}
               >
                 {!state.messages.length && (
                   <div className="bubble assistant">
@@ -592,9 +959,19 @@ export default function ParentWorkspace({
                   </div>
                 )}
                 {state.messages.map((m) => (
-                  <div key={m.id} className={`bubble ${m.role}`} style={m.role==='assistant' && m===state.messages[state.messages.length-1] ? {minHeight:answerMinHeight || undefined} : undefined}>
+                  <div
+                    key={m.id}
+                    className={`bubble ${m.role}`}
+                    style={
+                      m.role === "assistant" &&
+                      m === state.messages[state.messages.length - 1]
+                        ? { minHeight: answerMinHeight || undefined }
+                        : undefined
+                    }
+                  >
                     <span>{m.role === "user" ? "Вы" : "Мамин помощник"}</span>
                     <p>{m.text}</p>
+                    {m.role === "assistant" && m.careVersion && careVersion && m.careVersion !== careVersion && <p className="text-sm muted" role="note">Дневник обновлён после этого ответа.</p>}
                     {m.role === "assistant" && (
                       <>
                         <EvidencePassport message={m} />
@@ -611,7 +988,11 @@ export default function ParentWorkspace({
                   </div>
                 ))}
                 {chatBusy && (
-                  <div className="bubble assistant" ref={responseStart} style={{minHeight:answerMinHeight || undefined}}>
+                  <div
+                    className="bubble assistant"
+                    ref={responseStart}
+                    style={{ minHeight: answerMinHeight || undefined }}
+                  >
                     <span>Мамин помощник · ответ формируется</span>
                     <p>{partial || "Готовим ответ с учётом вашего профиля…"}</p>
                   </div>
@@ -628,11 +1009,17 @@ export default function ParentWorkspace({
                 </Button>
               )}
               <MemoryReview state={state} save={save} busy={busy} pendingOnly />
-              <div className="flex items-end gap-2">
+              <div ref={composer} className="chat-composer" role="region" aria-label="Написать вопрос">
+                {error && <p id="chat-request-error" role="alert" className="form-error chat-request-error">{error}</p>}
                 <VoiceInput
                   disabled={busy || chatBusy}
                   onText={(text) =>
-                    setDraft((current) => (current ? current + " " : "") + text)
+                    setDraft((current) => {
+                      const next = (current ? current + " " : "") + text;
+                      messageDrafts.current[draftKey] = next;
+                      writeChatDraft(draftKey, next);
+                      return next;
+                    })
                   }
                 />
                 <form
@@ -645,7 +1032,11 @@ export default function ParentWorkspace({
                   <Textarea
                     value={draft}
                     maxLength={2000}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => {
+                      setDraft(e.target.value);
+                      messageDrafts.current[draftKey] = e.target.value;
+                      writeChatDraft(draftKey, e.target.value);
+                    }}
                     onKeyDown={(e) => {
                       if (
                         e.key === "Enter" &&
@@ -658,6 +1049,7 @@ export default function ParentWorkspace({
                     }}
                     placeholder="Напишите свой вопрос…"
                     aria-label="Ваш вопрос"
+                    aria-describedby={error ? "chat-request-error" : undefined}
                   />
                   <Button
                     type="submit"
@@ -667,15 +1059,14 @@ export default function ParentWorkspace({
                     <Send size={20} />
                   </Button>
                 </form>
+                <Link className="chat-emergency-link" to="/first-aid">Срочная помощь · 112</Link>
               </div>
-              <p className="muted text-sm mt-3">
-                Enter — отправить, Shift+Enter — новая строка. Ошибки сервиса не
-                расходуют лимит.
-              </p>
             </section>
           </TabsContent>
           <TabsContent value="advisor">
-            {state.profile?.stage==='child'&&<AgeGuidance browse childId={state.activeChildId||'primary'}/>}
+            {state.profile?.stage === "child" && (
+              <AgeGuidance browse childId={state.activeChildId || "primary"} />
+            )}
             <div className="section-title">
               <div>
                 <h2>Важное — в своё время</h2>
@@ -686,7 +1077,8 @@ export default function ParentWorkspace({
               <Rattle className="h-16 w-16" />
             </div>
             <p className="mb-5">
-              Карточки соответствуют текущему возрасту ребёнка или сроку беременности.
+              Карточки соответствуют текущему возрасту ребёнка или сроку
+              беременности.
             </p>
             {!state.profile && (
               <Button onClick={() => setTab("profile")}>
@@ -726,9 +1118,7 @@ export default function ParentWorkspace({
             {state.profile && due.length === 0 && (
               <div className="tile my-5">
                 <h3>Новых карточек нет</h3>
-                <p>
-                  Новая тема появится в подходящем возрастном периоде.
-                </p>
+                <p>Новая тема появится в подходящем возрастном периоде.</p>
               </div>
             )}
             {Object.keys(state.events).length > 0 && (
@@ -746,7 +1136,6 @@ export default function ParentWorkspace({
                             : `До ${new Date(v.until).toLocaleDateString("ru-RU")}`}
                         </small>
                       </span>
-
                     </div>
                   );
                 })}
@@ -770,7 +1159,11 @@ export default function ParentWorkspace({
               )}
             </section>
           </TabsContent>
-          <TabsContent value="profile">
+          <TabsContent
+            forceMount
+            value="profile"
+            className="workspace-pane data-[state=inactive]:hidden"
+          >
             <section className="tile profile-panel">
               <h2>Профиль ребёнка</h2>
               <p className="muted">
@@ -778,8 +1171,13 @@ export default function ParentWorkspace({
               </p>
               <form onSubmit={submitProfile} className="mt-6 space-y-5">
                 <p role="note" className="rounded-xl border p-4 text-sm">
-                  {state.profile ? 'Профиль уже заполнен. Можно изменить только имя ребёнка.' : 'Заполнить профиль можно один раз. Внимательно проверьте сведения: после сохранения можно изменить только имя ребёнка.'}
-                  {' '}Дата рождения, этап, кормление, сведения о сне и здоровье фиксируются. Возраст рассчитывается автоматически. Для другого своего ребёнка можно добавить отдельный профиль. При ошибке в данных обратитесь через «Предложить улучшение» в настройках.
+                  {state.profile
+                    ? "Профиль уже заполнен. Можно изменить только имя ребёнка."
+                    : "Заполнить профиль можно один раз. Внимательно проверьте сведения: после сохранения можно изменить только имя ребёнка."}{" "}
+                  Дата рождения, этап, кормление, сведения о сне и здоровье
+                  фиксируются. Возраст рассчитывается автоматически. Для другого
+                  своего ребёнка можно добавить отдельный профиль. При ошибке в
+                  данных обратитесь через «Предложить улучшение» в настройках.
                 </p>
                 <label className="form-field">
                   Имя ребёнка или домашнее имя
@@ -799,16 +1197,142 @@ export default function ParentWorkspace({
                     placeholder="Например, Миша. Фамилия не нужна."
                   />
                 </label>
-                <fieldset disabled={!!state.profile || busy} className="space-y-5 disabled:opacity-70">
-                <div className="form-grid">
+                <fieldset
+                  disabled={!!state.profile || busy}
+                  className="space-y-5 disabled:opacity-70"
+                >
+                  <div className="form-grid">
+                    <label className="form-field">
+                      Кто вы
+                      <Select
+                        value={profileDraft.role}
+                        onValueChange={(v) =>
+                          setProfileDraft({
+                            ...profileDraft,
+                            role: v as Profile["role"],
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mom">Мама</SelectItem>
+                          <SelectItem value="dad">Папа</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </label>
+                    <label className="form-field">
+                      Ваш этап
+                      <Select
+                        value={profileDraft.stage}
+                        onValueChange={(v) =>
+                          setProfileDraft({
+                            ...profileDraft,
+                            stage: v as Profile["stage"],
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pregnancy">
+                            Ожидаем малыша
+                          </SelectItem>
+                          <SelectItem value="child">Ребёнок родился</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </label>
+                  </div>
+                  {profileDraft.stage === "child" ? (
+                    <>
+                      <label className="form-field">
+                        Дата рождения ребёнка
+                        <Input
+                          type="date"
+                          required
+                          max={today()}
+                          value={profileDraft.birthDate}
+                          onChange={(e) =>
+                            setProfileDraft({
+                              ...profileDraft,
+                              birthDate: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="form-field">
+                        Пол ребёнка · необязательно
+                        <Select
+                          value={profileDraft.childSex || "unknown"}
+                          onValueChange={(v) =>
+                            setProfileDraft({
+                              ...profileDraft,
+                              childSex: v as Profile["childSex"],
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unknown">
+                              Не указывать
+                            </SelectItem>
+                            <SelectItem value="female">Девочка</SelectItem>
+                            <SelectItem value="male">Мальчик</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </label>
+                    </>
+                  ) : (
+                    <div className="form-grid">
+                      <label className="form-field">
+                        Полных недель
+                        <Input
+                          type="number"
+                          min={1}
+                          max={42}
+                          required
+                          value={profileDraft.week}
+                          onChange={(e) =>
+                            setProfileDraft({
+                              ...profileDraft,
+                              week: Number(e.target.value),
+                            })
+                          }
+                        />
+                      </label>
+                      <label className="form-field">
+                        На какую дату указан срок
+                        <Input
+                          type="date"
+                          max={today()}
+                          required
+                          value={profileDraft.weekDate}
+                          onChange={(e) =>
+                            setProfileDraft({
+                              ...profileDraft,
+                              weekDate: e.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                  )}
+                  <p className="muted text-sm">
+                    Возраст и срок обновляются автоматически. После рождения
+                    добавьте отдельный профиль ребёнка с датой рождения.
+                  </p>
                   <label className="form-field">
-                    Кто вы
+                    Кормление · необязательно
                     <Select
-                      value={profileDraft.role}
+                      value={profileDraft.feeding}
                       onValueChange={(v) =>
                         setProfileDraft({
                           ...profileDraft,
-                          role: v as Profile["role"],
+                          feeding: v as Profile["feeding"],
                         })
                       }
                     >
@@ -816,189 +1340,75 @@ export default function ParentWorkspace({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="mom">Мама</SelectItem>
-                        <SelectItem value="dad">Папа</SelectItem>
+                        {[
+                          ["unknown", "Не указывать"],
+                          ["breast", "Грудное"],
+                          ["formula", "Смесь"],
+                          ["mixed", "Смешанное"],
+                          ["solids", "С прикормом"],
+                        ].map(([v, t]) => (
+                          <SelectItem key={v} value={v}>
+                            {t}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </label>
                   <label className="form-field">
-                    Ваш этап
-                    <Select
-                      value={profileDraft.stage}
-                      onValueChange={(v) =>
-                        setProfileDraft({
-                          ...profileDraft,
-                          stage: v as Profile["stage"],
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="pregnancy">
-                          Ожидаем малыша
-                        </SelectItem>
-                        <SelectItem value="child">Ребёнок родился</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </label>
-                </div>
-                {profileDraft.stage === "child" ? (
-                  <>
-                  <label className="form-field">
-                    Дата рождения ребёнка
-                    <Input
-                      type="date"
-                      required
-                      max={today()}
-                      value={profileDraft.birthDate}
+                    Что учитывать о сне · необязательно
+                    <Textarea
+                      maxLength={300}
+                      value={profileDraft.sleep}
                       onChange={(e) =>
                         setProfileDraft({
                           ...profileDraft,
-                          birthDate: e.target.value,
+                          sleep: e.target.value,
                         })
                       }
+                      placeholder="Кратко, без личных документов"
                     />
                   </label>
                   <label className="form-field">
-                    Пол ребёнка · необязательно
-                    <Select
-                      value={profileDraft.childSex || "unknown"}
-                      onValueChange={(v) =>
+                    Подтверждённые особенности здоровья · необязательно
+                    <Textarea
+                      maxLength={500}
+                      value={profileDraft.health}
+                      onChange={(e) =>
                         setProfileDraft({
                           ...profileDraft,
-                          childSex: v as Profile["childSex"],
+                          health: e.target.value,
                         })
                       }
-                    >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unknown">Не указывать</SelectItem>
-                        <SelectItem value="female">Девочка</SelectItem>
-                        <SelectItem value="male">Мальчик</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      placeholder="Для теста используйте вымышленные данные"
+                    />
                   </label>
-                  </>
-                ) : (
-                  <div className="form-grid">
-                    <label className="form-field">
-                      Полных недель
-                      <Input
-                        type="number"
-                        min={1}
-                        max={42}
-                        required
-                        value={profileDraft.week}
-                        onChange={(e) =>
-                          setProfileDraft({
-                            ...profileDraft,
-                            week: Number(e.target.value),
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="form-field">
-                      На какую дату указан срок
-                      <Input
-                        type="date"
-                        max={today()}
-                        required
-                        value={profileDraft.weekDate}
-                        onChange={(e) =>
-                          setProfileDraft({
-                            ...profileDraft,
-                            weekDate: e.target.value,
-                          })
-                        }
-                      />
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="health-confirm"
+                      checked={profileDraft.healthConfirmed}
+                      onCheckedChange={(v) =>
+                        setProfileDraft({
+                          ...profileDraft,
+                          healthConfirmed: v === true,
+                        })
+                      }
+                    />
+                    <label htmlFor="health-confirm" className="text-sm">
+                      По моим сведениям, указанные особенности подтверждены
+                      специалистом. Помощник не назначает лечение.
                     </label>
                   </div>
-                )}
-                <p className="muted text-sm">
-                  Возраст и срок обновляются автоматически. После рождения добавьте отдельный профиль ребёнка с датой рождения.
-                </p>
-                <label className="form-field">
-                  Кормление · необязательно
-                  <Select
-                    value={profileDraft.feeding}
-                    onValueChange={(v) =>
-                      setProfileDraft({
-                        ...profileDraft,
-                        feeding: v as Profile["feeding"],
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[
-                        ["unknown", "Не указывать"],
-                        ["breast", "Грудное"],
-                        ["formula", "Смесь"],
-                        ["mixed", "Смешанное"],
-                        ["solids", "С прикормом"],
-                      ].map(([v, t]) => (
-                        <SelectItem key={v} value={v}>
-                          {t}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </label>
-                <label className="form-field">
-                  Что учитывать о сне · необязательно
-                  <Textarea
-                    maxLength={300}
-                    value={profileDraft.sleep}
-                    onChange={(e) =>
-                      setProfileDraft({
-                        ...profileDraft,
-                        sleep: e.target.value,
-                      })
-                    }
-                    placeholder="Кратко, без личных документов"
-                  />
-                </label>
-                <label className="form-field">
-                  Подтверждённые особенности здоровья · необязательно
-                  <Textarea
-                    maxLength={500}
-                    value={profileDraft.health}
-                    onChange={(e) =>
-                      setProfileDraft({
-                        ...profileDraft,
-                        health: e.target.value,
-                      })
-                    }
-                    placeholder="Для теста используйте вымышленные данные"
-                  />
-                </label>
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id="health-confirm"
-                    checked={profileDraft.healthConfirmed}
-                    onCheckedChange={(v) =>
-                      setProfileDraft({
-                        ...profileDraft,
-                        healthConfirmed: v === true,
-                      })
-                    }
-                  />
-                  <label htmlFor="health-confirm" className="text-sm">
-                    Указанные особенности подтверждены специалистом. Демо не
-                    использует их для медицинских назначений.
-                  </label>
-                </div>
-                <p className="muted text-sm">
-                  Помощник учитывает все темы, связанные с ребёнком и
-                  родительством.
-                </p>
+                  <p className="muted text-sm">
+                    Помощник учитывает все темы, связанные с ребёнком и
+                    родительством.
+                  </p>
                 </fieldset>
                 <Button type="submit" disabled={busy}>
-                  {busy ? "Сохраняем…" : state.profile ? "Сохранить имя" : "Сохранить профиль один раз"}
+                  {busy
+                    ? "Сохраняем…"
+                    : state.profile
+                      ? "Сохранить имя"
+                      : "Сохранить профиль один раз"}
                 </Button>
               </form>
             </section>
@@ -1007,18 +1417,88 @@ export default function ParentWorkspace({
             <div className="home-grid">
               <section className="tile">
                 <h2>Напоминания</h2>
-                <p className="muted mt-3">Утром — подсказка по возрасту, поздравление в день рождения или готовые занятия. Не больше двух уведомлений в день на всю семью. Возрастная подсказка открывает чат нужного ребёнка; одинаковые темы не повторяются. Повтор о занятиях не приходит после просмотра подборки.</p>
-                <label className="form-field mt-4">Часовой пояс
-                  <select value={state.preferences.timezone || 'Europe/Moscow'} disabled={busy} onChange={e=>void save({...state,preferences:{...state.preferences,timezone:e.target.value}})}>
-                    {['Europe/Kaliningrad','Europe/Moscow','Europe/Samara','Asia/Yekaterinburg','Asia/Omsk','Asia/Krasnoyarsk','Asia/Irkutsk','Asia/Yakutsk','Asia/Vladivostok','Asia/Magadan','Asia/Kamchatka'].map(zone=><option key={zone} value={zone}>{zone.split('/')[1].replace(/_/g,' ')}</option>)}
+                <p className="muted mt-3">
+                  Утром — подсказка по возрасту, поздравление в день рождения
+                  или готовые занятия. Не больше двух уведомлений в день на всю
+                  семью. Возрастная подсказка открывает чат нужного ребёнка;
+                  одинаковые темы не повторяются. Повтор о занятиях не приходит
+                  после просмотра подборки.
+                </p>
+                <label className="form-field mt-4">
+                  Часовой пояс
+                  <select
+                    aria-label="Часовой пояс"
+                    value={state.preferences.timezone || "Europe/Moscow"}
+                    disabled={busy}
+                    onChange={(e) =>
+                      void save({
+                        ...state,
+                        preferences: {
+                          ...state.preferences,
+                          timezone: e.target.value,
+                        },
+                      })
+                    }
+                  >
+                    {[
+                      "Europe/Kaliningrad",
+                      "Europe/Moscow",
+                      "Europe/Samara",
+                      "Asia/Yekaterinburg",
+                      "Asia/Omsk",
+                      "Asia/Krasnoyarsk",
+                      "Asia/Irkutsk",
+                      "Asia/Yakutsk",
+                      "Asia/Vladivostok",
+                      "Asia/Magadan",
+                      "Asia/Kamchatka",
+                    ].map((zone) => (
+                      <option key={zone} value={zone}>
+                        {zone.split("/")[1].replace(/_/g, " ")}
+                      </option>
+                    ))}
                   </select>
                 </label>
-                <label className="form-field mt-4">Утреннее уведомление
-                  <select value={state.preferences.morningHour ?? 9} disabled={busy} onChange={e=>void save({...state,preferences:{...state.preferences,morningHour:Number(e.target.value)}})}>
-                    {[7,8,9,10,11,12].map(hour=><option key={hour} value={hour}>{hour}:00</option>)}
+                <label className="form-field mt-4">
+                  Утреннее уведомление
+                  <select
+                    aria-label="Утреннее уведомление"
+                    value={state.preferences.morningHour ?? 9}
+                    disabled={busy}
+                    onChange={(e) =>
+                      void save({
+                        ...state,
+                        preferences: {
+                          ...state.preferences,
+                          morningHour: Number(e.target.value),
+                        },
+                      })
+                    }
+                  >
+                    {[7, 8, 9, 10, 11, 12].map((hour) => (
+                      <option key={hour} value={hour}>
+                        {hour}:00
+                      </option>
+                    ))}
                   </select>
                 </label>
-                <label className="flex items-center gap-3 mt-4"><Checkbox checked={state.preferences.secondReminder || false} disabled={busy} onCheckedChange={value=>void save({...state,preferences:{...state.preferences,secondReminder:value===true}})}/>Ещё одно напоминание через 6 часов, если подборка не просмотрена</label>
+                <label className="flex items-center gap-3 mt-4">
+                  <Checkbox
+                    checked={state.preferences.secondReminder || false}
+                    disabled={busy}
+                    onCheckedChange={(value) =>
+                      void save({
+                        ...state,
+                        preferences: {
+                          ...state.preferences,
+                          secondReminder: value === true,
+                        },
+                      })
+                    }
+                  />
+                  Ещё одно напоминание через 6 часов, если подборка не
+                  просмотрена
+                </label>
                 <div className="mt-6">
                   <Button
                     variant="outline"
@@ -1030,7 +1510,9 @@ export default function ParentWorkspace({
                       : "Включить push"}
                   </Button>
                   <p className="muted text-sm mt-3">
-                    В уведомлении могут быть имя ребёнка и возрастная тема. Сведения о здоровье не включаются. Скрыть текст на экране блокировки можно в настройках уведомлений телефона.
+                    В уведомлении могут быть имя ребёнка и возрастная тема.
+                    Сведения о здоровье не включаются. Скрыть текст на экране
+                    блокировки можно в настройках уведомлений телефона.
                   </p>
                 </div>
               </section>
@@ -1056,10 +1538,15 @@ export default function ParentWorkspace({
                   базе проекта. Оплата отключена. У мамы и папы отдельные
                   аккаунты.
                 </p>
-                <Link to="/privacy" className="text-primary underline">
+                <Link to="/privacy" className="standalone-link">
                   Условия тестирования и данные
                 </Link>
                 <div className="mt-6">
+                  <Button asChild variant="outline" className="mb-3">
+                    <Link to="/account?mode=security">Пароль и безопасность</Link>
+                  </Button>
+                </div>
+                <div className="mt-3">
                   <Button variant="outline" onClick={() => setDeleteOpen(true)}>
                     Удалить аккаунт и данные
                   </Button>
@@ -1073,7 +1560,13 @@ export default function ParentWorkspace({
             <ArrowLeft size={16} />
             На главную
           </Link>
-          <a href="/mamin-pomoshchnik-instruction.pdf" target="_blank" rel="noreferrer">Инструкция — скачать PDF</a>
+          <a
+            href="/mamin-pomoshchnik-instruction.pdf"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Инструкция — скачать PDF
+          </a>
           <span>Информационный помощник для родителей</span>
         </div>
       </main>
@@ -1098,6 +1591,7 @@ export default function ParentWorkspace({
               setBusy(true);
               try {
                 await api("delete", { password: deletePassword });
+                clearChatDrafts(user.id);
                 setDeleteOpen(false);
                 setDeletePassword("");
                 setState(emptyState());
@@ -1138,4 +1632,3 @@ export default function ParentWorkspace({
     </div>
   );
 }
-

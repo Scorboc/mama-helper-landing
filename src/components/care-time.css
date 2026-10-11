@@ -1,0 +1,24 @@
+.care-time-field { display: grid; align-content: start; gap: 6px; min-width: 0; font-size: .875rem; }
+.care-time-field > button { justify-content: flex-start; font-variant-numeric: tabular-nums; width: 100%; white-space: normal; border-radius: 12px; }
+.care-time-picker { padding: 8px; border-radius: 12px; background: hsl(var(--muted) / .5); color: hsl(var(--foreground)); scroll-margin-block: 80px 160px; }
+.care-time-picker__day, .care-time-picker__footer { display: flex; flex-wrap: wrap; gap: 4px; }
+.care-time-picker__date { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.care-time-picker__date span { text-align: center; overflow-wrap: anywhere; }
+.care-time-picker__date button { padding: 8px; flex-shrink: 0; }
+.care-time-picker__wheels { position: relative; display: grid; grid-template-columns: 80px 16px 80px; justify-content: center; align-items: center; margin: 8px 0; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.care-time-picker__wheels::before { content: ''; position: absolute; top: 44px; left: 0; right: 0; height: 44px; border-radius: 10px; background: hsl(var(--primary) / .08); pointer-events: none; }
+.care-wheel { position: relative; height: 132px; padding-block: 44px; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; scroll-snap-type: y mandatory; overscroll-behavior-y: contain; touch-action: pan-y; border-radius: 10px; }
+.care-wheel::-webkit-scrollbar { display: none; }
+.care-wheel:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
+.care-wheel[aria-disabled=true] { overflow: hidden; pointer-events: none; }
+.care-wheel__number { height: 44px; line-height: 44px; text-align: center; scroll-snap-align: center; color: hsl(var(--muted-foreground)); cursor: pointer; user-select: none; }
+.care-wheel__number.selected { color: hsl(var(--foreground)); font-weight: 600; }
+.care-time-picker > p { font-size: .8125rem; line-height: 1.5; color: hsl(var(--muted-foreground)); margin: 4px 0 8px; }
+.care-time-picker__footer button { padding-inline: 10px; }
+.care-record-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+.chat-quick-care__recent > summary { font-size: .875rem; }
+.chat-quick-care__record { padding-block: 12px; border-top: 1px solid hsl(var(--border)); }
+.chat-quick-care__record p { margin: 4px 0; font-size: .875rem; }
+.chat-quick-care__record strong { font-size: .875rem; }
+.chat-quick-care__delete { padding: 12px 0; }
+.chat-quick-care__delete p { margin: 0 0 8px; }

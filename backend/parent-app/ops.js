@@ -1,0 +1,29 @@
+const byId=id=>document.getElementById(id);
+const labels={home:'Сегодня',chat:'Чат',trackers:'Трекеры',favorites:'Избранное',more:'Профиль',profile:'Ребёнок',settings:'Настройки',advisor:'Советник',card:'Медкарта','first-aid':'Первая помощь',daily:'Занятия',ok:'Успешно',error:'Ошибка',invalid:'Некорректный ответ',draft:'Черновик',published:'Опубликовано',archived:'Архив',new:'Новая',planned:'В работе',done:'Готово'};
+const money=value=>new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:6}).format(value)+' ₽';
+function renderBudget(budget){
+  if(!budget)return;
+  byId('budget-note').textContent=budget.note;
+  const rows=[[budget.today,budget.dailyLimitRub,'Сегодня'],[budget.monthToDate,budget.monthlyLimitRub,'Этот месяц']];
+  table('budget-totals',['Период','Остаток','Лимит','По токенам','Выполняются / стоимость неизвестна','Вызовы'],rows.map(([value,limit,label])=>[label,money(value.remainingRub),money(limit),money(value.estimatedRub),money(value.reservedRub),value.calls]));
+  table('budget-kinds',['Назначение','Вызовы','По токенам','Резерв'],budget.byKind.map(value=>[labels[value.kind]||value.kind,value.calls,money(value.estimatedRub),money(value.reservedRub)]));
+  byId('budget-warning').textContent=rows.some(([value])=>value.exhausted)?'Общий бюджет исчерпан. Новые платные запросы приостановлены.':rows.some(([value])=>value.warning)?'Учтено не менее 80% бюджета. Проверьте расходы и оставшийся резерв.':'Расходы в пределах заданного бюджета.';
+  const form=byId('budget-form');
+  if(!form.contains(document.activeElement))for(const name of ['dailyLimitRub','monthlyLimitRub','freeChatLimit'])form.elements.namedItem(name).value=budget[name];
+  form.querySelector('button').disabled=!budget.policyEditable;
+}
+function table(id,headers,rows){const root=byId(id);root.replaceChildren();if(!rows.length){root.textContent='Данных пока нет.';return;}const t=document.createElement('table'),head=t.createTHead().insertRow();headers.forEach(v=>{const el=document.createElement('th');el.textContent=v;head.append(el);});const body=t.createTBody();rows.forEach(r=>{const tr=body.insertRow();r.forEach(v=>{tr.insertCell().textContent=String(v??'Неизвестно');});});root.append(t);}
+async function request(path,body){const r=await fetch(path,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});const d=await r.json();if(!r.ok)throw Error(d.error||'Ошибка');return d;}
+function list(kind,items){const root=byId(kind+'-list');root.replaceChildren();items.forEach(item=>{const article=document.createElement('article'),title=document.createElement('h3'),p=document.createElement('p'),button=document.createElement('button');title.textContent=item.title;p.textContent=labels[item.status]||item.status;button.textContent='Открыть';button.onclick=()=>{const form=byId(kind+'-form');Object.entries(item).forEach(([k,v])=>{const field=form.elements.namedItem(k);if(field){if(field.type==='checkbox')field.checked=!!v;else field.value=v??'';}});form.scrollIntoView({behavior:'smooth',block:'center'});};article.append(title,p,button);root.append(article);});}
+async function refresh(){try{const d=await request('/data');renderBudget(d.aiBudget);const checks=byId('checks');checks.replaceChildren();d.checks.forEach(c=>{const p=document.createElement('p');p.textContent=`${c.target==='site'?'Сайт и HTTPS':'API и база'}: ${c.ok?'работает':'ошибка'} · ${c.ms} мс · ${new Date(c.at*1000).toLocaleString()}`;checks.append(p);});byId('backup').textContent=d.backup?`Резервная копия проверена: ${new Date(d.backup.at*1000).toLocaleString()}. Хранится на этом компьютере или сервере; копию вне него следует хранить отдельно.`:'Проверенной копии пока нет.';
+table('pages',['Раздел','Просмотры','Пользователи'],d.pages.map(x=>[labels[x.page]||x.page,x.views,x.users]));table('retention',['Возврат через','Можно оценить','Вернулось'],d.retention.map(x=>[x.day+' дн.',x.eligible,x.returned]));table('ai',['Назначение','Модель','Результат','Вызовы','Входные токены','Выходные токены','Среднее, мс','Без usage'],d.ai.map(x=>[labels[x.kind],x.model,labels[x.status],x.calls,x.inputTokens,x.outputTokens,x.averageMs,x.unknownUsage]));byId('note').textContent=d.note;byId('feedback').textContent=`Помогло: ${d.feedback.helpful}; не помогло: ${d.feedback.unhelpful}; небезопасно: ${d.feedback.unsafe}; идеи: ${d.feedback.idea}.`;byId('reports').textContent='Сохранённые отчёты: '+(d.reports.join(', ')||'пока нет');list('content',d.content);list('task',d.tasks);byId('status').textContent='Обновлено '+new Date().toLocaleTimeString();}catch(e){byId('status').textContent=e.message;}}
+for(const kind of ['content','task'])byId(kind+'-form').onsubmit=async e=>{e.preventDefault();const form=e.target,body=Object.fromEntries(new FormData(form));if(kind==='content'){body.reviewed=form.elements.reviewed.checked;body.minMonths=Number(body.minMonths);body.maxMonths=Number(body.maxMonths);}const button=form.querySelector('button');button.disabled=true;try{await request('/'+kind,body);form.reset();await refresh();byId('status').textContent='Сохранено';}catch(err){byId('status').textContent=err.message;}finally{button.disabled=false;}};
+byId('refresh').onclick=refresh;byId('report').onclick=async()=>{try{await request('/report',{});await refresh();}catch(e){byId('status').textContent=e.message;}};refresh();
+byId('budget-form').onsubmit=async event=>{
+  event.preventDefault();const form=event.target,button=form.querySelector('button');
+  const body=Object.fromEntries([...new FormData(form)].map(([key,value])=>[key,Number(value)]));
+  button.disabled=true;
+  try{renderBudget(await request('/ai-policy',body));byId('status').textContent='Лимиты сохранены. Уже использованные ответы и расходы сохранены.';}
+  catch(error){byId('status').textContent=error.message;}
+  finally{button.disabled=false;}
+};

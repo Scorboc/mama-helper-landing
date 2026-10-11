@@ -7,7 +7,7 @@ const steps = [
     n: '01',
     art: <Pacifier className="h-9 w-9" />,
     title: 'Создаёте свой аккаунт',
-    text: 'У мамы и папы отдельные входы, профили и переписки. Один ребёнок на аккаунт.',
+    text: 'У мамы и папы отдельные входы, профили и переписки. Можно добавить несколько детей.',
     bg: 'bg-violet-soft',
   },
   {
@@ -61,7 +61,7 @@ const HowItWorks = () => (
           </div>
         </div>
 
-        <aside className="tile relative flex flex-col overflow-hidden bg-card">
+        <div className="tile relative flex flex-col overflow-hidden bg-card">
           <Block className="pointer-events-none absolute -right-2 top-10 h-16 w-16 rotate-12 opacity-25" />
           <div className="relative flex items-center gap-2">
             <Fox className="h-11 w-11 shrink-0" />
@@ -84,7 +84,7 @@ const HowItWorks = () => (
           <p className="mt-4 text-[11px] leading-[1.45] text-muted-foreground">
             Сервис информационный и не заменяет очный приём врача.
           </p>
-        </aside>
+        </div>
       </div>
     </div>
   </section>

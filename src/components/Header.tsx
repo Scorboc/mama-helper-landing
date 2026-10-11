@@ -15,11 +15,11 @@ const Header = () => {
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-5">
       <div className="glass-nav mx-auto flex max-w-[1120px] items-center justify-between gap-3 rounded-[18px] px-3 py-2">
         <div className="brand-theme"><a href="#top" className="flex items-center gap-2">
-          <img src="/logo-mark.png" alt="Мамин помощник" className="site-logo h-10 w-auto" />
+          <img src="/logo-mark.png" alt="" className="site-logo h-10 w-auto" />
           <span className="font-heading text-[15px] font-medium">Мамин помощник</span>
         </a><ThemeControl /></div>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="О сайте" className="hidden items-center gap-1 lg:flex">
           {links.map((l) => (
             <a
               key={l.href}
@@ -40,8 +40,10 @@ const Header = () => {
           </a>
           <button
             aria-label="Меню"
+            aria-expanded={open}
+            aria-controls={open ? "mobile-menu" : undefined}
             onClick={() => setOpen((v) => !v)}
-            className="glass-pill grid h-9 w-9 place-items-center lg:hidden"
+            className="glass-pill grid h-11 w-11 shrink-0 place-items-center lg:hidden"
           >
             <Icon name={open ? 'X' : 'Menu'} size={18} />
           </button>
@@ -49,7 +51,7 @@ const Header = () => {
       </div>
 
       {open && (
-        <div className="glass-nav mx-auto mt-2 max-w-[1120px] rounded-[18px] p-2 lg:hidden">
+        <nav id="mobile-menu" aria-label="Мобильное меню" className="glass-nav mx-auto mt-2 max-w-[1120px] rounded-[18px] p-2 lg:hidden">
           {links.map((l) => (
             <a
               key={l.href}
@@ -67,7 +69,7 @@ const Header = () => {
           >
             Личный кабинет
           </a>
-        </div>
+        </nav>
       )}
     </header>
   );

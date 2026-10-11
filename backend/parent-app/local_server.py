@@ -26,4 +26,6 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__=='__main__':
     app.cipher();app.initialize();print('Local account server: 127.0.0.1:8787')
+    import mail_delivery
+    mail_delivery.start(app)
     ThreadingHTTPServer(('127.0.0.1',8787),Handler).serve_forever()

@@ -1,0 +1,343 @@
+{
+  "purpose": "Source-grounded response drafts from recurring question patterns, not training on peer advice",
+  "items": [
+    {
+      "id": "doctor",
+      "question": "Посоветуйте хорошего врача рядом",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Навигация; возраст уточняется для детского обращения. Требуется свежая проверка контактов.",
+      "ask_only_if_missing": "Город/район; взрослый или ребёнок; специальность или жалоба; срочность.",
+      "answer_draft": "Уточните город, район и нужную специальность, только если они неизвестны. Актуальные контакты в этом чате не проверены: их нужно подтвердить на официальном сайте клиники или у регистратуры. Не обещать выполнить поиск.",
+      "guardrails": "Не выдумывать фамилии, телефоны, цены, лицензии и рейтинги. При опасных симптомах сначала срочная помощь, а не поиск отзывов.",
+      "sources": [],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "benefits",
+      "question": "Почему не пришло пособие и что проверить?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Справочная навигация по конкретной выплате; правила и даты проверять на день ответа.",
+      "ask_only_if_missing": "Точное название выплаты; регион; подано заявление или уже назначена; дата и статус решения. Не просить паспорт и банковские реквизиты.",
+      "answer_draft": "Различайте рассмотрение заявления, первое перечисление и регулярную выплату. Родитель может проверить уведомления и запросы документов в личном кабинете, затем обратиться в СФР. Без актуальной проверки не называйте сроки и суммы и не обещайте проверить их самостоятельно.",
+      "guardrails": "Не переносить суммы, даты и правила 2023 года в текущий ответ; не обещать назначение.",
+      "sources": [
+        "https://sfr.gov.ru/grazhdanam/semyam_s_detmi/edinoe_posobie/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "night-waking",
+      "question": "Ребёнок часто просыпается ночью. Что делать?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Первичный разбор сна младенца без назначения режима; конкретный план требует возраста, состояния и записей.",
+      "ask_only_if_missing": "Точный возраст из активного профиля; как давно изменился сон; кормления; дневной сон; признаки болезни.",
+      "answer_draft": "Частые пробуждения сами по себе не объясняют причину плохого сна. Сколько ребёнку и что изменилось в последние дни? Если он в обычном состоянии, полезно записать за несколько суток время сна, кормлений и пробуждений — без попытки сразу перестроить весь день. После этого выберем одно посильное изменение. Ночные кормления автоматически убирать не будем.",
+      "guardrails": "Не обещать сон всю ночь; не ставить диагноз «регресс» по возрасту; не отменять кормления без оценки.",
+      "sources": [
+        "https://www.nhs.uk/baby/caring-for-a-newborn/helping-your-baby-to-sleep/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "safe-sleep",
+      "question": "Поможет ли подушка, кокон или мягкий бортик лучше спать?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Безопасность сна младенца; не переносить возрастную норму сна на старших детей.",
+      "ask_only_if_missing": "Возраст; место сна; конкретное изделие. Базовые меры безопасности можно сообщить сразу.",
+      "answer_draft": "Для сна младенца выбирайте отдельную ровную твёрдую поверхность и укладывайте его на спину. Подушки, мягкие бортики и мягкие предметы в месте сна не нужны. Не используйте диван или кресло для совместного сна: особенно легко уснуть там во время кормления. Покупка аксессуара не должна делать спальное место мягче или создавать препятствия для дыхания.",
+      "guardrails": "Не одобрять изделие по фотографии или рекламе; не обещать предотвращение всех рисков.",
+      "sources": [
+        "https://www.nhs.uk/best-start-in-life/baby/baby-basics/newborn-and-baby-sleeping-advice-for-parents/safe-sleep-advice-for-babies/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "milk-supply",
+      "question": "Кажется, ребёнку не хватает молока",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "ГВ младенца. Пороговые числа и решения о докорме требуют возраста и очной оценки.",
+      "ask_only_if_missing": "Возраст в днях/месяцах; прибавка веса; мочеиспускания; эффективность кормления; состояние ребёнка.",
+      "answer_draft": "Частые прикладывания не доказывают нехватку молока. Важнее оценить прибавку веса, мочеиспускания и то, как ребёнок сосёт и глотает. Напишите возраст и что именно заставило заподозрить нехватку. Если прибавки нет, кормление болезненно или ребёнок плохо сосёт, нужна оценка педиатра и специалиста по ГВ. Решение о докорме принимают по состоянию ребёнка, а не по ощущению наполненности груди.",
+      "guardrails": "Не объявлять молоко достаточным по словам «груди полные». При вялости/плохом питье не ждать дневника.",
+      "sources": [
+        "https://www.nhs.uk/baby/breastfeeding-and-bottle-feeding/breastfeeding-problems/enough-milk/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "weaning",
+      "question": "Как мягко завершить ГВ?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Добровольное завершение ГВ. До года отдельно обеспечить подходящее молочное питание.",
+      "ask_only_if_missing": "Возраст; сколько кормлений осталось; причины завершения; питание ребёнка; состояние груди.",
+      "answer_draft": "Обычно завершать ГВ удобнее постепенно: убрать одно кормление и дать вам обоим время привыкнуть, прежде чем менять следующее. Сначала уточним возраст ребёнка и какие кормления для вас самые сложные. До года нужно обсудить подходящую замену молочного питания. Если грудь болит, краснеет или поднялась температура, лучше обратиться к врачу. Самостоятельно выбирать таблетки для прекращения лактации не стоит.",
+      "guardrails": "Не назначать лекарства; не предлагать перевязывание груди, горчицу или внезапную разлуку как универсальный способ.",
+      "sources": [
+        "https://www.nhs.uk/baby/breastfeeding-and-bottle-feeding/breastfeeding/how-to-stop/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "formula-change",
+      "question": "Как понять, подходит ли смесь, и нужно ли менять?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Младенец на смеси; лечебные смеси и диагнозы — через врача.",
+      "ask_only_if_missing": "Возраст; название и тип смеси; как готовят; конкретные симптомы; прибавка; назначения врача.",
+      "answer_draft": "Смесь оценивают по самочувствию, питанию и росту ребёнка, а не по рейтингу брендов. Напишите, что именно изменилось, когда это началось и как вы готовите смесь. Частая смена смесей без понимания причины затрудняет оценку. При подозрении на аллергию или проблемах с прибавкой обсудите выбор с педиатром: лечебная смесь подбирается по показаниям.",
+      "guardrails": "Не выбирать лечебную/безлактозную смесь по одному сообщению; не менять пропорцию воды и порошка.",
+      "sources": [
+        "https://www.nhs.uk/baby/breastfeeding-and-bottle-feeding/bottle-feeding/types-of-formula/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "goat-milk",
+      "question": "Можно заменить смесь обычным козьим молоком?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Если ребёнку меньше 12 полных месяцев, действует ветка запрета замены обычным молоком.",
+      "ask_only_if_missing": "Возраст; речь об обычном молоке или адаптированной смеси; подтверждённые аллергии.",
+      "answer_draft": "Если ребёнку меньше года, обычное козье молоко не подходит как замена грудного молока или детской смеси. Его разведение водой не делает его адаптированным питанием. Смесь на основе козьего молока — другой продукт, но она не является подходящей заменой при аллергии на белок коровьего молока. Уточните возраст и причину, по которой хотите поменять питание.",
+      "guardrails": "Не выдавать рецепт разведения; не путать молоко с адаптированной смесью.",
+      "sources": [
+        "https://www.nhs.uk/baby/breastfeeding-and-bottle-feeding/bottle-feeding/types-of-formula/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "vomiting",
+      "question": "Младенца рвёт после кормлений — сменить смесь?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Сначала оценка срочности. Не использовать шаблон бытового срыгивания при опасных признаках.",
+      "ask_only_if_missing": "Возраст; срыгивание или рвота с усилием; цвет; кровь; частота; мочеиспускания; общее состояние.",
+      "answer_draft": "Повторная рвота у маленького ребёнка требует оценки причины, а не только смены смеси. Зелёная рвота, кровь, рвота фонтаном, выраженная вялость или невозможность удерживать питание — повод для срочной медицинской помощи. Если ребёнка трудно разбудить или нарушено дыхание, звоните 112. Если этих признаков нет, уточните возраст, частоту и вид рвоты — это поможет правильно описать ситуацию врачу.",
+      "guardrails": "Срочная инструкция идёт перед уточнениями; не откладывать помощь на сутки ради наблюдения.",
+      "sources": [
+        "https://www.nhs.uk/conditions/reflux-in-babies/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "solids-start",
+      "question": "Когда начинать прикорм: в четыре или шесть месяцев?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Общий ориентир около 6 месяцев. Индивидуальная ветка проверяет готовность, не выводит навыки из возраста.",
+      "ask_only_if_missing": "Точный возраст; недоношенность; удержание головы и положение сидя; координация; глотание; медицинские ограничения.",
+      "answer_draft": "Общий ориентир начала прикорма — около шести месяцев, когда вместе появляются признаки готовности: ребёнок удерживает голову в устойчивом положении сидя, может поднести пищу ко рту и глотать её. Интерес к еде или частые ночные пробуждения сами по себе недостаточны. Уточните возраст и эти навыки. При недоношенности сроки стоит обсудить с педиатром.",
+      "guardrails": "Не запускать прикорм по календарю без навыков; не обещать улучшение сна.",
+      "sources": [
+        "https://www.nhs.uk/baby/weaning-and-feeding/babys-first-solid-foods/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "food-textures",
+      "question": "Боюсь давать кусочки — как начать?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Прикорм уже начат и есть готовность к еде; форму и размер пищи подбирать после уточнений.",
+      "ask_only_if_missing": "Возраст; уже знакомая консистенция; положение при еде; глотание; эпизоды поперхивания.",
+      "answer_draft": "Переход к более густой и неоднородной пище подбирают по навыкам ребёнка. Еда должна быть мягкой; ребёнок ест сидя вертикально, а взрослый находится рядом. Твёрдые опасные продукты не подходят. Сколько ребёнку и какую консистенцию он уже уверенно ест? Тогда можно выбрать конкретный следующий шаг без резкого перехода.",
+      "guardrails": "Не давать одинаковый размер всем возрастам; не назначать упражнения с едой при нарушении глотания.",
+      "sources": [
+        "https://www.nhs.uk/baby/weaning-and-feeding/babys-first-solid-foods/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "food-refusal",
+      "question": "Ребёнок ест мало и отказывается от новых продуктов",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Небольшой аппетит у ребёнка без тревожных признаков; это не шаблон для отказа младенца от молока.",
+      "ask_only_if_missing": "Возраст; рацион за несколько дней; рост/вес; питьё; боль; глотание; длительность отказа.",
+      "answer_draft": "Не нужно добиваться съеденной порции любой ценой. Предложите небольшое количество еды без уговоров и давления, спокойно завершите приём пищи при отказе. Чтобы понять ситуацию, важнее посмотреть питание за несколько дней, рост и самочувствие, чем сравнивать одну тарелку с фотографиями. Уточните возраст и что ребёнок обычно ест. При боли, трудностях глотания или ухудшении роста нужна оценка врача.",
+      "guardrails": "Не советовать голодание, удерживание, кормление через плач или обещать, что всё само пройдёт.",
+      "sources": [
+        "https://www.nhs.uk/baby/weaning-and-feeding/fussy-eaters/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "rash-food",
+      "question": "После прикорма появилась сыпь — убрать всю еду?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Сначала исключить признаки тяжёлой реакции; не диагностировать аллерген по фото или одному совпадению.",
+      "ask_only_if_missing": "Возраст; что и когда съел; когда началась реакция; дыхание; отёк; рвота; ранее известные аллергии.",
+      "answer_draft": "Сыпь после еды не позволяет точно определить причину по переписке. Не повторяйте подозреваемый продукт до обсуждения реакции с врачом; записать продукт и время появления симптомов полезнее, чем отменять весь рацион самостоятельно. При отёке губ или языка, затруднённом дыхании, резкой слабости — немедленно 112. Если состояние обычное, уточните, что ребёнок съел и через сколько появилась сыпь.",
+      "guardrails": "Не назначать антигистаминное или домашнюю повторную пробу; при опасных признаках не задерживать помощь вопросами.",
+      "sources": [
+        "https://www.nhs.uk/baby/weaning-and-feeding/food-allergies-in-babies-and-young-children/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "fever",
+      "question": "У малыша температура — насколько это срочно?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Пороговые ветки: младше 3 месяцев и 38 °C или выше; 3–6 месяцев и 39 °C или выше. При опасных симптомах температура не определяет срочность.",
+      "ask_only_if_missing": "Точный возраст; температура и способ измерения; состояние; дыхание; питьё; сыпь.",
+      "answer_draft": "Если ребёнку меньше трёх месяцев и температура 38 °C или выше, нужна срочная медицинская оценка. В возрасте от трёх до шести месяцев температура 39 °C или выше тоже требует срочного обращения. При затруднённом дыхании, судорогах, посинении или если ребёнка трудно разбудить — звоните 112 независимо от температуры. Если этого нет, уточните возраст, температуру и как ребёнок себя ведёт.",
+      "guardrails": "Не рассчитывать дозы; не ждать ответа на уточнение при уже названном опасном признаке.",
+      "sources": [
+        "https://www.nhs.uk/symptoms/fever-in-children/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "speech",
+      "question": "Ребёнок пока мало говорит — ждать?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Обсуждение развития с учётом точного возраста; не диагностический скрининг.",
+      "ask_only_if_missing": "Возраст; какие звуки/слова/жесты есть; понимание речи; слух; прогресс; потеря ранее освоенного.",
+      "answer_draft": "По одному описанию нельзя определить причину, но беспокойство о речи стоит обсудить с педиатром. Подготовьте примеры: что ребёнок говорит, как понимает обращение и как общается жестами; отдельно отметьте слух и изменения навыков. Возраст поможет выбрать подходящие ориентиры. Игры можно использовать для общения, но ими не заменяют оценку развития.",
+      "guardrails": "Не обещать «заговорит сам»; не назначать диагноз по переписке; не откладывать оценку из-за двуязычия.",
+      "sources": [
+        "https://www.cdc.gov/act-early/families/concerned.html"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "lost-skill",
+      "question": "Ребёнок перестал делать то, что уже умел",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Маршрут к оценке развития; острая неврологическая симптоматика требует срочной помощи.",
+      "ask_only_if_missing": "Какой навык исчез; когда; внезапно или постепенно; другие симптомы; возраст.",
+      "answer_draft": "Потерю ранее освоенного навыка стоит обсудить с педиатром без ожидания очередного возрастного этапа. Запишите, что ребёнок делал раньше и когда это изменилось; если есть обычные домашние видео, они могут помочь врачу увидеть динамику. По переписке причину определить нельзя. При внезапной слабости, нарушении сознания или судорогах нужна экстренная помощь.",
+      "guardrails": "Не объяснять регресс автоматически «скачком роста», зубами или истериками.",
+      "sources": [
+        "https://www.cdc.gov/act-early/families/concerned.html"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "tantrum",
+      "question": "Истерики: как реагировать в моменте?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Поведенческий эпизод у ребёнка; сначала исключить боль, болезнь и непосредственную опасность.",
+      "ask_only_if_missing": "Возраст; что предшествовало; безопасность; самочувствие; что уже пробовали.",
+      "answer_draft": "В момент сильного расстройства сначала обеспечьте безопасность и оставайтесь рядом. Говорите коротко и спокойно: «Ты расстроен, я рядом». Длинные объяснения лучше отложить до спокойного состояния. Когда станет легче, можно обсудить, что произошло, и предложить понятный следующий шаг. Уточните возраст и в каких ситуациях это повторяется — реакция на запрет и плач от боли требуют разного подхода.",
+      "guardrails": "Не стыдить, не советовать физическое наказание или оставлять ребёнка одного при угрозе травмы.",
+      "sources": [
+        "https://www.unicef.org/india/parentingtips/handling-temper-tantrums"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "mom-exhaustion",
+      "question": "Я устала и срываюсь — что делать?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Поддержка взрослого; возраст ребёнка не нужен для первого эмпатичного ответа.",
+      "ask_only_if_missing": "Что тяжелее всего сейчас; есть ли поддержка; возможность отдыха; непосредственная безопасность.",
+      "answer_draft": "Похоже, сейчас у вас слишком много нагрузки. Давайте выберем одну конкретную помощь на сегодня: попросить близкого побыть с ребёнком, принести еду или взять одну домашнюю задачу. Что из этого реально доступно? Если плохое самочувствие держится и мешает жить, стоит обратиться за профессиональной поддержкой. Если вы боитесь прямо сейчас причинить вред себе или ребёнку, обеспечьте ребёнку безопасное место и немедленно позовите помощь; при непосредственной угрозе — 112.",
+      "guardrails": "Не требовать продуктивности; не ставить диагноз; не считать отсутствие помощи личной неудачей.",
+      "sources": [
+        "https://www.unicef.org/parenting/mental-health/parent-self-care-tips"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "potty",
+      "question": "Как приучать к горшку без борьбы?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Обсуждение освоения туалетного навыка; персональный план зависит от готовности и здоровья.",
+      "ask_only_if_missing": "Возраст; что ребёнок понимает и умеет; реакции на горшок; боль/запор; изменения обстановки.",
+      "answer_draft": "Освоение горшка лучше строить спокойно, без стыда за промахи и принуждения сидеть. Покажите, для чего нужен горшок, и предложите попробовать в удобный момент. Если ребёнок плачет или ему больно, сначала разберитесь с причиной. Уточните возраст, как он относится к горшку и нет ли болезненного стула — это важнее сравнения с другими детьми.",
+      "guardrails": "Не задавать жёсткий срок освоения; не ограничивать питьё; боль и запор не считать упрямством.",
+      "sources": [
+        "https://www.betterliveshealthyfuturesbw.nhs.uk/learning_resource/toilet-training/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    },
+    {
+      "id": "medicines",
+      "question": "Какой препарат и сколько дать ребёнку?",
+      "status": "source-reviewed-context",
+      "version": 2,
+      "checked_at": "2026-10-03",
+      "applicability": "Навигация по безопасности лекарств; проект не назначает препараты и дозировки.",
+      "ask_only_if_missing": "Возраст; жалоба; было ли назначение; точное название/концентрация нужны врачу или фармацевту.",
+      "answer_draft": "Дозировку нельзя переносить с другого ребёнка или из старого сообщения: важны конкретный препарат, концентрация, возраст и иногда масса тела. Я не назначаю лекарства и дозы. Если препарат уже назначен, но указание непонятно, уточните его у назначившего врача или фармацевта до приёма. При ухудшении состояния сначала нужна оценка срочности, а не подбор лекарства по отзывам.",
+      "guardrails": "Не давать числовую дозу, схему курса или замену назначения; не отменять лечение самостоятельно.",
+      "sources": [
+        "https://www.nhs.uk/baby/health/medicines-for-babies-and-children/"
+      ],
+      "clinical_review": "not-performed",
+      "auto_publish": false,
+      "age_policy": "Resolve active profile, exact age and applicability bounds before personalized advice; never infer skills. This is a response scenario, not an age-indexed daily activity."
+    }
+  ]
+}

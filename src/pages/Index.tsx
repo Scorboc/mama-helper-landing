@@ -8,9 +8,10 @@ import WhatsNew from '@/components/WhatsNew';
 
 const Index = () => {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
+    <div className="landing-page min-h-screen overflow-x-hidden bg-background text-foreground">
+      <a className="skip-link" href="#main-content">К основному содержимому</a>
       <Header />
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <Hero />
         <Voices />
         <WhatsNew />

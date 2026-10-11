@@ -1,4 +1,11 @@
-import { Bib, Bottle, Pacifier, Rattle, Socks, Stroller } from '@/components/BabyIcons';
+import {
+  Bib,
+  Bottle,
+  Pacifier,
+  Rattle,
+  Socks,
+  Stroller,
+} from "@/components/BabyIcons";
 
 const Hero = () => {
   return (
@@ -17,7 +24,11 @@ const Hero = () => {
         <div className="relative mx-auto flex max-w-[680px] flex-col items-center text-center">
           <div className="mb-1 flex items-center gap-3">
             <Pacifier className="h-9 w-9" />
-            <img src="/logo-mark.png" alt="Мамин помощник" className="site-logo h-20 w-auto" />
+            <img
+              src="/logo-mark.png"
+              alt="Мамин помощник"
+              className="site-logo h-20 w-auto"
+            />
             <Bib className="h-9 w-9" />
           </div>
           <h1 className="mt-3 font-heading text-[28px] font-normal leading-[1.12] tracking-[-0.02em] sm:text-[38px]">
@@ -40,7 +51,15 @@ const Hero = () => {
             <span className="text-[13px] text-muted-foreground">
               Тест без оплаты · чат с помощником
             </span>
-            <a href="/account" className="text-[14px] text-primary underline">Войти в аккаунт</a>
+            <a
+              href="/account?mode=login"
+              className="text-[14px] text-primary underline"
+            >
+              Войти в аккаунт
+            </a>
+            <a href="/first-aid" className="text-[14px] text-primary underline">
+              Срочная помощь
+            </a>
           </div>
         </div>
       </div>

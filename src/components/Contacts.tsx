@@ -56,8 +56,11 @@ const Contacts = () => {
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                name="name"
+                aria-label="Ваше имя"
+                autoComplete="name"
                 placeholder="Ваше имя"
-                className="h-12 w-full rounded-[11px] bg-card px-4 text-[14px] outline-none placeholder:text-muted-foreground/70"
+                className="h-12 w-full rounded-[11px] bg-card px-4 text-[14px] placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               {errors.name && <p className="mt-1 text-[12px] text-primary">{errors.name}</p>}
             </div>
@@ -65,8 +68,11 @@ const Contacts = () => {
               <input
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
+                name="contact"
+                aria-label="Почта или телефон"
+                autoComplete="email tel"
                 placeholder="Почта или телефон"
-                className="h-12 w-full rounded-[11px] bg-card px-4 text-[14px] outline-none placeholder:text-muted-foreground/70"
+                className="h-12 w-full rounded-[11px] bg-card px-4 text-[14px] placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               {errors.contact && <p className="mt-1 text-[12px] text-primary">{errors.contact}</p>}
             </div>
@@ -74,9 +80,11 @@ const Contacts = () => {
               <textarea
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
+                name="question"
+                aria-label="Ваш вопрос"
                 rows={3}
                 placeholder="Напишите так, как сказали бы подруге…"
-                className="w-full resize-none rounded-[11px] bg-card p-4 text-[14px] outline-none placeholder:text-muted-foreground/70"
+                className="w-full resize-none rounded-[11px] bg-card p-4 text-[14px] placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               {errors.question && <p className="mt-1 text-[12px] text-primary">{errors.question}</p>}
             </div>

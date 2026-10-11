@@ -4,6 +4,9 @@ import {Button} from '@/components/ui/button';
 import {ParentState} from '@/lib/parent-model';
 import {dayIdeas, emptyCare, localDay} from '../../ai-proxy/services';
 import DailyActivities from './DailyActivities';
+import {moodTips,TrackerSummary} from './CareTools';
+import {api} from '@/lib/parent-api';
+
 
 const motherTips = [
  ['Пять минут для себя', 'Выберите маленькое удовольствие: любимую песню, несколько страниц книги или чашку чая. Если рядом есть близкий, попросите его немного побыть с ребёнком.'],
@@ -14,18 +17,23 @@ const motherTips = [
  ['Замечать хорошее', 'Вспомните один приятный момент сегодняшнего дня. Не нужно оценивать, сколько вы успели: это просто то, что хочется сохранить в памяти.'],
  ['Попросить время на отдых', 'Договоритесь с близким о небольшом времени, когда заботу о ребёнке возьмёт на себя он. Скажите прямо, когда и какая помощь вам нужна.'],
 ];
-export default function SimpleMyDay({state,onProfile}:{state:ParentState;onProfile:()=>void}) {
+export default function SimpleMyDay({state,onProfile,active=true,onNavigate}:{state:ParentState;onProfile:()=>void;active?:boolean;onNavigate:(tab:string)=>void}) {
+ const [refresh,setRefresh]=useState(0);
+ useEffect(()=>{const update=()=>setRefresh(n=>n+1);window.addEventListener('care-records-changed',update);return()=>window.removeEventListener('care-records-changed',update);},[]);
+ const [mood,setMood]=useState('');
+ const [records,setRecords]=useState<Parameters<typeof TrackerSummary>[0]['records']>([]);
  const [day,setDay]=useState(localDay());
  const [momIndex,setMomIndex]=useState(0),[childIndex,setChildIndex]=useState(0);
+ useEffect(()=>{if(!active)return;let current=true;setMood('');setRecords([]);if(state.profile)void api<{records:Parameters<typeof TrackerSummary>[0]['records']}>('care-list',{childId:state.activeChildId||'primary'}).then(r=>{if(!current)return;setRecords(r.records);const item=r.records.find(x=>x.kind==='mood'&&Date.now()-Date.parse(x.at)<86400000);setMood(item?.value||'');}).catch(()=>{});return()=>{current=false;};},[state.activeChildId,state.profile,day,active,refresh]);
  useEffect(()=>{const id=window.setInterval(()=>setDay(localDay()),60000);return()=>window.clearInterval(id);},[]);
  useEffect(()=>{setMomIndex(0);setChildIndex(0);},[day,state.profile?.stage,state.profile?.birthDate]);
  const offset=Math.floor(Date.parse(day+'T12:00:00Z')/86400000);
- const tip=motherTips[(offset+momIndex)%motherTips.length];
+ const tip=moodTips[mood] && momIndex===0 ? moodTips[mood] : motherTips[(offset+momIndex)%motherTips.length];
  const ideas=dayIdeas(state.profile,state.care||emptyCare(),day);
  const unique=ideas.filter((idea,index)=>ideas.findIndex(other=>other.template===idea.template)===index);
  const idea=unique[childIndex%Math.max(1,unique.length)];
  const pregnant=state.profile?.stage==='pregnancy';
- return <div className="simple-day">
+ return <><div className="simple-day">
   <section className="tile simple-day-card" aria-labelledby="parent-day-title">
    <div className="simple-day-label"><Heart size={22}/><h2 id="parent-day-title">{state.profile?.role==='dad'?'Для папы':'Для мамы'}</h2></div>
    <div className="simple-day-content" aria-live="polite"><h3>{tip[0]}</h3><p>{tip[1]}</p></div>
@@ -33,12 +41,12 @@ export default function SimpleMyDay({state,onProfile}:{state:ParentState;onProfi
   </section>
   <section className="tile simple-day-card" aria-labelledby="child-day-title">
    <div className="simple-day-label"><Sparkles size={22}/><h2 id="child-day-title">Для ребёнка</h2></div>
-   {state.profile?.stage==='child'?<DailyActivities key={state.activeChildId || 'primary'} state={state}/>:<>
+   {state.profile?.stage==='child'?<DailyActivities key={state.activeChildId || 'primary'} state={state} active={active}/>:<>
    <div className="simple-day-content" aria-live="polite">
     {idea?<><span className="simple-day-caption">{pregnant?'Пока ждёте малыша':'Вместе · около 5 минут'}</span><h3>{idea.title}</h3><p>{idea.detail}</p></>:<><h3>Подберём занятие по возрасту</h3><p>Укажите дату рождения ребёнка в профиле. Если вы ждёте малыша, выберите беременность.</p></>}
    </div>
    {idea?<Button variant="outline" disabled={unique.length<2} onClick={()=>setChildIndex(i=>i+1)}><RefreshCw size={16}/>{pregnant?'Другой совет':'Другое занятие'}</Button>:<Button variant="outline" onClick={onProfile}>Заполнить профиль</Button>}
    </>}
   </section>
- </div>;
+ </div>{records.some(r=>['sleep','feeding'].includes(r.kind)&&Date.now()-Date.parse(r.at)<86400000)&&<details className="tile mt-5"><summary className="cursor-pointer font-semibold">Что видно по вашим записям сегодня</summary><TrackerSummary records={records} now={Date.now()}/></details>}<div className="day-shortcuts"><Button variant="outline" onClick={()=>onNavigate('trackers')}>Записать сон или кормление</Button><Button variant="ghost" onClick={()=>onNavigate('more')}>Все разделы</Button></div></>;
 }

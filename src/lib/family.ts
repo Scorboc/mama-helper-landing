@@ -4,7 +4,7 @@ import { randomId } from './id';
 export const childKeys = ['profile', 'messages', 'medicalCard', 'pendingMemory', 'conversations', 'conversationTitle', 'conversationId', 'conversationOrder', 'events', 'care', 'saved', 'completed'] as const;
 export type ChildData = Pick<ParentState, typeof childKeys[number]>;
 export type ChildRecord = {id: string; data: ChildData};
-export type Favorite = {id: string; childId: string; childName: string; text: string; question: string; savedAt: string};
+export type Favorite = {id: string; childId: string; childName: string; text: string; question: string; savedAt: string; category?:string; note?:string};
 export function childData(state: ParentState): ChildData {
   return Object.fromEntries(childKeys.map(key => [key, state[key]])) as ChildData;
 }

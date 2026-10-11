@@ -69,8 +69,8 @@
 .age-guidance-card a {text-decoration:underline;color:#645092;}
 .age-guidance-card button {align-self:flex-start;white-space:normal;height:auto;min-height:42px;}
 .parent-workspace .birthday-card {background:#fff0d7 !important;margin:18px 0;}
-.parent-workspace .simple-day-card:has(#parent-day-title) {background:linear-gradient(135deg,#fff0e4,#fffaf5) !important;border:1px solid #edc5aa !important;}
-.parent-workspace .simple-day-card:has(#child-day-title) {background:linear-gradient(135deg,#e6f5ee,#f7fcfa) !important;border:1px solid #aacfc0 !important;}
+.parent-workspace .simple-day-card:has(#parent-day-title) {background:var(--ui-surface) !important;border:1px solid var(--ui-border) !important;}
+.parent-workspace .simple-day-card:has(#child-day-title) {background:var(--ui-surface) !important;border:1px solid var(--ui-border) !important;}
 .parent-workspace .daily-activity {background:rgba(255,255,255,.85);border:1px solid #bed8ca;border-radius:18px;}
 .dark .parent-workspace .age-guidance-card,.dark .parent-workspace .birthday-card,.dark .parent-workspace .simple-day-card {background:#282938 !important;border-color:#55566e !important;color:#f5f1ff;}
 .dark .parent-workspace .daily-activity {background:#232936;border-color:#505b6b;}
@@ -85,3 +85,58 @@
     backdrop-filter: none;
   }
 }
+
+/* Cabinet: consistent surfaces, controls and readable theme contrast. */
+.parent-workspace{--ui-surface:#ffffff;--ui-field:#faf9fc;--ui-text:#302842;--ui-muted:#635b73;--ui-border:#d4cedf;--ui-accent:#6840ae;--ui-hover:#f0eaf8;}
+.dark .parent-workspace{--ui-surface:#252633;--ui-field:#1c1e2a;--ui-text:#f2eef8;--ui-muted:#c4bdcf;--ui-border:#575365;--ui-accent:#c6a7ff;--ui-hover:#393348;}
+.parent-workspace .tile{background:var(--ui-surface)!important;color:var(--ui-text)!important;border:1px solid var(--ui-border)!important;box-shadow:0 6px 24px rgb(28 20 48 / .04)!important;backdrop-filter:none!important;}
+.parent-workspace .tile::before,.parent-workspace .tile::after{display:none!important;}
+.parent-workspace .simple-day{align-items:start;}
+.parent-workspace .simple-day-card{gap:22px;}
+.parent-workspace .simple-day-content{flex:initial;}
+.parent-workspace input:not([type=checkbox]):not([type=radio]),.parent-workspace textarea,.parent-workspace select{box-sizing:border-box;width:100%;max-width:100%;min-width:0;min-height:46px;padding:12px 14px;border:1px solid var(--ui-border)!important;border-radius:12px;background:var(--ui-field)!important;color:var(--ui-text)!important;box-shadow:none!important;backdrop-filter:none!important;font-size:16px;line-height:1.5;}
+.parent-workspace textarea{min-height:112px;resize:vertical;}
+.parent-workspace select{padding-right:32px;color-scheme:light;}
+.dark .parent-workspace select{color-scheme:dark;}
+.parent-workspace input::placeholder,.parent-workspace textarea::placeholder{color:var(--ui-muted)!important;opacity:1;}
+.parent-workspace input:focus-visible,.parent-workspace textarea:focus-visible,.parent-workspace select:focus-visible{outline:2px solid var(--ui-accent);outline-offset:2px;}
+.parent-workspace button{max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.4;}
+.parent-workspace .glass-btn{background:#6840ae!important;color:#fff!important;border:1px solid #6840ae!important;box-shadow:none!important;backdrop-filter:none!important;}
+.parent-workspace .glass-pill{background:var(--ui-surface)!important;color:var(--ui-text)!important;border:1px solid var(--ui-border)!important;box-shadow:none!important;backdrop-filter:none!important;}
+.parent-workspace .glass-pill:hover{background:var(--ui-hover)!important;transform:none!important;}
+.parent-workspace .daily-activity{background:transparent!important;border-color:var(--ui-border)!important;}
+.parent-workspace .daily-actions button,.parent-workspace .simple-day-card>button,.parent-workspace .care-journal button{height:auto;min-height:44px;padding:11px 16px;border-radius:12px;}
+.parent-workspace .care-journal{padding:0!important;overflow:hidden;}
+.care-journal>summary{display:flex;align-items:center;gap:16px;padding:24px 28px;font-size:20px;line-height:1.4;list-style:none;cursor:pointer;}
+.care-journal>summary::-webkit-details-marker{display:none;}
+.care-journal>summary::after{content:'+';margin-left:auto;font-size:24px;}
+.care-journal[open]>summary::after{content:'−';}
+.care-journal>summary:focus-visible{outline:2px solid var(--ui-accent);outline-offset:-4px;}
+.care-journal-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 28px 24px;border-bottom:1px solid var(--ui-border);}
+.care-journal-nav button{font-size:15px;}
+.care-journal-body{display:grid;gap:18px;padding:28px;min-width:0;}
+.parent-workspace .care-journal-body>p{margin:0;line-height:1.65;color:var(--ui-muted);max-width:72ch;}
+.care-journal-body>button{justify-self:start;}
+.care-journal-body .form-field{gap:9px;font-size:14px;font-weight:600;}
+.care-journal-body>label:not(.form-field){line-height:1.6;}
+.care-journal-body input[type=checkbox]{width:20px;height:20px;accent-color:#6840ae;vertical-align:middle;margin-right:8px;}
+.care-journal-body textarea[readonly]{margin-top:10px;min-height:280px;font-size:15px;line-height:1.8;}
+.care-journal-body strong,.care-journal-body p{overflow-wrap:anywhere;}
+.parent-workspace .cabinet-tabs{box-shadow:none!important;background:var(--ui-surface)!important;border:1px solid var(--ui-border)!important;}
+.parent-workspace .cabinet-tabs>button[data-state=active]{background:#6840ae!important;color:white!important;box-shadow:none!important;}
+@media(max-width:640px){.care-journal>summary{padding:20px;font-size:18px;}.care-journal-nav{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 20px 20px;gap:8px;}.care-journal-body{padding:20px;gap:16px;}.care-journal-body>button{width:100%;}.parent-workspace .simple-day-card{padding:22px!important;}.parent-workspace .simple-day-content h3{font-size:21px;}.parent-workspace .daily-actions{display:grid;grid-template-columns:1fr 1fr;}.parent-workspace .daily-actions button{width:100%;}.care-journal-nav button{padding:11px 8px!important;font-size:14px;}}
+
+.parent-workspace .glass-btn::before,.parent-workspace .glass-btn::after{display:none!important;}
+.parent-workspace .daily-actions button{color:var(--ui-text);}
+.parent-workspace .daily-activity{padding:20px;}
+.parent-workspace .cabinet-tabs>button{overflow-wrap:normal;word-break:normal;padding:8px 10px;gap:5px;}
+.parent-workspace .cabinet-tabs>button span{overflow-wrap:normal;word-break:normal;}
+.parent-workspace button:disabled{cursor:not-allowed;}
+.parent-workspace .cabinet-tabs,.parent-workspace .cabinet-tabs:hover{position:fixed;bottom:0;left:50%;transform:translateX(-50%)!important;z-index:40;width:min(100%,760px);height:auto;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-radius:20px 20px 0 0!important;box-shadow:0 -4px 24px #00000012!important;}
+.parent-workspace .cabinet-main{padding-bottom:110px!important;}
+.workspace-more{display:grid;gap:12px;margin-top:20px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+.tracker-summary{padding:20px;border:1px solid var(--ui-border);border-radius:18px;background:var(--ui-surface);}
+.tracker-numbers{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}.tracker-numbers strong{font-size:24px;display:block;}.tracker-numbers span{font-size:14px;color:var(--ui-muted);}.tracker-summary p{margin-top:10px;line-height:1.6;}
+.sleep-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;margin:24px 0 12px;}.sleep-week>div{display:flex;flex-direction:column;align-items:center;justify-content:end;gap:8px;font-size:12px;min-height:110px;}.sleep-bar{width:100%;max-width:32px;background:#8460bf;border-radius:6px;}.day-shortcuts{display:flex;flex-wrap:wrap;gap:18px;margin-top:20px;}.day-shortcuts a{padding:12px 16px;border:1px solid var(--ui-border);border-radius:12px;color:var(--ui-text);}
+
+.parent-workspace .cabinet-tabs>button[data-state=active],.parent-workspace .cabinet-tabs>button.profile-tab-selected{background:transparent!important;color:hsl(var(--primary))!important;box-shadow:none!important;}

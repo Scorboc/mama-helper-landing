@@ -7,7 +7,7 @@ export type Profile = {
   week: number; weekDate: string; feeding: 'unknown'|'breast'|'formula'|'mixed'|'solids';
   sleep: string; health: string; healthConfirmed: boolean; topics: string[];
 };
-export type Message = {id:string;role:'user'|'assistant';text:string;model?:string;sourcesChecked?:boolean;evidence?:{basis:string;checkedAt?:string;sources:{title:string;url:string}[];limitation:string}};
+export type Message = {id:string;role:'user'|'assistant';text:string;careVersion?:string;model?:string;sourcesChecked?:boolean;evidence?:{basis:string;checkedAt?:string;sources:{title:string;url:string}[];limitation:string}};
 export type MedicalCardEntry = {id:string;date:string;text:string;source:'chat'|'manual';confirmation?:'pending'|'parent'|'doctor'};
 export type ParentState = {
   activeChildId?:string;

@@ -1,6 +1,8 @@
 import React from 'react';
-import * as LucideIcons from 'lucide-react';
-import { LucideProps } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CircleAlert, Clock, Mail, Menu, Phone, X, type LucideProps } from 'lucide-react';
+
+// Import only the icons used by this app; a namespace import ships the whole library.
+const icons: Record<string, React.FC<LucideProps>> = { ArrowLeft, ArrowRight, Check, CircleAlert, Clock, Mail, Menu, Phone, X };
 
 interface IconProps extends LucideProps {
   name: string;
@@ -8,11 +10,11 @@ interface IconProps extends LucideProps {
 }
 
 const Icon: React.FC<IconProps> = ({ name, fallback = 'CircleAlert', ...props }) => {
-  const IconComponent = (LucideIcons as unknown as Record<string, React.FC<LucideProps>>)[name];
+  const IconComponent = icons[name];
 
   if (!IconComponent) {
     // Если иконка не найдена, используем fallback иконку
-    const FallbackIcon = (LucideIcons as unknown as Record<string, React.FC<LucideProps>>)[fallback];
+    const FallbackIcon = icons[fallback];
 
     // Если даже fallback не найден, возвращаем пустой span
     if (!FallbackIcon) {

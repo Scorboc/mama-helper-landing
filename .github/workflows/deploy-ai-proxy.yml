@@ -1,13 +1,8 @@
 name: Deploy AI proxy
 
 on:
+  # Publishing source must not deploy the legacy live service automatically.
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'ai-proxy/**'
-      - '.github/workflows/deploy-ai-proxy.yml'
 
 permissions:
   contents: read

@@ -10,7 +10,9 @@ import type {ParentState} from '@/lib/parent-model';
 type Activity={id:string;title:string;area:string;goal:string;materials:string;minutes:number;steps:string[];familiar:boolean;status:string;selection:'ai'|'library';replacementReason?:string};
 type Plan={childId:string;day:string;version:number;ageMonths:number;items:Activity[];source:'ai'|'library';viewed:boolean};
 const reasons=[['hard','Слишком сложно'],['easy','Слишком просто'],['materials','Нет нужных вещей'],['time','Мало времени'],['dislike','Не понравилось ребёнку'],['health','Не подходит по самочувствию'],['other','Другая причина']];
-export default function DailyActivities({state}:{state:ParentState}) {
+export default function DailyActivities({state,active=true}:{state:ParentState;active?:boolean}) {
+ const contentRef=useRef<HTMLDivElement>(null);
+ const seenKeys=useRef(new Set<string>());
  const cid=state.activeChildId || 'primary';
  const [plan,setPlan]=useState<Plan>(); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
  const [target,setTarget]=useState<Activity>(); const [reason,setReason]=useState(''); const [detail,setDetail]=useState('');
@@ -30,12 +32,22 @@ export default function DailyActivities({state}:{state:ParentState}) {
    catch(e){if(current())setError((e as Error).message);}
    finally{if(current())setBusy(false);}
  },[cid,contextKey]);
- useEffect(()=>{setTarget(undefined);pending.current=undefined;if(today){setPlan(undefined);void load();}},[load,today]);
+ useEffect(()=>{setTarget(undefined);pending.current=undefined;if(today && active){void load();}},[load,today,active]);
  useEffect(()=>{
-   if(!plan || plan.viewed || plan.childId!==cid || plan.day!==today)return;
-   const seen=()=>{if(document.visibilityState==='visible')void api('daily-seen',{childId:cid,day:plan.day}).catch(()=>{});};
-   seen();document.addEventListener('visibilitychange',seen);return()=>document.removeEventListener('visibilitychange',seen);
- },[cid,plan,today]);
+   const element=contentRef.current;
+   if(!active || !element || !plan || plan.viewed || plan.childId!==cid || plan.day!==today)return;
+   const card=element.querySelector('article');if(!card)return;
+   const key=`${cid}:${plan.day}:${plan.version}`;
+   let visible=false;
+   const seen=()=>{
+     if(!visible || document.visibilityState!=='visible' || seenKeys.current.has(key))return;
+     seenKeys.current.add(key);
+     void api('daily-seen',{childId:cid,day:plan.day}).catch(()=>seenKeys.current.delete(key));
+   };
+   const observer=new IntersectionObserver(entries=>{visible=entries.some(e=>e.isIntersecting && e.intersectionRect.height>=40);seen();},{threshold:[0,.1],rootMargin:'0px 0px -90px 0px'});
+   observer.observe(card);document.addEventListener('visibilitychange',seen);
+   return()=>{observer.disconnect();document.removeEventListener('visibilitychange',seen);};
+ },[active,cid,plan,today]);
  async function feedback(kind:string,itemId?:string) {
    if(!plan || busy)return;
    if(kind==='replace' && (!reason || detail.trim().length<8))return;
@@ -49,7 +61,7 @@ export default function DailyActivities({state}:{state:ParentState}) {
    catch(e){if(current())setError((e as Error).message);}
    finally{if(current())setBusy(false);}
  }
- return <div className="daily-activities">
+ return <div ref={contentRef} className="daily-activities">
   <p className="muted">Три игры по возрасту на выбор. Можно попробовать одну — сколько сегодня удобно.</p>
   {busy && <p role="status">{target?'ИИ разбирает причину и подбирает замену…':'Готовим подборку…'}</p>}
   {error && !target && <div role="alert"><p>{error}</p><Button variant="outline" disabled={busy} onClick={()=>void load()}>Обновить подборку</Button></div>}

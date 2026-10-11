@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import unittest
+import tempfile
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('proxy_test_app', Path(__file__).with_name('index.py'))
@@ -11,6 +12,12 @@ spec.loader.exec_module(app)
 
 
 class ProxyTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='mama-proxy-test-')
+
+    def tearDown(self):
+        self.temp.cleanup()
+
     def call(self, daily=False, content='Ответ', finish='stop'):
         response = unittest.mock.MagicMock()
         response.__enter__.return_value.read.return_value = json.dumps({
@@ -18,6 +25,7 @@ class ProxyTests(unittest.TestCase):
             'usage': {'prompt_tokens': 12, 'completion_tokens': 4},
         }).encode()
         with patch.dict(os.environ, {'AI_PROVIDER':'proxyapi','PROXYAPI_API_KEY':'test-only',
+                                     'APP_AI_BUDGET_PATH':str(Path(self.temp.name)/'budget.sqlite3'),
                                      'YANDEX_API_KEY':'old-test-only','YANDEX_FOLDER_ID':'old-folder'}, clear=True), \
              patch.object(app, 'CHAT_LIVE_ENABLED', True), \
              patch.object(app, 'with_chat_deadline', side_effect=lambda fn:fn()), \

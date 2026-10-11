@@ -2,6 +2,7 @@ import {defineConfig} from "vite";
 import type {ViteDevServer} from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { fileURLToPath } from "node:url";
 import {componentTagger} from "pp-tagger";
 
 // DDoS Guard требует двусторонний app-level keepalive чаще 30s.
@@ -33,14 +34,14 @@ export default defineConfig(({mode}) => ({
     ].filter(Boolean),
     resolve: {
         alias: {
-            "@": path.resolve(__dirname, "./src"),
+            "@": path.resolve(fileURLToPath(new URL('.', import.meta.url)), "./src"),
         },
     },
     server: {
         proxy: { '/api': { target: 'http://127.0.0.1:8787', changeOrigin: false } },
-        host: '0.0.0.0',
+        host: '127.0.0.1',
         port: 5173,
-        allowedHosts: true,
+        allowedHosts: ['localhost', '127.0.0.1'],
         hmr: {
             overlay: false, // Disables the error overlay if you only want console errors
             timeout: 7000, // pingInterval @vite/client — нужен <30s для DDoS Guard

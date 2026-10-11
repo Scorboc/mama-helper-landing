@@ -1,173 +1,509 @@
-import { demoAnswer, emptyState, MedicalCardEntry, ParentState } from './parent-model';
+import {
+  demoAnswer,
+  emptyState,
+  MedicalCardEntry,
+  ParentState,
+} from "./parent-model";
 
-export type Quota = {limit:number;used:number;remaining:number;paid?:boolean;bonusRemaining?:number};
-export type Session = {user:{id:string;email:string};state:ParentState;revision:number;recoveryCode?:string;sessionToken?:string;quota?:Quota;birthday?:{children:{childId:string;name:string;years:number}[];giftPerChild:number;giftRemaining:number}};
-type LocalAccount = {id:string;email:string;salt:string;passwordHash:string;recoveryHash:string;state:ParentState;revision:number};
+export type Quota = {
+  limit: number;
+  used: number;
+  remaining: number;
+  paid?: boolean;
+  bonusRemaining?: number;
+};
+export type Session = {
+  user: { id: string; email: string; emailVerified?: boolean; emailVerificationRequired?: boolean };
+  state: ParentState;
+  revision: number;
+  recoveryCode?: string;
+  sessionToken?: string;
+  quota?: Quota;
+  birthday?: {
+    children: { childId: string; name: string; years: number }[];
+    giftPerChild: number;
+    giftRemaining: number;
+  };
+};
+type LocalAccount = {
+  id: string;
+  email: string;
+  salt: string;
+  passwordHash: string;
+  recoveryHash: string;
+  state: ParentState;
+  revision: number;
+};
 
-const ACCOUNTS_KEY='mh_local_accounts_v1';
-const SESSION_KEY='mh_local_session_v1';
-const REMOTE_SESSION_KEY='mh_remote_session_v1';
-let endpoint:Promise<string|null>|undefined;
+const ACCOUNTS_KEY = "mh_local_accounts_v1";
+const SESSION_KEY = "mh_local_session_v1";
+const REMOTE_SESSION_KEY = "mh_remote_session_v1";
+let endpoint: Promise<string | null> | undefined;
 
-export class ApiError extends Error { constructor(message:string,public status:number){super(message);} }
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
 
-async function apiUrl(){
-  endpoint ??= fetch('/app-config.json',{cache:'no-store'}).then(async r=>{
-    if(!r.ok)throw new Error();
-    const config=await r.json();
-    const url=import.meta.env.VITE_APP_API_URL || config.apiUrl;
-    if(!url)return null;
-    if(typeof url!=='string')throw new Error();
-    const parsed=new URL(url,window.location.origin);
-    // The test deployment is served over plain HTTP behind the Yandex load
-    // balancer. Keep same-origin API paths usable there while still requiring
-    // HTTPS for cross-origin API endpoints in production.
-    const sameOrigin=parsed.origin===window.location.origin;
-    if(parsed.protocol!=='https:' && !sameOrigin && parsed.hostname!=='localhost' && parsed.hostname!=='127.0.0.1')throw new Error();
-    return parsed.href;
-  }).catch(()=>{endpoint=undefined;throw new ApiError('Не удалось подключиться к сервису аккаунтов. Попробуйте позже.',503);});
+async function apiUrl() {
+  endpoint ??= fetch("/app-config.json", { cache: "no-store" })
+    .then(async (r) => {
+      if (!r.ok) throw new Error();
+      const config = await r.json();
+      const url = import.meta.env.VITE_APP_API_URL || config.apiUrl;
+      if (!url) return null;
+      if (typeof url !== "string") throw new Error();
+      const parsed = new URL(url, window.location.origin);
+      // The test deployment is served over plain HTTP behind the Yandex load
+      // balancer. Keep same-origin API paths usable there while still requiring
+      // HTTPS for cross-origin API endpoints in production.
+      const sameOrigin = parsed.origin === window.location.origin;
+      if (
+        parsed.protocol !== "https:" &&
+        !sameOrigin &&
+        parsed.hostname !== "localhost" &&
+        parsed.hostname !== "127.0.0.1"
+      )
+        throw new Error();
+      return parsed.href;
+    })
+    .catch(() => {
+      endpoint = undefined;
+      throw new ApiError(
+        "Не удалось подключиться к сервису аккаунтов. Попробуйте позже.",
+        503,
+      );
+    });
   return endpoint;
 }
 
-function readAccounts():LocalAccount[]{
-  try{const parsed=JSON.parse(localStorage.getItem(ACCOUNTS_KEY)||'[]');return Array.isArray(parsed)?parsed:[];}
-  catch{return [];}
+export async function storageMode(): Promise<"server" | "device"> {
+  return (await apiUrl()) ? "server" : "device";
 }
 
-function writeAccounts(accounts:LocalAccount[]){
-  try{localStorage.setItem(ACCOUNTS_KEY,JSON.stringify(accounts));}
-  catch{throw new ApiError('Браузер не разрешил сохранить данные. Проверьте настройки приватности.',503);}
+function readAccounts(): LocalAccount[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
-function randomToken(bytes=18){
-  const data=crypto.getRandomValues(new Uint8Array(bytes));
-  return Array.from(data,b=>b.toString(16).padStart(2,'0')).join('');
+function writeAccounts(accounts: LocalAccount[]) {
+  try {
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+  } catch {
+    throw new ApiError(
+      "Браузер не разрешил сохранить данные. Проверьте настройки приватности.",
+      503,
+    );
+  }
 }
 
-async function hash(value:string,salt:string){
-  const data=new TextEncoder().encode(`${salt}:${value}`);
-  const digest=await crypto.subtle.digest('SHA-256',data);
-  return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+function randomToken(bytes = 18) {
+  const data = crypto.getRandomValues(new Uint8Array(bytes));
+  return Array.from(data, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-function recoveryCode(){return Array.from({length:4},()=>randomToken(3).toUpperCase()).join('-');}
-
-async function ensureDemoAccount(){
-  const accounts=readAccounts();
-  if(accounts.some(a=>a.email==='1'))return;
-  const salt=randomToken();
-  accounts.push({id:'demo-account',email:'1',salt,passwordHash:await hash('1',salt),recoveryHash:'',state:emptyState(),revision:0});
-  writeAccounts(accounts);
+async function hash(value: string, salt: string) {
+  const data = new TextEncoder().encode(`${salt}:${value}`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
 }
 
-function activeAccount(accounts=readAccounts()){
-  const id=localStorage.getItem(SESSION_KEY);
-  return accounts.find(a=>a.id===id);
+function recoveryCode() {
+  return Array.from({ length: 4 }, () => randomToken(3).toUpperCase()).join(
+    "-",
+  );
 }
 
-function publicSession(account:LocalAccount,recovery?:string):Session{
-  return {user:{id:account.id,email:account.email},state:normalizeState(account.state),revision:account.revision,...(recovery?{recoveryCode:recovery}:{})};
+async function ensureDemoAccount() {
+  const accounts = readAccounts();
+  if (accounts.some((a) => a.email === "1")) return;
+  const salt = randomToken();
+  const account: LocalAccount = {
+    id: "demo-account",
+    email: "1",
+    salt,
+    passwordHash: await hash("1", salt),
+    recoveryHash: "",
+    state: emptyState(),
+    revision: 0,
+  };
+  const latest = readAccounts();
+  if (latest.some((a) => a.email === "1")) return;
+  latest.push(account);
+  writeAccounts(latest);
 }
 
-function normalizeState(state:ParentState):ParentState{
-  return {...emptyState(),...state,medicalCard:Array.isArray((state as {medicalCard?:MedicalCardEntry[]}).medicalCard)?(state as {medicalCard:MedicalCardEntry[]}).medicalCard:[]};
+function activeAccount(accounts = readAccounts()) {
+  const id = localStorage.getItem(SESSION_KEY);
+  return accounts.find((a) => a.id === id);
 }
 
-async function localApi<T>(action:string,data:Record<string,unknown>):Promise<T>{
+function currentLocalAccount(account: LocalAccount, requireSession = false) {
+  const accounts = readAccounts();
+  const current = accounts.find((a) => a.id === account.id);
+  if (
+    !current ||
+    current.salt !== account.salt ||
+    current.passwordHash !== account.passwordHash ||
+    current.recoveryHash !== account.recoveryHash ||
+    (requireSession && localStorage.getItem(SESSION_KEY) !== account.id)
+  )
+    throw new ApiError("Доступ изменился в другой вкладке. Войдите заново.", 409);
+  return { accounts, current };
+}
+
+function publicSession(account: LocalAccount, recovery?: string): Session {
+  return {
+    user: { id: account.id, email: account.email },
+    state: normalizeState(account.state),
+    revision: account.revision,
+    ...(recovery ? { recoveryCode: recovery } : {}),
+  };
+}
+
+function normalizeState(state: ParentState): ParentState {
+  return {
+    ...emptyState(),
+    ...state,
+    medicalCard: Array.isArray(
+      (state as { medicalCard?: MedicalCardEntry[] }).medicalCard,
+    )
+      ? (state as { medicalCard: MedicalCardEntry[] }).medicalCard
+      : [],
+  };
+}
+
+async function localApi<T>(
+  action: string,
+  data: Record<string, unknown>,
+): Promise<T> {
+  // Serialize browser-only operations across tabs, including asynchronous hashes.
+  if (typeof navigator !== "undefined" && navigator.locks)
+    return navigator.locks.request("mh-local-account", () => localApiUnlocked<T>(action, data));
+  return localApiUnlocked<T>(action, data);
+}
+
+async function localApiUnlocked<T>(
+  action: string,
+  data: Record<string, unknown>,
+): Promise<T> {
   await ensureDemoAccount();
-  let accounts=readAccounts();
-  if(action==='register'){
-    const email=String(data.email||'').trim().toLowerCase();const password=String(data.password||'');
-    if(!data.consent)throw new ApiError('Подтвердите согласие с условиями тестирования.',400);
-    if(!/^\S+@\S+\.\S+$/.test(email))throw new ApiError('Укажите корректную электронную почту.',400);
-    if(password.length<12)throw new ApiError('Пароль должен содержать не меньше 12 символов.',400);
-    if(accounts.some(a=>a.email===email))throw new ApiError('Аккаунт с такой почтой уже существует.',409);
-    const salt=randomToken();const code=recoveryCode();
-    const account:LocalAccount={id:crypto.randomUUID(),email,salt,passwordHash:await hash(password,salt),recoveryHash:await hash(code,salt),state:emptyState(),revision:0};
-    accounts.push(account);writeAccounts(accounts);localStorage.setItem(SESSION_KEY,account.id);
-    return publicSession(account,code) as T;
+  const accounts = readAccounts();
+  if (action === "register") {
+    const email = String(data.email || "")
+      .trim()
+      .toLowerCase();
+    const password = String(data.password || "");
+    if (!data.consent)
+      throw new ApiError("Подтвердите согласие с условиями тестирования.", 400);
+    if (!/^\S+@\S+\.\S+$/.test(email))
+      throw new ApiError("Укажите корректную электронную почту.", 400);
+    if (password.length < 12 || password.length > 128)
+      throw new ApiError("Пароль должен содержать от 12 до 128 символов.", 400);
+    if (accounts.some((a) => a.email === email))
+      throw new ApiError("Аккаунт с такой почтой уже существует.", 409);
+    const salt = randomToken();
+    const code = recoveryCode();
+    const account: LocalAccount = {
+      id: crypto.randomUUID(),
+      email,
+      salt,
+      passwordHash: await hash(password, salt),
+      recoveryHash: await hash(code, salt),
+      state: emptyState(),
+      revision: 0,
+    };
+    const latest = readAccounts();
+    if (latest.some((a) => a.email === email))
+      throw new ApiError("Аккаунт с такой почтой уже существует.", 409);
+    latest.push(account);
+    writeAccounts(latest);
+    localStorage.setItem(SESSION_KEY, account.id);
+    return publicSession(account, code) as T;
   }
-  if(action==='login'){
-    const email=String(data.email||'').trim().toLowerCase();const account=accounts.find(a=>a.email===email);
-    if(!account||await hash(String(data.password||''),account.salt)!==account.passwordHash)throw new ApiError('Неверная почта или пароль.',401);
-    localStorage.setItem(SESSION_KEY,account.id);return publicSession(account) as T;
+  if (action === "login") {
+    const email = String(data.email || "")
+      .trim()
+      .toLowerCase();
+    const account = accounts.find((a) => a.email === email);
+    if (
+      !account ||
+      (await hash(String(data.password || ""), account.salt)) !==
+        account.passwordHash
+    )
+      throw new ApiError("Неверная почта или пароль.", 401);
+    const { current } = currentLocalAccount(account);
+    localStorage.setItem(SESSION_KEY, current.id);
+    return publicSession(current) as T;
   }
-  if(action==='recover'){
-    const email=String(data.email||'').trim().toLowerCase();const account=accounts.find(a=>a.email===email);const password=String(data.password||'');
-    if(!account||!account.recoveryHash||await hash(String(data.recoveryCode||'').trim().toUpperCase(),account.salt)!==account.recoveryHash)throw new ApiError('Почта или код восстановления не совпадают.',401);
-    if(password.length<12)throw new ApiError('Новый пароль должен содержать не меньше 12 символов.',400);
-    const code=recoveryCode();account.passwordHash=await hash(password,account.salt);account.recoveryHash=await hash(code,account.salt);
-    writeAccounts(accounts);localStorage.setItem(SESSION_KEY,account.id);return publicSession(account,code) as T;
+  if (action === "recover") {
+    const email = String(data.email || "")
+      .trim()
+      .toLowerCase();
+    const account = accounts.find((a) => a.email === email);
+    const password = String(data.password || "");
+    if (
+      !account ||
+      !account.recoveryHash ||
+      (await hash(
+        String(data.recoveryCode || "")
+          .trim()
+          .toUpperCase(),
+        account.salt,
+      )) !== account.recoveryHash
+    )
+      throw new ApiError("Почта или код восстановления не совпадают.", 401);
+    if (password.length < 12 || password.length > 128)
+      throw new ApiError(
+        "Новый пароль должен содержать от 12 до 128 символов.",
+        400,
+      );
+    const code = recoveryCode();
+    const passwordHash = await hash(password, account.salt);
+    const recoveryHash = await hash(code, account.salt);
+    const { accounts: latest, current } = currentLocalAccount(account);
+    current.passwordHash = passwordHash;
+    current.recoveryHash = recoveryHash;
+    writeAccounts(latest);
+    localStorage.setItem(SESSION_KEY, current.id);
+    return publicSession(current, code) as T;
   }
-  if(action==='session'){
-    const account=activeAccount(accounts);if(!account)throw new ApiError('Войдите в аккаунт.',401);return publicSession(account) as T;
+  if (action === "session") {
+    const account = activeAccount(accounts);
+    if (!account) throw new ApiError("Войдите в аккаунт.", 401);
+    return publicSession(account) as T;
   }
-  if(action==='logout'){localStorage.removeItem(SESSION_KEY);return {ok:true} as T;}
-  const account=activeAccount(accounts);if(!account)throw new ApiError('Войдите в аккаунт.',401);
-  if(action==='save'){
-    if(Number(data.revision)!==account.revision)throw new ApiError('Данные изменились в другой вкладке. Обновите страницу.',409);
-    account.state=normalizeState(data.state as ParentState);account.revision+=1;writeAccounts(accounts);return {revision:account.revision} as T;
+  if (action === "logout") {
+    localStorage.removeItem(SESSION_KEY);
+    return { ok: true } as T;
   }
-  if(action==='chat')return {answer:demoAnswer(String(data.question||''),account.state.profile)} as T;
-  if(action==='config')return {ok:true,chatConfigured:false,pushKey:'',storage:'local'} as T;
-  if(action==='subscribe'||action==='unsubscribe')return {ok:true} as T;
-  if(action==='health')return {ok:true,storage:'local'} as T;
-  if(action==='delete'){
-    if(await hash(String(data.password||''),account.salt)!==account.passwordHash)throw new ApiError('Неверный пароль.',401);
-    accounts=accounts.filter(a=>a.id!==account.id);writeAccounts(accounts);localStorage.removeItem(SESSION_KEY);return {ok:true} as T;
+  const account = activeAccount(accounts);
+  if (!account) throw new ApiError("Войдите в аккаунт.", 401);
+  if (["change-password", "rotate-recovery", "logout-all"].includes(action)) {
+    if ((await hash(String(data.currentPassword || ""), account.salt)) !== account.passwordHash)
+      throw new ApiError("Неверный пароль.", 401);
+    if (action === "logout-all") {
+      currentLocalAccount(account, true);
+      localStorage.removeItem(SESSION_KEY);
+      return { ok: true } as T;
+    }
+    if (action === "change-password") {
+      const password = String(data.password || "");
+      if (password.length < 12 || password.length > 128) throw new ApiError("Пароль должен содержать от 12 до 128 символов.", 400);
+      const passwordHash = await hash(password, account.salt);
+      const { accounts: latest, current } = currentLocalAccount(account, true);
+      current.passwordHash = passwordHash;
+      writeAccounts(latest);
+      return { ok: true } as T;
+    }
+    const code = recoveryCode();
+    const recoveryHash = await hash(code, account.salt);
+    const { accounts: latest, current } = currentLocalAccount(account, true);
+    current.recoveryHash = recoveryHash;
+    writeAccounts(latest);
+    return { ok: true, recoveryCode: code } as T;
   }
-  throw new ApiError('Неизвестное действие.',400);
+  if (action === "save") {
+    if (Number(data.revision) !== account.revision)
+      throw new ApiError(
+        "Данные изменились в другой вкладке. Обновите страницу.",
+        409,
+      );
+    account.state = normalizeState(data.state as ParentState);
+    account.revision += 1;
+    writeAccounts(accounts);
+    return { revision: account.revision } as T;
+  }
+  if (action === "chat")
+    return {
+      answer: demoAnswer(String(data.question || ""), account.state.profile),
+    } as T;
+  if (action === "config")
+    return {
+      ok: true,
+      chatConfigured: false,
+      pushKey: "",
+      storage: "local",
+    } as T;
+  if (action === "subscribe" || action === "unsubscribe")
+    return { ok: true } as T;
+  if (action === "health") return { ok: true, storage: "local" } as T;
+  if (action === "delete") {
+    if (
+      (await hash(String(data.password || ""), account.salt)) !==
+      account.passwordHash
+    )
+      throw new ApiError("Неверный пароль.", 401);
+    const { accounts: latest } = currentLocalAccount(account, true);
+    writeAccounts(latest.filter((a) => a.id !== account.id));
+    localStorage.removeItem(SESSION_KEY);
+    return { ok: true } as T;
+  }
+  throw new ApiError("Неизвестное действие.", 400);
 }
 
-export async function api<T>(action:string,data:Record<string,unknown>={},timeoutMs=60000):Promise<T>{
-  const url=await apiUrl();
-  if(!url)return localApi<T>(action,data);
-  const controller=new AbortController();const timer=window.setTimeout(()=>controller.abort(),timeoutMs);
-  try{
-    const token=localStorage.getItem(REMOTE_SESSION_KEY);
+export async function api<T>(
+  action: string,
+  data: Record<string, unknown> = {},
+  timeoutMs = 60000,
+): Promise<T> {
+  const url = await apiUrl();
+  if (!url && action.startsWith("email-"))
+    throw new ApiError("Почтовые функции доступны для серверного аккаунта. Личный код восстановления продолжает работать в этом браузере.", 503);
+  if (!url) return localApi<T>(action, data);
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const token = localStorage.getItem(REMOTE_SESSION_KEY);
     // text/plain keeps the free HTTP test origin usable even in browsers that
     // treat the load-balancer hostname as cross-origin and would otherwise
     // block the JSON preflight before the login POST reaches the VM.
-    const headers:Record<string,string>={'Content-Type':'text/plain;charset=UTF-8'};
-    if(token)headers.Authorization=`Bearer ${token}`;
+    const headers: Record<string, string> = {
+      "Content-Type": "text/plain;charset=UTF-8",
+    };
+    if (token && !["login", "register", "recover", "email-request-reset", "email-verify", "email-reset"].includes(action)) headers.Authorization = `Bearer ${token}`;
     // Authentication is cookie based on the Yandex backend. Always include
     // credentials so login/register can persist the Set-Cookie session and
     // subsequent cabinet requests can use it.
-    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify({action,...data}),signal:controller.signal});
-    const raw=await response.text();let body:Record<string,unknown>={};
-    try{body=raw?JSON.parse(raw):{};}catch{body={};}
-    if(!response.ok){
-      if(response.status===402)throw new ApiError('Сервис временно остановлен: исчерпан лимит облачных функций. Владелец уже получил уведомление.',402);
-      throw new ApiError(typeof body.error==='string'?body.error:'Не удалось выполнить действие.',response.status);
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body: JSON.stringify({ action, ...data }),
+      signal: controller.signal,
+    });
+    const raw = await response.text();
+    let body: Record<string, unknown> = {};
+    try {
+      body = raw ? JSON.parse(raw) : {};
+    } catch {
+      body = {};
     }
-    if(typeof body.sessionToken==='string')localStorage.setItem(REMOTE_SESSION_KEY,body.sessionToken);
-    if(action==='logout'||action==='delete')localStorage.removeItem(REMOTE_SESSION_KEY);
+    if (!response.ok) {
+      if (response.status === 402)
+        throw new ApiError(
+          "Сервис временно остановлен: исчерпан лимит облачных функций. Владелец уже получил уведомление.",
+          402,
+        );
+      throw new ApiError(
+        typeof body.error === "string"
+          ? body.error
+          : "Не удалось выполнить действие.",
+        response.status,
+      );
+    }
+    if (typeof body.sessionToken === "string")
+      localStorage.setItem(REMOTE_SESSION_KEY, body.sessionToken);
+    else if (["login", "register", "recover", "change-password", "rotate-recovery"].includes(action))
+      // A fresh cookie session replaces any token left by the old hosting.
+      // Otherwise the next request could load the previous account's state.
+      localStorage.removeItem(REMOTE_SESSION_KEY);
+    if (["logout", "logout-all", "delete", "email-verify", "email-reset"].includes(action))
+      localStorage.removeItem(REMOTE_SESSION_KEY);
     return body as T;
-  }catch(error){
-    if(error instanceof ApiError)throw error;
-    if(error instanceof DOMException&&error.name==='AbortError')throw new ApiError('Сервер не ответил вовремя. Попробуйте отправить ещё раз.',504);
-    throw new ApiError('Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.',503);
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (error instanceof DOMException && error.name === "AbortError")
+      throw new ApiError(
+        "Сервер не ответил вовремя. Попробуйте отправить ещё раз.",
+        504,
+      );
+    throw new ApiError(
+      "Нет связи с сервером. Проверьте подключение. Изменения могли не сохраниться.",
+      503,
+    );
+  } finally {
+    window.clearTimeout(timer);
   }
-  finally{window.clearTimeout(timer);}
 }
 
-export async function streamChat(data:Record<string,unknown>,onText:(text:string)=>void):Promise<{answer:string;state:ParentState;revision:number;quota?:Quota}> {
-  const url=await apiUrl();
-  if(!url)throw new ApiError('Для AI-чата нужен подключённый сервер.',503);
-  const controller=new AbortController(),timer=window.setTimeout(()=>controller.abort(),75000);
+export async function streamChat(
+  data: Record<string, unknown>,
+  onText: (text: string) => void,
+): Promise<{
+  answer: string;
+  state: ParentState;
+  revision: number;
+  quota?: Quota;
+  sleepContext?: {
+    childId: string;
+    childName: string;
+    days: number;
+    records: number;
+  } | null;
+}> {
+  const url = await apiUrl();
+  if (!url) throw new ApiError("Для AI-чата нужен подключённый сервер.", 503);
+  const controller = new AbortController(),
+    timer = window.setTimeout(() => controller.abort(), 75000);
   try {
-    const headers:Record<string,string>={'Content-Type':'text/plain;charset=UTF-8'};
-    const token=localStorage.getItem(REMOTE_SESSION_KEY);if(token)headers.Authorization=`Bearer ${token}`;
-    const response=await fetch(url,{method:'POST',credentials:'include',headers,body:JSON.stringify({action:'chat',...data,stream:true}),signal:controller.signal});
-    if(!response.ok){const b=await response.json().catch(()=>({}));throw new ApiError(b.error || 'Сервис не ответил.',response.status);}
-    if(!response.body)throw new ApiError('Пустой ответ сервера.',502);
-    if(!response.headers.get('Content-Type')?.includes('application/x-ndjson'))return await response.json();
-    const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';let result:Awaited<ReturnType<typeof streamChat>>|undefined;
-    const line=(row:string)=>{if(!row.trim())return;const event=JSON.parse(row);if(event.type==='delta')onText(event.text);if(event.type==='error')throw new ApiError(event.error,event.status);if(event.type==='result')result=event.data;};
-    while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});let at;while((at=buffer.indexOf('\n'))>=0){line(buffer.slice(0,at));buffer=buffer.slice(at+1);}}
-    buffer+=decoder.decode();line(buffer);
-    if(!result?.state)throw new ApiError('Ответ прервался. Можно повторить запрос без двойного списания.',502);
+    const headers: Record<string, string> = {
+      "Content-Type": "text/plain;charset=UTF-8",
+    };
+    const token = localStorage.getItem(REMOTE_SESSION_KEY);
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers,
+      body: JSON.stringify({ action: "chat", ...data, stream: true }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const b = await response.json().catch(() => ({}));
+      throw new ApiError(b.error || "Сервис не ответил.", response.status);
+    }
+    if (!response.body) throw new ApiError("Пустой ответ сервера.", 502);
+    if (!response.headers.get("Content-Type")?.includes("application/x-ndjson"))
+      return await response.json();
+    const reader = response.body.getReader(),
+      decoder = new TextDecoder();
+    let buffer = "";
+    let result: Awaited<ReturnType<typeof streamChat>> | undefined;
+    const line = (row: string) => {
+      if (!row.trim()) return;
+      const event = JSON.parse(row);
+      if (event.type === "delta") onText(event.text);
+      if (event.type === "error") throw new ApiError(event.error, event.status);
+      if (event.type === "result") result = event.data;
+    };
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let at;
+      while ((at = buffer.indexOf("\n")) >= 0) {
+        line(buffer.slice(0, at));
+        buffer = buffer.slice(at + 1);
+      }
+    }
+    buffer += decoder.decode();
+    line(buffer);
+    if (!result?.state)
+      throw new ApiError(
+        "Ответ прервался. Можно повторить запрос без двойного списания.",
+        502,
+      );
     return result;
-  }catch(e){if(e instanceof ApiError)throw e;throw new ApiError('Связь прервалась. Ваш вопрос сохранён для повторной отправки.',503);}
-  finally{window.clearTimeout(timer);}
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
+    if (e instanceof DOMException && e.name === "AbortError")
+      throw new ApiError("Ответ готовится слишком долго. Можно повторить отправку.", 504);
+    throw new ApiError(
+      "Связь прервалась. Ваш вопрос сохранён для повторной отправки.",
+      503,
+    );
+  } finally {
+    window.clearTimeout(timer);
+  }
 }

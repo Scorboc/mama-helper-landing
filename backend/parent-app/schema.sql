@@ -11,6 +11,19 @@ CREATE TABLE IF NOT EXISTS mh_state (
  user_id TEXT PRIMARY KEY REFERENCES mh_users(id) ON DELETE CASCADE,
  encrypted_data TEXT NOT NULL, revision BIGINT NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS mh_email_status (
+ user_id TEXT PRIMARY KEY REFERENCES mh_users(id) ON DELETE CASCADE,
+ required INTEGER NOT NULL, verified_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_email_tokens (
+ token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE,
+ kind TEXT NOT NULL, credential_hash TEXT NOT NULL, expires_at BIGINT NOT NULL, created_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_email_outbox (
+ id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE,
+ kind TEXT NOT NULL, encrypted_message TEXT NOT NULL, expires_at BIGINT NOT NULL,
+ lease_until BIGINT NOT NULL, attempts INTEGER NOT NULL, delivered_at BIGINT NOT NULL, status TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS mh_limits (
  key TEXT PRIMARY KEY, count BIGINT NOT NULL, until_at BIGINT NOT NULL
 );
@@ -58,4 +71,19 @@ CREATE TABLE IF NOT EXISTS mh_guidance_delivery (
  user_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE,
  child_id TEXT NOT NULL, topic TEXT NOT NULL, sent_at BIGINT NOT NULL,
  PRIMARY KEY(user_id,child_id,topic)
+);
+
+CREATE TABLE IF NOT EXISTS mh_care_records (owner_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE, child_id TEXT NOT NULL, id TEXT NOT NULL, encrypted_data TEXT NOT NULL, PRIMARY KEY(owner_id,child_id,id));
+CREATE TABLE IF NOT EXISTS mh_family_access (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE, child_id TEXT NOT NULL, guest_id TEXT REFERENCES mh_users(id) ON DELETE CASCADE, token_hash TEXT UNIQUE, expires_at BIGINT NOT NULL, permission TEXT NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS mh_family_guest ON mh_family_access(owner_id,child_id,guest_id);
+CREATE TABLE IF NOT EXISTS mh_product_suggestions (
+ id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE,
+ week_id TEXT NOT NULL, encrypted_data TEXT NOT NULL, status TEXT NOT NULL,
+ created_at BIGINT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS mh_product_suggestions_week ON mh_product_suggestions(week_id,status,created_at);
+CREATE TABLE IF NOT EXISTS mh_suggestion_votes (
+ ballot_week TEXT NOT NULL, user_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE,
+ suggestion_id TEXT NOT NULL REFERENCES mh_product_suggestions(id) ON DELETE CASCADE,
+ created_at BIGINT NOT NULL, PRIMARY KEY(ballot_week,user_id)
 );

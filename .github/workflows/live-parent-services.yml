@@ -1,11 +1,7 @@
 name: Live parenting chat scenarios
 on:
+  # Live AI requests require a deliberate manual run.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - scripts/smoke-services.mjs
-      - .github/workflows/live-parent-services.yml
 permissions:
   contents: read
 jobs:

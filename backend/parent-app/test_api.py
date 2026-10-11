@@ -13,6 +13,25 @@ spec2=importlib.util.spec_from_file_location('reminders',Path(__file__).with_nam
 reminders=importlib.util.module_from_spec(spec2);spec2.loader.exec_module(reminders)
 
 class AccountsTest(unittest.TestCase):
+    def test_memory_confirmation_provenance_and_latest_entries(self):
+        state = app.blank_state()
+        state['medicalCard'] = [
+            {'date':'2026-10-11','text':'PENDING_SECRET','confirmation':'pending'},
+            {'date':'2026-10-10','text':'PARENT_OBSERVATION','confirmation':'parent'},
+            {'date':'2026-10-09','text':'REPORTED_DOCTOR','confirmation':'doctor'},
+            {'date':'2026-10-08','text':'LEGACY_NOTE'},
+        ]
+        state['pendingMemory'] = [{'date':'2026-10-11','text':'NOT_CONFIRMED'}]
+        context = app.medical_card_context(state)
+        self.assertNotIn('PENDING_SECRET', context)
+        self.assertNotIn('NOT_CONFIRMED', context)
+        self.assertIn('наблюдение', context)
+        self.assertIn('со слов родителя подтверждено врачом', context)
+        self.assertIn('без отметки подтверждения', context)
+        self.assertIn('не независимая проверка', context)
+        state['medicalCard'] += [{'date':'2020-01-01','text':'OLD'} for _ in range(14)]
+        self.assertIn('PARENT_OBSERVATION', app.medical_card_context(state))
+
     def test_early_parent_constraints_survive_long_dialogue(self):
         state=app.blank_state();state['messages']=[{'role':'user','text':'Нужна игра без игрушек.'}]
         state['messages'] += [{'role':'assistant' if i%2 else 'user','text':'Другое сообщение'} for i in range(20)]
@@ -208,12 +227,16 @@ class AccountsTest(unittest.TestCase):
         self.assertEqual([m['role'] for m in body['state']['messages']],['user','assistant'])
         self.assertEqual(captured['question'],'Во что поиграть?')
         self.assertIn('ребёнку',captured['context_text'])
-        self.assertIn('смешанное кормление',captured['context_text'])
+        self.assertIn('смешанное вскармливание',captured['context_text'])
 
     def test_yandex_gpt_chat_uses_metadata_iam_credentials_without_key_text(self):
-        previous={k:os.environ.get(k) for k in ('YANDEX_API_KEY','YANDEX_FOLDER_ID','YANDEX_USE_METADATA_IAM')}
+        previous={k:os.environ.get(k) for k in ('YANDEX_API_KEY','YANDEX_FOLDER_ID','YANDEX_USE_METADATA_IAM','AI_COST_RATES_JSON')}
         os.environ.pop('YANDEX_API_KEY',None)
         os.environ.update(YANDEX_FOLDER_ID='folder-test',YANDEX_USE_METADATA_IAM='1')
+        # Synthetic prices test the alternative transport without permitting an
+        # unverified real model to bypass the application's spending guard.
+        os.environ['AI_COST_RATES_JSON']=json.dumps({'gpt://folder-test/yandexgpt/latest':{
+            'inputPerMillion':'1','outputPerMillion':'1','checkedAt':date.today().isoformat(),'source':'synthetic-test-only'}})
         original_token=app.yandex_metadata_iam_token;original_deadline=app.with_chat_deadline;original_open=app.urllib.request.urlopen
         captured={}
         class Reply:

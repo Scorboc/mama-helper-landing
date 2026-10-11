@@ -41,3 +41,15 @@ __pycache__/
 *.sqlite
 *.sqlite3
 *.db
+
+# Local runtime, private backups and generated QA artifacts
+private/
+output/
+outputs/
+.pnpm-store/
+*.enc
+*.pem
+*.key
+*.p12
+*.pfx
+*-private.json

@@ -10,6 +10,11 @@ app = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(app)
 
 
+class AppServer(ThreadingHTTPServer):
+    request_queue_size = 128
+    daemon_threads = True
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = 'MamaHelper'
 
@@ -77,12 +82,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-class AppServer(ThreadingHTTPServer):
-    request_queue_size = 128
-    daemon_threads = True
-
-
 if __name__ == '__main__':
     app.cipher()
     app.initialize()
+    import mail_delivery
+    mail_delivery.start(app)
     AppServer(('127.0.0.1', 8787), Handler).serve_forever()

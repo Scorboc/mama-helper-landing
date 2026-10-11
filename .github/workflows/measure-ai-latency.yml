@@ -1,9 +1,7 @@
 name: Measure AI latency
 on:
+  # Provider requests can incur charges; never run them on a source push.
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/measure-ai-latency.yml']
 permissions:
   contents: read
 jobs:
