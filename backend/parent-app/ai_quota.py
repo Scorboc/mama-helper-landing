@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import os
 import ai_budget
+import billing
 
 
 def free_limit(app):
@@ -18,12 +19,15 @@ def free_limit(app):
 
 
 def read(app, db, user):
+    access = billing.access(db, user[0])
     paid = app._birthdays.paid_access(db, user[0])
-    key = 'paid-quota:'+user[0]+':'+paid[0] if paid else 'ai-quota:'+user[0]
+    test = access['mode'] == 'test'
+    key = ('test-quota:'+user[0]+':'+access['periodKey'] if test else
+           'paid-quota:'+user[0]+':'+paid[0] if paid else 'ai-quota:'+user[0])
     # Keep old counters and an independent, opaque email counter. Re-registering
     # the same address does not restore a free trial after account deletion.
     stable = None
-    if not paid:
+    if not paid and not test:
         identity = hmac.new(app.fernet_key(), ('free-trial:'+user[1].strip().lower()).encode(), hashlib.sha256).hexdigest()
         stable = 'free-trial:'+identity
     row = db.query('SELECT count FROM mh_limits WHERE key=?', (key,)).fetchone()
@@ -31,15 +35,15 @@ def read(app, db, user):
     if stable:
         row = db.query('SELECT count FROM mh_limits WHERE key=?', (stable,)).fetchone()
         used = max(used, int(row[0]) if row else 0)
-    base = int(paid[1]) if paid else free_limit(app)
+    base = int(paid[1]) if paid else access['answerLimit'] if test else 0 if billing.enabled() else free_limit(app)
     bonus = app._birthdays.balance(db, user[0]) if paid else 0
-    return {'key':key, 'stableKey':stable, 'used':used, 'base':base, 'bonus':bonus, 'paid':bool(paid)}
+    return {'key':key, 'stableKey':stable, 'used':used, 'base':base, 'bonus':bonus, 'paid':bool(paid), 'accessMode':access['mode'], 'endsAt':access.get('endsAt')}
 
 
 def public(quota):
     extra = quota['bonus']
     result = {'limit':quota['base']+extra, 'used':quota['used'],
-              'remaining':max(0, quota['base']-quota['used'])+extra}
+              'remaining':max(0, quota['base']-quota['used'])+extra, 'accessMode':quota.get('accessMode','legacy')}
     if quota['paid']:
         result.update(paid=True, bonusRemaining=extra)
     return result
@@ -57,7 +61,17 @@ def charge(app, db, user, quota):
         quota['bonus'] -= 1
         return
     quota['used'] += 1
+    expiry = int(quota['endsAt'])+365*86400 if billing.enabled() and quota.get('endsAt') else 4102444800
     for key in (quota['key'], quota['stableKey']):
         if key:
             db.query('INSERT INTO mh_limits(key,count,until_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET count=excluded.count,until_at=excluded.until_at',
-                     (key, quota['used'], 4102444800))
+                     (key, quota['used'], expiry))
+
+
+def forget(app, db, user):
+    if not billing.enabled():
+        return
+    for prefix in ('paid-quota:'+user[0]+':', 'test-quota:'+user[0]+':'):
+        db.query('DELETE FROM mh_limits WHERE substr(key,1,?)=?',(len(prefix),prefix))
+    identity=hmac.new(app.fernet_key(),('free-trial:'+user[1].strip().lower()).encode(),hashlib.sha256).hexdigest()
+    db.query('DELETE FROM mh_limits WHERE key IN (?,?)',('ai-quota:'+user[0],'free-trial:'+identity))

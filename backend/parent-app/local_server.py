@@ -11,6 +11,17 @@ app=importlib.util.module_from_spec(spec);spec.loader.exec_module(app)
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args):pass
+    def do_GET(self):
+        if self.path != '/healthz':
+            self.send_error(404)
+            return
+        body = b'{"ok":true,"service":"mama-accounts"}'
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Cache-Control', 'no-store')
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
     def do_POST(self):
         length=int(self.headers.get('Content-Length','0'))
         if length>150000:self.send_error(413);return
@@ -28,4 +39,6 @@ if __name__=='__main__':
     app.cipher();app.initialize();print('Local account server: 127.0.0.1:8787')
     import mail_delivery
     mail_delivery.start(app)
+    import push_delivery
+    push_delivery.start(app)
     ThreadingHTTPServer(('127.0.0.1',8787),Handler).serve_forever()

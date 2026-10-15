@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261012-v2",
+  "approvedAt": "2026-10-12",
+  "approval": "Owner explicitly approved all audit fixes and proposed rules in this turn.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261012-v2.md",
+      "sha256": "bc774491efd52c53882c983b5403f6a8f4eeb3fe2febb27f2897b7a5ce3cb134"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261012-v2.md",
+      "sha256": "c2a13cd884b0b348cc84d4cd43b8fcf4b01b820092fc4ccda5a007b181b7c86d"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261012-v2.md",
+      "sha256": "163e95f6ff5063d023bc82038f8a48213ba4651437a68e8d6f503bd5d5f63320"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261012-v2.md",
+      "sha256": "bfef2ee063e7ebd4fd5dc276da0ee43eeaa5381f0a0dfc3e9aac1b7589ac700b"
+    }
+  }
+}

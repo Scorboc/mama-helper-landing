@@ -7,6 +7,7 @@ import type {ParentState, Message} from '@/lib/parent-model';
 import {favoriteAnswer} from '@/lib/family';
 import type {Favorite} from '@/lib/family';
 import {api} from '@/lib/parent-api';
+import ChatMessageText from './ChatMessageText';
 
 const categories:Record<string,string>={other:'Без раздела',sleep:'Сон',feeding:'Питание',play:'Игры',mom:'Для мамы','first-aid':'Первая помощь'};
 type Props = {state:ParentState; busy:boolean; save:(state:ParentState,notice?:string)=>Promise<boolean>};
@@ -34,7 +35,7 @@ export default function Favorites({state,busy,save}:Props) {
 function SavedItem({item,busy,onSave,onRemove}: {item:Favorite;busy:boolean;onSave:(item:Favorite)=>Promise<boolean>;onRemove:()=>void}) {
   const [editing,setEditing]=useState(false),[note,setNote]=useState(item.note||''),[category,setCategory]=useState(item.category||'other');
   return <article className="tile my-4 min-w-0"><p className="muted">{item.childName} · {categories[item.category||'other']} · {new Date(item.savedAt).toLocaleDateString('ru-RU')}</p>
-    {item.question&&<h3 className="break-words">{item.question}</h3>}<p className="whitespace-pre-wrap break-words">{item.text}</p>
+    {item.question&&<h3 className="break-words">{item.question}</h3>}<p className="whitespace-pre-wrap break-words"><ChatMessageText text={item.text}/></p>
     {item.note&&!editing&&<p className="mt-3 whitespace-pre-wrap break-words"><strong>Моя заметка: </strong>{item.note}</p>}
     {editing&&<div className="my-4 space-y-3"><label className="block">Раздел<select className="block w-full rounded-xl border border-border bg-background p-3 text-foreground" value={category} onChange={e=>setCategory(e.target.value)}>{Object.entries(categories).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
       <label className="block">Моя заметка<Textarea value={note} maxLength={1000} onChange={e=>setNote(e.target.value)}/></label>

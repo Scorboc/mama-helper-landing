@@ -1,0 +1,112 @@
+{
+  "name": "MAMA — безопасный анализ агрегатов и промпт администратору",
+  "nodes": [
+    {
+      "id": "949cb8a7-99fa-4f3a-a75b-6d2b55556197",
+      "name": "Запуск на синтетических агрегатах",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "49ea4b28-45dc-42df-9564-17fda82bc797",
+      "name": "Демонстрация — не реальные данные",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "jsCode": "return [{json:{synthetic:true,periodDays:7,calls:100,errors:3,averageMs:17000,helpful:20,unhelpful:2,unsafe:0}}];"
+      }
+    },
+    {
+      "id": "dc6face9-a115-4d2c-be5f-1a0b7e28fbed",
+      "name": "Разрешённые агрегаты — запрет личных данных",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const allowed=['synthetic','periodDays','calls','errors','averageMs','helpful','unhelpful','unsafe'];const x=$input.first().json;if(Object.keys(x).some(k=>!allowed.includes(k)))throw new Error('Личные данные и свободный текст не разрешены');for(const k of allowed.filter(k=>k!=='synthetic'))if(!Number.isFinite(x[k])||x[k]<0)throw new Error('Нужны только неотрицательные числа');return [{json:x}];"
+      }
+    },
+    {
+      "id": "05e9be31-bff7-4699-bab8-f5cf21ba8bda",
+      "name": "Предложения и промпт — без платного ИИ",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const x=$input.first().json;return [{json:{mode:x.synthetic?'DEMO — синтетические показатели':'aggregate-only',method:'deterministic-rules-not-ai',needsReview:x.errors>0||x.unsafe>0||x.unhelpful>0,adminPrompt:'Проверь причины ошибок и задержек MAMA локально. Используй только обезличенные коды и агрегаты. Сохрани профили, переписки и функции. Для каждой проблемы: наблюдение, риск, предлагаемое изменение, тест. Не передавай медицинские данные внешним сервисам; не меняй промпты и не публикуй без проверки владельца.',metrics:x,delivery:'Результат доступен здесь. Telegram не подключён.',automaticChanges:false}}];"
+      }
+    },
+    {
+      "id": "84a5e3f5-fdc2-4ba9-87ce-74d7b6425b9d",
+      "name": "План подключения",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        260,
+        -410
+      ],
+      "parameters": {
+        "content": "## Подготовлено, НЕ подключено к данным сайта\nТолько ручная демонстрация на вымышленных агрегатах.\nЛокальная установка: мониторинг, резервные копии, отчёты и предложения.\nTelegram / оплата / чеки / Instagram / Reels / AI-анализ / голосование требуют подключения.\nНе включать вебхук с переписками. Не отправлять сведения детей и медицинские данные.\nПредложения администратору проходят проверку и отдельное одобрение. Автоматического изменения кода нет.",
+        "height": 350,
+        "width": 540
+      }
+    }
+  ],
+  "connections": {
+    "Запуск на синтетических агрегатах": {
+      "main": [
+        [
+          {
+            "node": "Демонстрация — не реальные данные",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Демонстрация — не реальные данные": {
+      "main": [
+        [
+          {
+            "node": "Разрешённые агрегаты — запрет личных данных",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Разрешённые агрегаты — запрет личных данных": {
+      "main": [
+        [
+          {
+            "node": "Предложения и промпт — без платного ИИ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Saratov",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all"
+  },
+  "active": false
+}

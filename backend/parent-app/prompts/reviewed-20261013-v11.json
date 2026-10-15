@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261013-v11",
+  "approvedAt": "2026-10-13",
+  "approval": "Owner-authorized QA corrections for actual reminder controls and furniture safety.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261013-v11.md",
+      "sha256": "95aacdfa8d830573932b3414293e229c810e057ec59b37472c787d9b9160709f"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261013-v10.md",
+      "sha256": "9f864e7d72201619137e52c1e46f28e825b1201e499ba2c675f4897342a29b2f"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261013-v9.md",
+      "sha256": "e15cf84d401e4a7654c9827cf3d435008ce3579801cbf05222357b9ac83ddff4"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261013-v11.md",
+      "sha256": "80919c880c64c3a7f4f84383b94a78702f357a3077b2b4ee80be7d827d0f6183"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "mama-ai-quality-local",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Isolated local prompt review tools; not a production dependency",
+  "type": "module",
+  "dependencies": {
+    "promptfoo": "0.124.1"
+  }
+}

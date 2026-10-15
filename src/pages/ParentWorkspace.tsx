@@ -9,6 +9,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import ThemeControl from "@/components/ThemeControl";
 import ProductIdeas from "@/components/ProductIdeas";
 import ChatQuickCare from "@/components/ChatQuickCare";
+import ChatMessageText from "@/components/ChatMessageText";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -61,7 +62,7 @@ import {
   ConversationControls,
   MemoryReview,
 } from "@/components/ChatCare";
-import { api, Session, Quota, streamChat } from "@/lib/parent-api";
+import { api, Session, Quota, BillingInfo, streamChat } from "@/lib/parent-api";
 import { randomId } from "@/lib/id";
 import { readChatDraft, writeChatDraft, clearChatDrafts } from "@/lib/chat-drafts";
 import {
@@ -114,7 +115,6 @@ export default function ParentWorkspace({
   >({});
   const messageDrafts = useRef<Record<string, string>>({});
   const profileDrafts = useRef<Record<string, Profile>>({});
-  const chatPositions = useRef<Record<string, number>>({});
   const profileTabs = [
     "more",
     "profile",
@@ -202,6 +202,12 @@ export default function ParentWorkspace({
   }, [state.activeChildId, state.profile?.stage]);
   const [pushBusy, setPushBusy] = useState(false);
   const [quota, setQuota] = useState<Quota>();
+  const [billing, setBilling] = useState<BillingInfo>();
+  useEffect(() => {
+    const update = (event: Event) => setQuota((event as CustomEvent<Quota>).detail);
+    window.addEventListener("mh-quota-updated", update);
+    return () => window.removeEventListener("mh-quota-updated", update);
+  }, []);
   const [birthday, setBirthday] = useState<Session["birthday"]>();
   const guidanceTopic = new URLSearchParams(location.search).get("topic");
   const guidanceChild = new URLSearchParams(location.search).get("child");
@@ -261,6 +267,7 @@ export default function ParentWorkspace({
         if (active) {
           setUser(s.user);
           setQuota(s.quota);
+          setBilling(s.billing);
           setBirthday(s.birthday);
           setState(s.state);
           setRevision(s.revision);
@@ -283,21 +290,19 @@ export default function ParentWorkspace({
   useEffect(() => {
     if (tab !== "chat" || loading) return;
     const log = chatLog.current;
-    const positions = chatPositions.current;
     const frame = requestAnimationFrame(() => {
       if (log) {
         const answers = log.querySelectorAll<HTMLElement>(".bubble.assistant");
         const lastAnswer = answers[answers.length - 1];
-        log.scrollTop = positions[draftKey] ?? (lastAnswer
+        log.scrollTop = lastAnswer
           ? lastAnswer.getBoundingClientRect().top - log.getBoundingClientRect().top + log.scrollTop - 12
-          : log.scrollHeight);
+          : log.scrollHeight;
         if (log.querySelector(".bubble.user"))
-          (quickActions.current?.querySelector(".chat-quick-care") || log).scrollIntoView({ block: "start", behavior: "instant" });
+          log.scrollIntoView({ block: "start", behavior: "instant" });
       }
     });
     return () => {
       cancelAnimationFrame(frame);
-      if (log) positions[draftKey] = log.scrollTop;
     };
   }, [loading, draftKey, tab]);
   useEffect(() => {
@@ -450,6 +455,7 @@ export default function ParentWorkspace({
       lock.current = false;
       setBusy(false);
       setChatBusy(false);
+      setAnswerMinHeight(0);
     }
   }
   async function submitProfile(e: FormEvent) {
@@ -463,10 +469,10 @@ export default function ParentWorkspace({
     }
     if (
       p.stage === "child" &&
-      (!p.birthDate || p.birthDate > today() || ageValue(p) >= 84)
+      (!p.birthDate || p.birthDate > today() || ageValue(p) > 84)
     ) {
       setError(
-        "Укажите дату рождения ребёнка от рождения до 6 лет включительно (младше 7 лет).",
+        "Поддерживаются дети от рождения до 84 полных месяцев включительно. Проверьте дату рождения.",
       );
       return;
     }
@@ -588,7 +594,12 @@ export default function ParentWorkspace({
         preferences: { ...state.preferences, push: true },
       });
     } catch (e) {
-      setError((e as Error).message || "Не удалось включить уведомления.");
+      const message = (e as Error).message || "";
+      setError(
+        /push service|registration failed/i.test(message)
+          ? "Браузер не смог подключиться к сервису уведомлений. Проверьте интернет и попробуйте ещё раз."
+          : message || "Не удалось включить уведомления. Попробуйте ещё раз.",
+      );
     } finally {
       setPushBusy(false);
       setNotice("");
@@ -661,7 +672,7 @@ export default function ParentWorkspace({
           <ThemeControl />
         </div>
         <div className="flex items-center gap-3">
-          <span className="test-pill">Тест без оплаты</span>
+          <Link to="/billing" aria-label={billing?.mode === "test" ? "Бесплатный тест" : "Доступ и оплата"} className="rounded-full border px-3 py-2 text-xs text-primary">{billing?.mode === "test" ? "Тест" : billing?.mode === "paid" ? "Подписка" : "Доступ"}</Link>
           <Button
             variant="ghost"
             onClick={() => void logout()}
@@ -756,7 +767,7 @@ export default function ParentWorkspace({
             </Button>
           </DialogContent>
         </Dialog>
-        {!!birthday?.children.length && (
+        {tab !== "chat" && !!birthday?.children.length && (
           <section className="tile birthday-card" role="status">
             <h2>С днём рождения!</h2>
             <p>
@@ -874,6 +885,7 @@ export default function ParentWorkspace({
             <section className="tile">
               <h2>Профиль</h2>
               <p className="muted">Дети, настройки и полезные материалы</p>
+              <Link className="standalone-link" to="/guide">Короткие инструкции и инструмент дневника</Link>
               <div className="workspace-more ios-list">
                 {[
                   ["profile", "Профили детей"],
@@ -970,7 +982,7 @@ export default function ParentWorkspace({
                     }
                   >
                     <span>{m.role === "user" ? "Вы" : "Мамин помощник"}</span>
-                    <p>{m.text}</p>
+                    <p>{m.role === "assistant" ? <ChatMessageText text={m.text} /> : m.text}</p>
                     {m.role === "assistant" && m.careVersion && careVersion && m.careVersion !== careVersion && <p className="text-sm muted" role="note">Дневник обновлён после этого ответа.</p>}
                     {m.role === "assistant" && (
                       <>
@@ -1177,7 +1189,7 @@ export default function ParentWorkspace({
                   Дата рождения, этап, кормление, сведения о сне и здоровье
                   фиксируются. Возраст рассчитывается автоматически. Для другого
                   своего ребёнка можно добавить отдельный профиль. При ошибке в
-                  данных обратитесь через «Предложить улучшение» в настройках.
+                  данных откройте <Link to="/data-rights">«Данные и обращения»</Link> и выберите «Исправить ошибку в данных».
                 </p>
                 <label className="form-field">
                   Имя ребёнка или домашнее имя
@@ -1510,9 +1522,9 @@ export default function ParentWorkspace({
                       : "Включить push"}
                   </Button>
                   <p className="muted text-sm mt-3">
-                    В уведомлении могут быть имя ребёнка и возрастная тема.
-                    Сведения о здоровье не включаются. Скрыть текст на экране
-                    блокировки можно в настройках уведомлений телефона.
+                    В уведомлении — короткая подсказка без имени, даты рождения
+                    и сведений о здоровье. Нужный профиль откроется внутри сайта.
+                    Скрыть текст на экране блокировки можно в настройках телефона.
                   </p>
                 </div>
               </section>
@@ -1535,12 +1547,13 @@ export default function ParentWorkspace({
                 )}
                 <p>
                   Профиль, переписка и карта наблюдений сохраняются в серверной
-                  базе проекта. Оплата отключена. У мамы и папы отдельные
+                  базе проекта. У мамы и папы отдельные
                   аккаунты.
                 </p>
                 <Link to="/privacy" className="standalone-link">
-                  Условия тестирования и данные
+                  Обработка персональных данных
                 </Link>
+                <div className="mt-4 flex flex-wrap gap-3"><Button asChild variant="outline"><Link to="/billing">Доступ и оплата</Link></Button><Button asChild variant="outline"><Link to="/data-rights">Данные и обращения</Link></Button></div>
                 <div className="mt-6">
                   <Button asChild variant="outline" className="mb-3">
                     <Link to="/account?mode=security">Пароль и безопасность</Link>

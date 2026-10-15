@@ -32,7 +32,7 @@ class AccountSecurityTest(unittest.TestCase):
         return response, json.loads(response['body'])
 
     def register(self, email='security@example.test'):
-        response, body = self.call('register', email=email, password='original-long-password', consent=True)
+        response, body = self.call('register', email=email, password='original-long-password', consent=True, adult=True, termsAccepted=True, termsVersion='account-2026-10-12')
         self.assertEqual(response['statusCode'], 200)
         return response['headers']['Set-Cookie'].split(';')[0], body
 

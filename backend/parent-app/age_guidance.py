@@ -125,7 +125,7 @@ def cards(months):
             card=row_card(r);card.update(minMonths=max(lo,start),maxMonths=min(hi,end))
             result.append(card)
     for game in _play.candidates(months):
-        result.append(dict(id='play-'+game['id'],category='Игры',title=game['title'],text=game['goal']+' '+game['steps'][0],pushText='{name}: «'+game['title']+'» — '+game['goal'].lower()+' Как поиграть?',source=_play.PLAY_SOURCE,sourceTitle='Возрастные игровые ориентиры',note=NOTICE,minMonths=game['minMonths'],maxMonths=game['maxMonths']))
+        result.append(dict(id='play-'+game['id'],baseId=game.get('baseId') or game['id'].split('@')[0],area=game['area'],category='Игры',title=game['title'],text=game['goal']+' '+game['steps'][0],pushText='{name}: «'+game['title']+'» — '+game['goal'].lower()+' Как поиграть?',source=_play.PLAY_SOURCE,sourceTitle='Возрастные игровые ориентиры',note=NOTICE,minMonths=game['minMonths'],maxMonths=game['maxMonths']))
     for c in result:
         c['note']=NOTICE
         c['pushText']=c.get('pushText','{name}: '+c['title']+'. Один посильный шаг на этот месяц.')
@@ -138,5 +138,12 @@ def get(topic):
     return next((row_card(r) for r in ROWS if r[0]==topic),None)
 
 def push_text(card,profile):
-    name=' '.join(str(profile.get('childName') or 'Ваш ребёнок').split())[:32]
-    return card['pushText'].replace('{name}',name)[:180]
+    # Lock-screen text must not expose account names, dates or medical context.
+    # The profile is selected by its opaque id after the user opens the app.
+    if card['id']=='safe-sleep':
+        return 'Укладывайте малыша на спину на твёрдый ровный матрас. Уберите из кроватки подушки, мягкие игрушки и свободные одеяла.'
+    if card['id']=='button-batteries':
+        return 'Держите батарейки и устройства с ними вне доступа ребёнка. Проверьте, что батарейные отсеки надёжно закрыты.'
+    if card['id']=='hot-drinks':
+        return 'Ставьте горячие напитки вне доступа ребёнка. Не держите малыша на руках, когда пьёте или переносите горячее.'
+    return card['pushText'].replace('{name}: ','').replace('{name}','')[:180]

@@ -2,6 +2,39 @@ CREATE TABLE IF NOT EXISTS mh_users (
  id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL,
  recovery_hash TEXT NOT NULL, created_at BIGINT NOT NULL, consent_version TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS mh_test_access (
+ user_id TEXT PRIMARY KEY REFERENCES mh_users(id) ON DELETE CASCADE,
+ period_key TEXT NOT NULL, starts_at BIGINT NOT NULL, ends_at BIGINT NOT NULL, answer_limit INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_access_audit (
+ id TEXT PRIMARY KEY, user_id TEXT REFERENCES mh_users(id) ON DELETE SET NULL,
+ created_at BIGINT NOT NULL, action TEXT NOT NULL, details TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_billing_orders (
+ id TEXT PRIMARY KEY, user_id TEXT REFERENCES mh_users(id) ON DELETE SET NULL,
+ payment_id TEXT UNIQUE, status TEXT NOT NULL, created_at BIGINT NOT NULL,
+ fulfilled_at BIGINT NOT NULL, confirmation_url TEXT NOT NULL, period_key TEXT NOT NULL, offer_version TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_contract_receipts (
+ user_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE, kind TEXT NOT NULL,
+ version TEXT NOT NULL, accepted_at BIGINT NOT NULL, document_hash TEXT NOT NULL, document_text TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_data_requests (
+ id TEXT PRIMARY KEY, user_id TEXT REFERENCES mh_users(id) ON DELETE SET NULL,
+ kind TEXT NOT NULL, encrypted_text TEXT NOT NULL, status TEXT NOT NULL, created_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_data_request_updates (
+ id TEXT PRIMARY KEY, request_id TEXT NOT NULL REFERENCES mh_data_requests(id) ON DELETE CASCADE,
+ created_at BIGINT NOT NULL, status TEXT NOT NULL, encrypted_note TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_processing_restrictions (
+ user_id TEXT PRIMARY KEY REFERENCES mh_users(id) ON DELETE CASCADE,
+ reason TEXT NOT NULL, created_at BIGINT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS mh_health_consents (
+ user_id TEXT PRIMARY KEY REFERENCES mh_users(id) ON DELETE CASCADE,
+ document_hash TEXT NOT NULL, method TEXT NOT NULL, verified_at BIGINT NOT NULL, revoked_at BIGINT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS mh_sessions (
  token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE,
  expires_at BIGINT NOT NULL
@@ -86,4 +119,11 @@ CREATE TABLE IF NOT EXISTS mh_suggestion_votes (
  ballot_week TEXT NOT NULL, user_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE,
  suggestion_id TEXT NOT NULL REFERENCES mh_product_suggestions(id) ON DELETE CASCADE,
  created_at BIGINT NOT NULL, PRIMARY KEY(ballot_week,user_id)
+);
+CREATE TABLE IF NOT EXISTS mh_care_authorship (
+ owner_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE,
+ child_id TEXT NOT NULL,
+ record_id TEXT NOT NULL,
+ encrypted_data TEXT NOT NULL,
+ PRIMARY KEY(owner_id,child_id,record_id)
 );

@@ -12,6 +12,10 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const Account = lazy(() => import("./pages/Account"));
 const ParentWorkspace = lazy(() => import("./pages/ParentWorkspace"));
 const Privacy = lazy(() => import("./pages/Privacy"));
+const Legal = lazy(() => import("./pages/Legal"));
+const Billing = lazy(() => import("./pages/Billing"));
+const DataRights = lazy(() => import("./pages/DataRights"));
+const PublicGuide = lazy(() => import("./pages/PublicGuide"));
 
 function OpeningPage() {
   return <main className="public-page route-message" aria-busy="true">
@@ -56,7 +60,13 @@ const App = () => (
             element={<ParentWorkspace key="chat" initialTab="chat" />}
           />
           <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Legal kind="account" />} />
+          <Route path="/offer" element={<Legal kind="offer" />} />
+          <Route path="/billing" element={<Billing />} />
+          <Route path="/data-rights" element={<DataRights />} />
           <Route path="/first-aid" element={<PublicFirstAid />} />
+          <Route path="/guide" element={<PublicGuide />} />
+          <Route path="/guide/:slug" element={<PublicGuide />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes></Suspense></PageBoundary>

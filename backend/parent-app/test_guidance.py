@@ -60,7 +60,7 @@ class GuidanceTest(unittest.TestCase):
             deliver=lambda **kw:sent.append(json.loads(kw['data']))
             job.run(app,db,deliver);job.run(app,db,deliver)
             self.assertEqual(len(sent),1);self.assertEqual(sent[0]['type'],'age-guidance');self.assertIn('tab=chat',sent[0]['path'])
-            self.assertIn('Первый',sent[0]['body'])
+            self.assertNotIn('Первый',sent[0]['body']);self.assertIn('child=primary',sent[0]['path'])
             moment+=timedelta(days=1);job.run(app,db,deliver)
             self.assertIn('child=second',sent[-1]['path'])
             moment+=timedelta(days=1);job.run(app,db,deliver)

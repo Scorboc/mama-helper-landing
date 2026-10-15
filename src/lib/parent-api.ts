@@ -11,6 +11,14 @@ export type Quota = {
   remaining: number;
   paid?: boolean;
   bonusRemaining?: number;
+  accessMode?: "paid" | "test" | "none" | "legacy";
+};
+export type BillingInfo = {
+  mode?: "paid" | "test" | "none" | "legacy";
+  priceRub: number;
+  answerLimit: number;
+  paymentConfigured: boolean;
+  endsAt?: number | null;
 };
 export type Session = {
   user: { id: string; email: string; emailVerified?: boolean; emailVerificationRequired?: boolean };
@@ -19,6 +27,7 @@ export type Session = {
   recoveryCode?: string;
   sessionToken?: string;
   quota?: Quota;
+  billing?: BillingInfo;
   birthday?: {
     children: { childId: string; name: string; years: number }[];
     giftPerChild: number;
@@ -205,7 +214,7 @@ async function localApiUnlocked<T>(
       .toLowerCase();
     const password = String(data.password || "");
     if (!data.consent)
-      throw new ApiError("Подтвердите согласие с условиями тестирования.", 400);
+      throw new ApiError("Примите условия аккаунта.", 400);
     if (!/^\S+@\S+\.\S+$/.test(email))
       throw new ApiError("Укажите корректную электронную почту.", 400);
     if (password.length < 12 || password.length > 128)
@@ -390,11 +399,6 @@ export async function api<T>(
       body = {};
     }
     if (!response.ok) {
-      if (response.status === 402)
-        throw new ApiError(
-          "Сервис временно остановлен: исчерпан лимит облачных функций. Владелец уже получил уведомление.",
-          402,
-        );
       throw new ApiError(
         typeof body.error === "string"
           ? body.error
@@ -410,6 +414,7 @@ export async function api<T>(
       localStorage.removeItem(REMOTE_SESSION_KEY);
     if (["logout", "logout-all", "delete", "email-verify", "email-reset"].includes(action))
       localStorage.removeItem(REMOTE_SESSION_KEY);
+    if (body.quota) window.dispatchEvent(new CustomEvent("mh-quota-updated", { detail: body.quota }));
     return body as T;
   } catch (error) {
     if (error instanceof ApiError) throw error;

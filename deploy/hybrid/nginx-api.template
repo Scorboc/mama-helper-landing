@@ -1,0 +1,42 @@
+# API DNS record must be DNS-only. Do not enable Cloudflare proxying for it.
+# Obtain the certificate with an HTTP-only ACME configuration before enabling this file.
+server {
+    listen 80;
+    server_name @API_HOST@;
+    location ^~ /.well-known/acme-challenge/ { root /var/www/letsencrypt; }
+    location / { return 301 https://@API_HOST@$request_uri; }
+    access_log off;
+}
+server {
+    listen 443 ssl;
+    server_name @API_HOST@;
+    ssl_certificate /etc/letsencrypt/live/@API_HOST@/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/@API_HOST@/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    client_max_body_size 8m;
+    access_log off;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    location = /api {
+        limit_except POST OPTIONS { deny all; }
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 90s;
+        proxy_send_timeout 15s;
+        proxy_buffering off;
+    }
+    location = /healthz { proxy_pass http://127.0.0.1:8787; }
+    location = /payment-notification {
+        limit_except POST { deny all; }
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+    location / { return 404; }
+}

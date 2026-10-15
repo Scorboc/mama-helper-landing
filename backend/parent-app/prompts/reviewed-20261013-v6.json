@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261013-v6",
+  "approvedAt": "2026-10-13",
+  "approval": "Owner-authorized local iterative QA; preserves v5 and records observed meaning/sleep/noise defects.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261013-v6.md",
+      "sha256": "2d889f50b38d50ffa718c67256df41f5cfa51960fd35650b1808e74965cba0ba"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261013-v6.md",
+      "sha256": "24a2c19693dfbe382b9de456cc3a9368426085535d5d6810c3e2772d57271609"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261013-v6.md",
+      "sha256": "e15cf84d401e4a7654c9827cf3d435008ce3579801cbf05222357b9ac83ddff4"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261013-v6.md",
+      "sha256": "0819ff248d7bb77ec93cd3fea932371413eefc6ed8588342a4be3bce1d7206be"
+    }
+  }
+}

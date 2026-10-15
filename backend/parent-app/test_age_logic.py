@@ -118,8 +118,8 @@ class AgeLogicTest(unittest.TestCase):
         app.chat_answer=lambda *args,**kw: (_ for _ in ()).throw(TimeoutError())
         response,body=self.call('chat',self.cookie,question='Во что поиграть?',messageId='age-fallback',revision=1)
         self.assertEqual(response['statusCode'],200,body)
-        daily,_=app.daily_runtime()
-        self.assertTrue(any('«'+g['title']+'»' in body['answer'] for g in daily.catalog.candidates(6)))
-        self.assertIn('резервный ответ',body['answer'])
+        self.assertIn('ИИ не ответил за отведённое время',body['answer'])
+        self.assertIn('Лимит ответов не списан',body['answer'])
+        self.assertNotIn('Игра «',body['answer'])
 
 if __name__=='__main__':unittest.main()

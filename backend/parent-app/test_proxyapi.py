@@ -35,6 +35,7 @@ class ProxyTests(unittest.TestCase):
             self.assertEqual(req.full_url, 'https://api.proxyapi.ru/v1/chat/completions')
             self.assertNotIn('Openai-project', req.headers)
             self.assertEqual(req.headers['Authorization'], 'Bearer test-only')
+            self.assertEqual(json.loads(req.data)['reasoning_effort'],'low')
             return json.loads(req.data)['model'], answer
 
     def test_chat_uses_glm_even_with_old_yandex_credentials(self):

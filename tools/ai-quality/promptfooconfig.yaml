@@ -1,0 +1,14 @@
+description: "Installation check only: loads a local draft without a model call"
+prompts:
+  - file://../../docs/ai/MAMA_SYSTEM_PROMPT_DRAFT.md
+providers:
+  - file://./offline-provider.mjs
+tests:
+  - description: "Local UTF-8 draft and custom provider are operational"
+    assert:
+      - type: contains
+        value: "Один активный профиль"
+      - type: contains
+        value: "Свежий дневник важнее старых ответов"
+      - type: contains
+        value: "одобрен владельцем"

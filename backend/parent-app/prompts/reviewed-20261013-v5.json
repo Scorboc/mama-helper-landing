@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261013-v5",
+  "approvedAt": "2026-10-13",
+  "approval": "Owner-authorized expanded local QA corrections, consolidated to fit the unchanged context allowance.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261013-v5.md",
+      "sha256": "bd263754da00abe7e410e493e2e4f8b2a8fd235cf860320e83c58878ca8b8d5e"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261013-v5.md",
+      "sha256": "24a2c19693dfbe382b9de456cc3a9368426085535d5d6810c3e2772d57271609"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261013-v5.md",
+      "sha256": "e15cf84d401e4a7654c9827cf3d435008ce3579801cbf05222357b9ac83ddff4"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261013-v5.md",
+      "sha256": "0819ff248d7bb77ec93cd3fea932371413eefc6ed8588342a4be3bce1d7206be"
+    }
+  }
+}

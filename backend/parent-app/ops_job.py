@@ -33,6 +33,11 @@ def backup():
             source.backup(dest)
             if dest.execute('PRAGMA integrity_check').fetchone()[0]!='ok':
                 raise RuntimeError('AI budget backup integrity check failed')
+    review=Path(os.environ.get('APP_FEEDBACK_REVIEW_ROOT',str(Path(os.environ['APP_SQLITE_PATH']).parent/'feedback-review')))/'review.sqlite3'
+    if review.exists():
+        with closing(sqlite3.connect('file:'+review.as_posix()+'?mode=ro',uri=True)) as source, closing(sqlite3.connect(stage/'feedback-review.sqlite3')) as dest:
+            source.backup(dest)
+            if dest.execute('PRAGMA integrity_check').fetchone()[0]!='ok':raise RuntimeError('Feedback review backup integrity check failed')
     policy=os.environ.get('AI_POLICY_FILE')
     if policy:
         (stage/'ai-policy.json').write_text(json.dumps(ai_budget.settings(),ensure_ascii=False,indent=2),encoding='utf-8')
@@ -40,7 +45,7 @@ def backup():
     archive=stage/'application.tar.gz'
     with tarfile.open(archive,'w:gz') as tar:
         for source in Path(__file__).parent.iterdir():
-            if source.is_file() and (source.suffix in ('.py','.sql','.html','.js') or source.name in ('requirements.txt','answer_scenarios.json')):
+            if source.is_file() and (source.suffix in ('.py','.sql','.html','.js') or source.name in ('requirements.txt','answer_scenarios.json','legal_documents.json')):
                 tar.add(source,arcname='backend/'+source.name)
         web=Path(os.environ.get('APP_WEB_ROOT','/var/www/mama-helper/current'))
         if web.exists():tar.add(web,arcname='frontend')

@@ -1,0 +1,126 @@
+{
+  "id": "mamaLocal19",
+  "name": "MAMA 19 — Анализировать отзывы и подготовить предложения",
+  "nodes": [
+    {
+      "id": "59fe3d18-a775-4d97-91bb-542b036efd2c",
+      "name": "По расписанию",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/30 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "17c13db9-11fb-418a-90a0-fd1853e102d4",
+      "name": "Локальный проверенный процесс",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8792/jobs/feedback-analysis",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 100000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ 'n8n:' + $workflow.id + ':' + $execution.id }}"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mamaBridgeLocalOnly",
+          "name": "MAMA — локальный мост"
+        }
+      },
+      "notes": "Без входных данных. Токен — в существующем credential mamaBridgeLocalOnly. Idempotency-Key сохраняется при HTTP-повторах; оплаченный вызов ИИ внутри задания не повторяется."
+    },
+    {
+      "id": "3cd8b995-92ca-4a7c-9e3e-dc4cf35a3883",
+      "name": "Границы доступа",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -290
+      ],
+      "parameters": {
+        "content": "### Только предложения владельцу\nКомментарии и разрешённый контекст читаются локально. Внешнему ИИ — только категории и числа. Негативная оценка не доказывает ошибку. Не публикует и не меняет правила. Результат: http://127.0.0.1:8791/#feedback-review",
+        "height": 230,
+        "width": 500
+      }
+    },
+    {
+      "id": "49431a9c-8821-473f-b426-f8d19271cdb4",
+      "name": "Проверка через CLI",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        170
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    }
+  ],
+  "connections": {
+    "По расписанию": {
+      "main": [
+        [
+          {
+            "node": "Локальный проверенный процесс",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Проверка через CLI": {
+      "main": [
+        [
+          {
+            "node": "Локальный проверенный процесс",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Saratov",
+    "errorWorkflow": "mamaLocal18",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all"
+  },
+  "active": false,
+  "description": "Каждые 30 минут локально классифицирует отзывы. ИИ получает только enum-счётчики, готовит проекты правил владельцу; не более одного вызова в сутки, 1 ₽/день и 10 ₽/месяц внутри общего бюджета. Переписку не экспортирует, правила не меняет.",
+  "versionId": "5ba12af9-6eae-47da-85c2-f5035d1ca0e2"
+}

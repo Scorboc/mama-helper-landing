@@ -61,7 +61,7 @@ export default function ProductIdeas() {
       setData(next);
       setTitle("");
       setDetail("");
-      setStatus("Идея добавлена анонимно. В конце недели она появится в голосовании.");
+      setStatus("Идея сохранена для владельца. После проверки публичного текста она сможет участвовать в голосовании.");
     } catch (error) {
       setStatus((error as Error).message);
     } finally {
@@ -103,7 +103,7 @@ export default function ProductIdeas() {
           <DialogHeader>
             <DialogTitle>{voting ? "Выберите улучшение" : "Идеи для Маминого помощника"}</DialogTitle>
             <DialogDescription>
-              С понедельника по четверг собираем идеи, с пятницы по воскресенье голосуем. Победившие предложения попадают владельцу в план реализации.
+              С понедельника по четверг собираем идеи, с пятницы по воскресенье голосуем за проверенные предложения. Победители попадают владельцу в план реализации.
             </DialogDescription>
           </DialogHeader>
 
@@ -135,8 +135,9 @@ export default function ProductIdeas() {
                 />
               </label>
               <Button disabled={busy || loading || loadFailed || !data.canSubmit || title.trim().length < 10}>
-                {busy ? "Сохраняем…" : "Добавить анонимно"}
+                {busy ? "Сохраняем…" : "Отправить на проверку"}
               </Button>
+              <p className="muted text-sm">Исходный текст видит владелец. Перед общим голосованием он проверяет отдельную публичную версию. Не добавляйте имена детей, даты рождения, диагнозы и историю лечения.</p>
             </form>
           )}
 

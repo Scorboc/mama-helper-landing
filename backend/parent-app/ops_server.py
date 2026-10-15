@@ -1,12 +1,16 @@
 """Owner panel accessible only through an SSH loopback tunnel."""
 import json
+import os
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 import operations as ops
 import ops_job
 import ai_budget
+import owner_access
+import feedback_analysis
 
-HOSTS={'127.0.0.1:18791','localhost:18791','127.0.0.1:8791','localhost:8791'}
+PORT=int(os.environ.get('APP_OPS_PORT','8791'))
+HOSTS={'127.0.0.1:18791','localhost:18791',f'127.0.0.1:{PORT}',f'localhost:{PORT}'}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -29,9 +33,13 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if self.path=='/':return self.send(200,Path(__file__).with_name('ops.html').read_text(encoding='utf-8'),'text/html')
             if self.path=='/ops.js':return self.send(200,Path(__file__).with_name('ops.js').read_text(encoding='utf-8'),'text/javascript')
+            if self.path.startswith('/feedback-evidence/'):
+                return self.send(200,feedback_analysis.evidence(self.path.removeprefix('/feedback-evidence/')))
             if self.path=='/data':
                 data=ops.summary();data['feedback']=ops_job.feedback_summary()
                 data['aiBudget']=ai_budget.summary()
+                data['access']=owner_access.summary()
+                data['feedbackReview']=feedback_analysis.summary()
                 data['content']=ops.documents('content');data['tasks']=ops.documents('task')
                 path=ops_job.ROOT/'backup-status.json';data['backup']=json.loads(path.read_text()) if path.exists() else None
                 reports=ops_job.ROOT/'reports';data['reports']=[p.name for p in sorted(reports.glob('week-*.json'))[-12:]]
@@ -48,9 +56,11 @@ class Handler(BaseHTTPRequestHandler):
             if self.path in ('/content','/task'):return self.send(200,ops.document(self.path[1:],body))
             if self.path=='/report':return self.send(200,ops_job.report())
             if self.path=='/ai-policy':return self.send(200,ai_budget.write_policy(body))
+            if self.path=='/feedback-decision':return self.send(200,feedback_analysis.decide(body))
+            if self.path in ('/test-access','/data-request-status','/suggestion-review'):return self.send(200,owner_access.action(self.path,body))
             return self.send(404,{'error':'Не найдено'})
         except ValueError as exc:return self.send(400,{'error':str(exc)[:160]})
         except Exception:return self.send(503,{'error':'Не удалось сохранить'})
 
 
-if __name__=='__main__':ThreadingHTTPServer(('127.0.0.1',8791),Handler).serve_forever()
+if __name__=='__main__':ThreadingHTTPServer(('127.0.0.1',PORT),Handler).serve_forever()

@@ -23,6 +23,8 @@ class Handler(BaseHTTPRequestHandler):
         return
 
     def do_POST(self):
+        if self.path == '/payment-notification':
+            return self.payment_notification()
         if self.path != '/api':
             self.send_error(404)
             return
@@ -41,6 +43,38 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header(key, value)
         self.end_headers()
         self.wfile.write(response['body'].encode('utf-8'))
+
+    def payment_notification(self):
+        import billing
+        from types import SimpleNamespace
+        db = None
+        status, body = 503, {'error':'Не удалось проверить уведомление.'}
+        try:
+            length = int(self.headers.get('Content-Length','0'))
+            if not 0 < length <= 16000:
+                raise app.AppError(400,'Неверный размер уведомления.')
+            data = json.loads(self.rfile.read(length))
+            if not isinstance(data,dict):
+                raise app.AppError(400,'Неверное уведомление.')
+            db = app.DB()
+            # Unknown objects cannot trigger arbitrary provider queries.
+            body = billing.webhook(SimpleNamespace(**vars(app)), db, data)
+            db.conn.commit()
+            status = 200
+        except app.AppError as exc:
+            if db: db.conn.rollback()
+            status, body = exc.status, {'error':exc.message}
+        except Exception:
+            if db: db.conn.rollback()
+        finally:
+            if db: db.close()
+        encoded = json.dumps(body).encode()
+        self.send_response(status)
+        self.send_header('Content-Type','application/json')
+        self.send_header('Cache-Control','no-store')
+        self.send_header('Content-Length',str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
 
     def visitor_ip(self):
         # Only the local reverse proxy is trusted, and nginx overwrites X-Real-IP.

@@ -42,6 +42,18 @@ class DailyTest(unittest.TestCase):
         self.assertNotIn('childName',self.contexts[-1]['profile'])
         self.assertIsInstance(self.contexts[-1]['profile']['ageMonths'],int)
         self.assertEqual(self.call('daily-plan',self.cookie,childId='someone-else')[0]['statusCode'],404)
+    def test_zero_completed_months_is_known_without_exporting_birth_date(self):
+        state=copy.deepcopy(self.state)
+        state['children'].append({'id':'newborn','data':{'profile':{**state['profile'],'birthDate':date.today().isoformat(),'childName':'Новорождённый'}}})
+        response,body=self.call('session',self.cookie)
+        self.assertEqual(self.call('save',self.cookie,state=state,revision=body['revision'])[0]['statusCode'],200)
+        plan=self.plan('newborn')
+        self.assertEqual(plan['source'],'ai')
+        self.assertEqual(plan['ageMonths'],0)
+        self.assertEqual(self.contexts[-1]['profile']['ageMonths'],0)
+        self.assertNotIn('birthDate',self.contexts[-1]['profile'])
+        self.assertTrue(all(i['minMonths']<=0<i['maxMonths'] for i in plan['items']))
+
     def test_reason_required_before_ai_and_previous_plan_preserved(self):
         plan=self.plan(); calls=len(self.contexts)
         for detail in ('','  ','коротко'):

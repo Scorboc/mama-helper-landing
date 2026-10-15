@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261012-v3",
+  "approvedAt": "2026-10-12",
+  "approval": "Owner requested official, maximally safe adult stress self-help in the local app.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261012-v3.md",
+      "sha256": "5c928636fc767fb566a67a88b09dd35e6715b6286367a7e7ffc33f1549b03b26"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261012-v3.md",
+      "sha256": "822107db7eaf576b8a5c2ae99c7a35d57b26a7db346bd25bdaad863757a50b59"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261012-v3.md",
+      "sha256": "e15cf84d401e4a7654c9827cf3d435008ce3579801cbf05222357b9ac83ddff4"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261012-v3.md",
+      "sha256": "0819ff248d7bb77ec93cd3fea932371413eefc6ed8588342a4be3bce1d7206be"
+    }
+  }
+}

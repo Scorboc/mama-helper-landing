@@ -40,7 +40,7 @@ class AccountEmailTest(unittest.TestCase):
         return response, json.loads(response['body'])
 
     def register(self, email='synthetic@example.test'):
-        response, body = self.call('register', email=email, password='original-long-password', consent=True)
+        response, body = self.call('register', email=email, password='original-long-password', consent=True, adult=True, termsAccepted=True, termsVersion='account-2026-10-12')
         self.assertEqual(response['statusCode'], 200)
         return response['headers']['Set-Cookie'].split(';')[0], body
 
@@ -161,7 +161,7 @@ class AccountEmailTest(unittest.TestCase):
     def test_missing_mail_configuration_rolls_back_registration(self):
         os.environ['APP_MAIL_DRIVER']='smtp'
         for name in ('APP_SMTP_HOST','APP_SMTP_USER','APP_SMTP_PASSWORD','APP_EMAIL_FROM'):os.environ.pop(name,None)
-        self.assertEqual(self.call('register',email='synthetic@example.test',password='new-long-password',consent=True)[0]['statusCode'],503)
+        self.assertEqual(self.call('register',email='synthetic@example.test',password='new-long-password',consent=True,adult=True,termsAccepted=True,termsVersion='account-2026-10-12')[0]['statusCode'],503)
         db=app.DB()
         try:self.assertEqual(db.query('SELECT count(*) FROM mh_users').fetchone()[0],0)
         finally:db.close()
@@ -221,7 +221,7 @@ class AccountEmailTest(unittest.TestCase):
 
     def test_link_origin_is_configured_not_request_controlled(self):
         os.environ['APP_PUBLIC_URL']='http://evil.example.test'
-        self.assertEqual(self.call('register',email='synthetic@example.test',password='new-long-password',consent=True)[0]['statusCode'],503)
+        self.assertEqual(self.call('register',email='synthetic@example.test',password='new-long-password',consent=True,adult=True,termsAccepted=True,termsVersion='account-2026-10-12')[0]['statusCode'],503)
 
 
 if __name__=='__main__':unittest.main()

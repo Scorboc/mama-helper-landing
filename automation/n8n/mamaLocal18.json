@@ -1,0 +1,69 @@
+{
+  "id": "mamaLocal18",
+  "name": "MAMA 18 — Записать ошибку локально",
+  "nodes": [
+    {
+      "id": "ce2f58a9-3b7a-48f6-99ef-c104196d552f",
+      "name": "Ошибка фонового процесса",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "be8f9bd5-3322-4727-a974-83f818a3fcb8",
+      "name": "Сохранить только ID ошибки",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8792/events/error",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {workflowId: $json.workflow.id, executionId: String($json.execution.id || ('trigger-' + $execution.id))} }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mamaBridgeLocalOnly",
+          "name": "MAMA — локальный мост"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Ошибка фонового процесса": {
+      "main": [
+        [
+          {
+            "node": "Сохранить только ID ошибки",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Saratov",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all"
+  },
+  "active": false,
+  "description": "Локальный процесс MAMA с журналом повторов и обработкой ошибок. Сохраняет данные; не вызывает платный ИИ и не публикует изменения."
+}

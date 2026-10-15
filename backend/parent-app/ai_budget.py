@@ -23,7 +23,7 @@ ACTOR = contextvars.ContextVar('ai_budget_actor', default='')
 REQUEST = contextvars.ContextVar('ai_budget_request', default='')
 PRICE_SOURCE = 'https://proxyapi.ru/models/z-ai/glm-5.3-flash'
 DEFAULT_RATES = {'z-ai/glm-5.3-flash': {'inputPerMillion':'10.11', 'outputPerMillion':'33.68',
-                                     'checkedAt':'2026-10-11', 'source':PRICE_SOURCE}}
+                                     'checkedAt':'2026-10-12', 'source':PRICE_SOURCE}}
 
 
 class BudgetError(Exception):
@@ -61,7 +61,7 @@ def config():
         value = lambda key, default: policy.get(key, os.environ.get(key,default))
         daily = int((decimal(value('AI_BUDGET_DAY_RUB', '100'))*MICRO).to_integral_value(rounding=ROUND_CEILING))
         monthly = int((decimal(value('AI_BUDGET_MONTH_RUB', '1000'))*MICRO).to_integral_value(rounding=ROUND_CEILING))
-        maximum_input = int(value('AI_MAX_INPUT_BYTES', '131072'))
+        maximum_input = int(value('AI_MAX_INPUT_BYTES', '65536'))
         concurrency = int(value('AI_MAX_CONCURRENT_CALLS', '4'))
         if maximum_input < 1024 or maximum_input > 1_000_000 or not 1 <= concurrency <= 20:
             raise ValueError()

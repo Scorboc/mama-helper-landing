@@ -21,6 +21,7 @@ const Footer = () => (
             { href: '#voices', label: 'Чем поможем' },
             { href: '#how', label: 'Как это работает' },
             { href: '/account', label: 'Регистрация' },
+            { href: '/guide', label: 'Полезные материалы' },
             { href: '/mamin-pomoshchnik-instruction.pdf', label: 'Инструкция PDF' },
           ].map((l) => (
             <a key={l.href} href={l.href} className="transition-colors hover:text-foreground">
@@ -37,7 +38,7 @@ const Footer = () => (
 
       <div className="mt-4 flex flex-col gap-2 text-[12px] text-muted-foreground sm:flex-row sm:justify-between">
         <span>© {new Date().getFullYear()} Мамин помощник</span>
-        <a href="/privacy" className="underline">Данные и условия тестирования</a>
+        <nav className="flex flex-wrap gap-4" aria-label="Документы"><a href="/privacy" className="underline">Персональные данные</a><a href="/terms" className="underline">Условия аккаунта</a><a href="/offer" className="underline">Оферта</a><a href="/data-rights" className="underline">Обращения</a></nav>
       </div>
     </div>
   </footer>

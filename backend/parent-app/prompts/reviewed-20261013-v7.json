@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261013-v7",
+  "approvedAt": "2026-10-13",
+  "approval": "Owner-authorized local iterative QA, complete 600-case review and targeted regression.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261013-v7.md",
+      "sha256": "669a7da5ce6d470ba658d364782a88212f58ac020cdb97d28d0a29a545be4239"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261013-v7.md",
+      "sha256": "24a2c19693dfbe382b9de456cc3a9368426085535d5d6810c3e2772d57271609"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261013-v7.md",
+      "sha256": "e15cf84d401e4a7654c9827cf3d435008ce3579801cbf05222357b9ac83ddff4"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261013-v7.md",
+      "sha256": "0819ff248d7bb77ec93cd3fea932371413eefc6ed8588342a4be3bce1d7206be"
+    }
+  }
+}

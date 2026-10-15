@@ -1,0 +1,18 @@
+{
+  "version": "mama-approved-20261012",
+  "approvedAt": "2026-10-12",
+  "parts": {
+    "chat": {
+      "file": "chat-approved-20261012.md",
+      "sha256": "201537a140defb5d59f2838781999388d6ee9740f4a083110588a18a135ca1a6"
+    },
+    "daily": {
+      "file": "daily-approved-20261012.md",
+      "sha256": "b1fd49b43a7c29e45bf34a18bf4637188a7f58617e20fdeaf690bd5fff6b4966"
+    },
+    "notification": {
+      "file": "notification-approved-20261012.md",
+      "sha256": "f977f6d81de794a04a87231898d441b5f9166f8451d794b6c1008611278292e2"
+    }
+  }
+}

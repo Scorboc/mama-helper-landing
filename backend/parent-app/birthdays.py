@@ -14,7 +14,8 @@ def children_today(state,today=None):
     found={}
     for cid,p in profiles:
         if not p or p.get('stage')!='child':continue
-        born=date.fromisoformat(p['birthDate'])
+        try: born=date.fromisoformat(p['birthDate'])
+        except (ValueError,KeyError,TypeError): continue
         anniversary=date(today.year,born.month,min(born.day,calendar.monthrange(today.year,born.month)[1]))
         if today==anniversary and today.year>born.year:
             found[cid]={'childId':cid,'name':p.get('childName') or 'Ваш ребёнок','years':today.year-born.year}

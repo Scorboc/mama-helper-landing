@@ -100,7 +100,7 @@ class AccountsTest(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.previous=dict(os.environ)
-        os.environ.update(APP_LOCAL='1',APP_SQLITE_PATH=self.temp.name+'/test.db',APP_DATA_KEY=Fernet.generate_key().decode(),APP_ORIGINS='http://localhost:5173')
+        os.environ.update(APP_LOCAL='1',APP_BILLING_MODE='legacy',APP_SQLITE_PATH=self.temp.name+'/test.db',APP_DATA_KEY=Fernet.generate_key().decode(),APP_ORIGINS='http://localhost:5173')
         app.initialize()
     def tearDown(self):
         os.environ.clear();os.environ.update(self.previous);self.temp.cleanup()
@@ -222,7 +222,9 @@ class AccountsTest(unittest.TestCase):
             response,body=self.call('chat',c,question='Во что поиграть?',messageId='question-1',revision=1)
         finally:
             app.chat_answer=original
-        self.assertEqual(response['statusCode'],200);self.assertEqual(body['answer'],'Тестовый ответ')
+        self.assertEqual(response['statusCode'],200)
+        self.assertIn('Взрослый остаётся рядом',body['answer'])
+        self.assertNotEqual(body['answer'],'Тестовый ответ')
         self.assertEqual(body['revision'],2)
         self.assertEqual([m['role'] for m in body['state']['messages']],['user','assistant'])
         self.assertEqual(captured['question'],'Во что поиграть?')
@@ -287,9 +289,9 @@ class AccountsTest(unittest.TestCase):
         calls=[]
         app.chat_answer=lambda question,context_text:(calls.append(question) or 'Атомарный ответ')
         try:
-            first,body=self.call('chat',c,question='Во что поиграть?',messageId='stable-message-id',revision=0)
+            first,body=self.call('chat',c,question='Как записать наблюдение?',messageId='stable-message-id',revision=0)
             stale,_=self.call('chat',c,question='Другой вопрос',messageId='other-message-id',revision=0)
-            retry,retried=self.call('chat',c,question='Во что поиграть?',messageId='stable-message-id',revision=0)
+            retry,retried=self.call('chat',c,question='Как записать наблюдение?',messageId='stable-message-id',revision=0)
         finally:
             app.chat_answer=original
         self.assertEqual(first['statusCode'],200)
@@ -297,7 +299,7 @@ class AccountsTest(unittest.TestCase):
         self.assertEqual(retry['statusCode'],200)
         self.assertEqual(retried['answer'],'Атомарный ответ')
         self.assertEqual(retried['revision'],1)
-        self.assertEqual(calls,['Во что поиграть?'])
+        self.assertEqual(calls,['Как записать наблюдение?'])
 
     def test_events_and_deduplication(self):
         c,b=self.register('push2@example.test');state=b['state']

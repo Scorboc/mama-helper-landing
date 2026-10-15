@@ -14,6 +14,33 @@ policy=module('content_policy')
 reminders=module('reminders')
 
 class ContentPolicyTest(unittest.TestCase):
+    def test_emergency_handoff_survives_final_scope_filter(self):
+        profile={'stage':'child','birthDate':date.today().isoformat(),'childName':'Тест'}
+        for text in ('1. Позвоните 112 или в токсикологический центр, назовите точноe название средства и возраст ребёнка.',
+                     'Сообщите врачу возраст ребёнка и время происшествия.'):
+            self.assertEqual(policy.clean(text,profile),text)
+        invalid=policy.clean('1. Назовите другой возраст ребёнка.\n2. Сохраняйте спокойствие.',profile)
+        self.assertNotIn('Назовите другой возраст',invalid)
+        self.assertNotRegex(invalid,r'(?m)^\s*1\.\s*$')
+        invalid=policy.clean('Врач не нужен, укажите другой возраст ребёнка в чате.',profile)
+        self.assertNotIn('укажите другой возраст',invalid)
+
+    def test_implicit_game_requests_receive_catalogue(self):
+        profile={'stage':'child','birthDate':date.today().isoformat()}
+        for q in ('Дома нет материалов. Что можно делать голосом и жестами?',
+                  'Не хочу повторять вчерашнюю механику. Как выбрать иную?'):
+            self.assertIn('Каталог:',policy.context(profile,q))
+
+    def test_game_steps_are_rendered_from_current_reviewed_catalogue(self):
+        today=date.today();y,m=divmod(today.year*12+today.month-1-14,12)
+        profile={'stage':'child','birthDate':date(y,m+1,today.day).isoformat()}
+        game=next(g for g in policy.catalog.candidates(14) if g['baseId']=='word-action')
+        answer=policy.render_game_answer('«'+game['title']+'»: пусть ходит и лазает.',profile,'Предложите игру голосом и жестами, нет материалов.')
+        self.assertIn(game['steps'][0],answer);self.assertNotIn('пусть ходит',answer)
+        self.assertNotIn('Мяч',game['title'])
+        answer=policy.render_game_answer('Много ходьбы и лазания.',profile,'Что делать вместо лечебного массажа по календарю?')
+        self.assertNotIn('Много ходьбы',answer);self.assertIn('без требования ходить',answer)
+
     def test_chat_rejects_another_child_or_mismatched_age(self):
         profile={'stage':'child','birthDate':'2023-09-21','childName':'Яша'}
         self.assertIsNotNone(policy.profile_scope_reply('А если ребёнку 6 месяцев?',profile))

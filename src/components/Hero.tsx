@@ -49,7 +49,7 @@ const Hero = () => {
               Создать личный кабинет
             </a>
             <span className="text-[13px] text-muted-foreground">
-              Тест без оплаты · чат с помощником
+              480 ₽ в месяц · бесплатный тест по приглашению
             </span>
             <a
               href="/account?mode=login"

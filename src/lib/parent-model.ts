@@ -24,21 +24,24 @@ export type ParentState = {
   conversationOrder?:string[];
   medicalCard:MedicalCardEntry[];
 };
-export const today = () => new Date().toISOString().slice(0,10);
+// Dates of birth are calendar dates. Use the family's local day, with UTC only
+// for arithmetic so daylight-saving transitions do not add or remove a day.
+const calendarDay = (now:Date) => Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+export const today = (now=new Date()) => new Date(calendarDay(now)).toISOString().slice(0,10);
 export const emptyState = (): ParentState => ({profile:null,saved:[],completed:[],events:{},preferences:{repeat:'never',push:false},messages:[],medicalCard:[]});
 export const defaultProfile = (): Profile => ({childName:'',childSex:'unknown',role:'mom',stage:'pregnancy',birthDate:'',week:20,weekDate:today(),feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]});
 export function ageValue(p:Profile,now=new Date()) {
-  if(p.stage==='pregnancy') return p.week + Math.floor((Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())-Date.parse(p.weekDate+'T00:00:00Z'))/604800000);
+  if(p.stage==='pregnancy') return p.week + Math.floor((calendarDay(now)-Date.parse(p.weekDate+'T00:00:00Z'))/604800000);
   const d=new Date(p.birthDate+'T00:00:00Z');
-  const anniversaryDay=Math.min(d.getUTCDate(),new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,0)).getUTCDate());
-  return (now.getUTCFullYear()-d.getUTCFullYear())*12+now.getUTCMonth()-d.getUTCMonth()-(now.getUTCDate()<anniversaryDay?1:0);
+  const anniversaryDay=Math.min(d.getUTCDate(),new Date(Date.UTC(now.getFullYear(),now.getMonth()+1,0)).getUTCDate());
+  return (now.getFullYear()-d.getUTCFullYear())*12+now.getMonth()-d.getUTCMonth()-(now.getDate()<anniversaryDay?1:0);
 }
-export function contextLabel(p:Profile|null) {
+export function contextLabel(p:Profile|null,now=new Date()) {
   if(!p)return 'Профиль не заполнен — возраст неизвестен';
-  if(p.stage==='pregnancy')return `Беременность · ${ageValue(p)} полных нед.`;
-  const months=ageValue(p), born=new Date(p.birthDate+'T00:00:00Z'), now=new Date();
+  if(p.stage==='pregnancy')return `Беременность · ${ageValue(p,now)} полных нед.`;
+  const months=ageValue(p,now), born=new Date(p.birthDate+'T00:00:00Z');
   const day=new Date(Date.UTC(born.getUTCFullYear(),born.getUTCMonth()+months,Math.min(born.getUTCDate(),new Date(Date.UTC(born.getUTCFullYear(),born.getUTCMonth()+months+1,0)).getUTCDate())));
-  const days=Math.floor((Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate())-day.getTime())/86400000);
+  const days=Math.floor((calendarDay(now)-day.getTime())/86400000);
   return `${p.childName?.trim() || 'Ваш ребёнок'} · ${months} мес. ${days} дн.`;
 }
 export type Milestone={id:string;stage:'pregnancy'|'child';age:number;topic:string;title:string;text:string;guide:string};
@@ -59,7 +62,7 @@ export function dueMilestones(state:ParentState,now=new Date()):Milestone[]{
   const p=state.profile;if(!p)return [];
   const available=(m:Milestone)=>{
     if(ageValue(p,now)>=m.age+(p.stage==='pregnancy'?8:m.age<12?3:m.age<36?6:12))return false;
-    const ready=now;
+    const ready=new Date(calendarDay(now));
     if(p.stage==='pregnancy'){
       const target=new Date(p.weekDate+'T00:00:00Z');target.setUTCDate(target.getUTCDate()+(m.age-p.week)*7);
       return target<=ready;

@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useId,useRef,useState} from 'react';
 import {Button} from './ui/button';
 import {Textarea} from './ui/textarea';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from './ui/dialog';
@@ -11,6 +11,7 @@ type Activity={id:string;title:string;area:string;goal:string;materials:string;m
 type Plan={childId:string;day:string;version:number;ageMonths:number;items:Activity[];source:'ai'|'library';viewed:boolean};
 const reasons=[['hard','Слишком сложно'],['easy','Слишком просто'],['materials','Нет нужных вещей'],['time','Мало времени'],['dislike','Не понравилось ребёнку'],['health','Не подходит по самочувствию'],['other','Другая причина']];
 export default function DailyActivities({state,active=true}:{state:ParentState;active?:boolean}) {
+ const fieldId=useId();
  const contentRef=useRef<HTMLDivElement>(null);
  const seenKeys=useRef(new Set<string>());
  const cid=state.activeChildId || 'primary';
@@ -81,8 +82,8 @@ export default function DailyActivities({state,active=true}:{state:ParentState;a
   </>}
   <Dialog open={!!target} onOpenChange={open=>{if(!open && !busy){setTarget(undefined);setError('');}}}><DialogContent><DialogHeader><DialogTitle>Почему заменить занятие?</DialogTitle><DialogDescription>Расскажите, что не подошло. ИИ учтёт пояснение для этого ребёнка при замене и следующих подборках.</DialogDescription></DialogHeader>
    <form onSubmit={e=>{e.preventDefault();void feedback('replace',target?.id);}} className="space-y-4">
-    <label className="form-field">Причина<select required disabled={busy} value={reason} onChange={e=>setReason(e.target.value)}><option value="">Выберите причину</option>{reasons.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-    <label className="form-field">Пояснение — обязательно<Textarea required minLength={8} maxLength={600} disabled={busy} value={detail} onChange={e=>setDetail(e.target.value)} placeholder="Например: ребёнок пока не сидит самостоятельно; нужна игра лёжа или у меня на руках."/></label>
+    <div className="form-field"><label htmlFor={fieldId+'-reason'}>Причина</label><select id={fieldId+'-reason'} required disabled={busy} value={reason} onChange={e=>setReason(e.target.value)}><option value="">Выберите причину</option>{reasons.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
+    <div className="form-field"><label htmlFor={fieldId+'-detail'}>Пояснение — обязательно</label><Textarea id={fieldId+'-detail'} required minLength={8} maxLength={600} disabled={busy} value={detail} onChange={e=>setDetail(e.target.value)} placeholder="Например: ребёнок пока не сидит самостоятельно; нужна игра лёжа или у меня на руках."/></div>
     <p className="muted text-sm">От 8 до 600 символов. При плохом самочувствии занятие можно просто отложить.</p>
     {error && <p role="alert">{error}</p>}
     <Button disabled={busy || !reason || detail.trim().length<8}>{busy?'ИИ подбирает замену…':'Объяснить и заменить'}</Button>

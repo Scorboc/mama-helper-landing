@@ -39,6 +39,19 @@ def period(records, timezone_name='Europe/Moscow', now=None, days=7):
     return sorted(selected, key=lambda r: parse(r['at']), reverse=True)
 
 
+def context_records(records):
+    """Copy observations with full closed-interval durations; never edit storage."""
+    annotated=[]
+    for record in records:
+        value=dict(record)
+        if value.get('kind')=='sleep':
+            start,end=parse(value.get('at')),parse(value.get('end'))
+            if start is not None and end is not None and end>=start:
+                value['recordedIntervalMinutes']=round((end-start).total_seconds()/60)
+        annotated.append(value)
+    return annotated
+
+
 def summary(records, timezone_name='Europe/Moscow', now=None):
     now = now or datetime.now(timezone.utc)
     local_zone = zone(timezone_name)
@@ -69,6 +82,8 @@ def summary(records, timezone_name='Europe/Moscow', now=None):
         },
         'rules': 'Это добровольные записи родителя за семь календарных дней в его часовом поясе. '
                  'Полнота дневника неизвестна. День без записей означает отсутствие данных, '
+                 'Для суммы сна за период используй sleep.recordedSleepMinutesTotal, уже рассчитанную '
+                 'приложением с объединением пересечений и частей сна через полночь. Не суммируй части самостоятельно. '
                  'а не отсутствие сна или кормлений. Число кормлений не определяет достаточность '
                  'питания; таймер без окончания не определяет длительность. Не назначай режим, '
                  'объём питания или точное время следующего сна по этим числам. '

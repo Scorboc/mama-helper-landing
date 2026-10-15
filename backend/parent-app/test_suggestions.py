@@ -43,6 +43,8 @@ class SuggestionTest(unittest.TestCase):
         self.assertEqual('collecting',first['phase']);self.assertEqual([],first['items'])
         self.call('u2','suggestion-create',title='Удобный экспорт дневника сна',detail='Сохранение отчёта')
         self.clock[0]=datetime(2026,10,9,12,tzinfo=ZoneInfo('Europe/Moscow'))
+        for item in suggestions.moderation_queue(self.runtime,self.db):
+            suggestions.review(self.runtime,self.db,dict(id=item['id'],title=item['title'],detail=item['detail'],reviewed=True))
         ballot=self.call('u1','suggestion-list')
         self.assertEqual(2,len(ballot['items']))
         chosen=ballot['items'][0]['id']
@@ -53,5 +55,28 @@ class SuggestionTest(unittest.TestCase):
         result=self.call('u1','suggestion-list')
         self.assertEqual(1,result['newWinnerCount']);self.assertEqual(chosen,result['winners'][0]['id'])
         self.assertEqual('task',self.ops.tasks[0][0])
+
+    def test_unreviewed_health_story_never_reaches_ballot_or_winners(self):
+        story='Моя дочь Анна родилась 14 мая, у неё астма, принимаем лекарство.'
+        self.call('u1','suggestion-create',title='Добавить напоминание о приёмах',detail=story)
+        record=suggestions.moderation_queue(self.runtime,self.db)[0]
+        self.assertEqual(record['detail'],story)
+        self.clock[0]=datetime(2026,10,9,12,tzinfo=ZoneInfo('Europe/Moscow'))
+        self.assertEqual(self.call('u2','suggestion-list')['items'],[])
+        with self.assertRaises(AppError):self.call('u2','suggestion-vote',suggestionId=record['id'])
+        suggestions.review(self.runtime,self.db,dict(id=record['id'],title='Добавить напоминание о встречах',detail='Удобное напоминание',reviewed=True))
+        public=self.call('u2','suggestion-list')['items'][0]
+        self.assertNotIn('Анна',str(public)); self.assertNotIn('астма',str(public))
+        self.assertEqual(suggestions.moderation_queue(self.runtime,self.db)[0]['detail'],story)
+
+    def test_existing_planned_winner_can_get_a_safe_public_version(self):
+        self.call('u1','suggestion-create',title='Удобный график для дневника',detail='Искусственный частный текст')
+        record=suggestions.moderation_queue(self.runtime,self.db)[0]
+        self.db.query("UPDATE mh_product_suggestions SET status='planned' WHERE id=?",(record['id'],))
+        suggestions.review(self.runtime,self.db,dict(id=record['id'],title='Удобный график для дневника',detail='Без личных сведений',reviewed=True))
+        row=self.db.query('SELECT encrypted_data,status FROM mh_product_suggestions WHERE id=?',(record['id'],)).fetchone()
+        self.assertEqual(row[1],'planned')
+        self.assertEqual(json.loads(row[0])['detail'],'Искусственный частный текст')
+        self.assertEqual(suggestions._public(dict(json.loads(row[0]),id=record['id']))['detail'],'Без личных сведений')
 
 if __name__=='__main__':unittest.main()

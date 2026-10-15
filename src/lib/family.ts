@@ -16,7 +16,9 @@ export function switchChild(state: ParentState, id: string): ParentState {
   if (!target) return state;
   const cleared = {...state};
   childKeys.forEach(key => { delete cleared[key]; });
-  return {...cleared, ...target.data, activeChildId: id, children: all.filter(child => child.id !== id)};
+  // Older child records can contain only a profile. Fill missing child fields
+  // before rendering, without borrowing messages or notes from another child.
+  return {...cleared, ...childData(emptyState()), ...target.data, activeChildId: id, children: all.filter(child => child.id !== id)};
 }
 export function addChild(state: ParentState): ParentState {
   if (familyList(state).length >= 10) return state;

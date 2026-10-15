@@ -1,0 +1,115 @@
+{
+  "id": "mamaLocal13",
+  "name": "MAMA 13 — Проверка обновлений [НУЖНО ПОДКЛЮЧЕНИЕ]",
+  "nodes": [
+    {
+      "id": "58186d90-7e99-4d6f-bc22-fb720b08471b",
+      "name": "Запустить вручную",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "b7397684-f933-4d17-94e7-369bda8f9758",
+      "name": "Локальный проверенный процесс",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8792/jobs/readiness",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 300000
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ 'n8n:' + $workflow.id + ':' + $execution.id }}"
+            }
+          ]
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "mamaBridgeLocalOnly",
+          "name": "MAMA — локальный мост"
+        }
+      }
+    },
+    {
+      "id": "caf1cae6-4dac-4f46-8c4e-b6d20d1c58ec",
+      "name": "Границы доступа",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -290
+      ],
+      "parameters": {
+        "content": "## Только локально\nБаза и переписки не передаются внешним сервисам. Нет публикации кода, списания денег или назначения лечения.\nПроверка готовности: реальные подключения пока не настроены.",
+        "height": 230,
+        "width": 500
+      }
+    },
+    {
+      "id": "261aef93-6563-42ac-be9e-6ac2f54d2995",
+      "name": "Проверка через CLI",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        170
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    }
+  ],
+  "connections": {
+    "Запустить вручную": {
+      "main": [
+        [
+          {
+            "node": "Локальный проверенный процесс",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Проверка через CLI": {
+      "main": [
+        [
+          {
+            "node": "Локальный проверенный процесс",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Saratov",
+    "errorWorkflow": "mamaLocal18",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all"
+  },
+  "active": false,
+  "description": "Локальный процесс MAMA с журналом повторов и обработкой ошибок. Сохраняет данные; не вызывает платный ИИ и не публикует изменения."
+}

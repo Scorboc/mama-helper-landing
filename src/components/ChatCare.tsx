@@ -32,8 +32,9 @@ export function ChatContext({
   if (state.profile) return (
     <div className="chat-context">
         {quota && <p className="text-sm" role="status">{quota.paid
-          ? `Доступно ${quota.remaining} AI-ответов. Из них подарочных: ${quota.bonusRemaining || 0}.`
-          : `Осталось ${quota.remaining} из ${quota.limit} AI-ответов на тест.`}</p>}
+          ? `Доступно ${quota.remaining} ответов и подборок ИИ. Из них подарочных: ${quota.bonusRemaining || 0}.`
+          : `Осталось ${quota.remaining} из ${quota.limit} ответов и подборок ИИ на текущий период.`}</p>}
+      {quota?.accessMode === "none" && <a className="standalone-link" href="/billing">Открыть доступ и оплату · 480 ₽</a>}
       <details>
         <summary>Как учитывается профиль</summary>
         <p className="text-sm muted">Чат отвечает только по выбранному профилю. Возраст из сообщения не заменяет дату рождения. Для другого своего ребёнка добавьте или выберите отдельный профиль. Учитываем подтверждённые заметки и текущий диалог. Помощник может ошибаться и не заменяет врача.</p>
@@ -50,9 +51,10 @@ export function ChatContext({
         </p>
         {quota && (
           <p className="text-sm mt-1" role="status">
-            Осталось {quota.remaining} из {quota.limit} AI-ответов на тест.
+            Осталось {quota.remaining} из {quota.limit} ответов и подборок ИИ на текущий период.
           </p>
         )}
+        {quota?.accessMode === "none" && <a className="standalone-link" href="/billing">Доступ и оплата · 480 ₽</a>}
       </div>
       <Button variant="outline" onClick={onProfile}>
         Заполнить профиль

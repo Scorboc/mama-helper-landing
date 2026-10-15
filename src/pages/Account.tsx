@@ -50,6 +50,7 @@ function AccountAccess() {
   const [recovery, setRecovery] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [consent, setConsent] = useState(false);
+  const [adult, setAdult] = useState(false);
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -78,6 +79,9 @@ function AccountAccess() {
         email,
         password,
         consent,
+        adult,
+        termsAccepted: consent,
+        termsVersion: "account-2026-10-12",
         recoveryCode: recovery,
         ...(mode === "register" && invite ? { invite } : {}),
       });
@@ -104,7 +108,7 @@ function AccountAccess() {
         <Fox className="mx-auto mb-4 h-20 w-20" />
         <h1>{newCode ? "Ваш аккаунт готов" : "Своя маленькая опора"}</h1>
         <p className="muted">
-          Личный кабинет для мам и пап. На время теста — без оплаты.
+          Личный кабинет для мам и пап. Доступ — 480 ₽ в месяц; бесплатный тест назначает владелец.
         </p>
         {newCode ? (
           <RecoveryCodeCard code={newCode} continueLabel={verificationRequired ? "Код сохранён — подтвердить почту" : undefined} onDone={() => { setNewCode(""); navigate(verificationRequired ? "/account?mode=email-await" : returnTo, { replace: true }); }} />
@@ -183,20 +187,20 @@ function AccountAccess() {
               </label>}
               {mode === "recover" && <p className="muted text-sm">Нужен код, сохранённый при регистрации. После восстановления все прежние сеансы завершатся. Если забыли только код, а пароль помните, войдите и получите новый код в настройках безопасности.</p>}
               {mode === "register" && (
-                <div className="flex gap-3 items-start">
+                <div className="space-y-4"><div className="flex gap-3 items-start"><Checkbox id="adult" checked={adult} onCheckedChange={v => setAdult(v === true)} /><label htmlFor="adult" className="text-sm leading-relaxed">Мне исполнилось 18 лет.</label></div><div className="flex gap-3 items-start">
                   <Checkbox
                     id="consent"
                     checked={consent}
                     onCheckedChange={(v) => setConsent(v === true)}
                   />
                   <label htmlFor="consent" className="text-sm leading-relaxed">
-                    Мне исполнилось 18 лет. Я принимаю{" "}
-                    <Link to="/privacy" className="underline">
-                      условия тестирования и обработки данных
+                    Принимаю{" "}
+                    <Link to="/terms" className="underline">
+                      условия аккаунта
                     </Link>
                     .
                   </label>
-                </div>
+                </div><p className="text-sm muted">О данных — в <Link className="underline" to="/privacy">отдельной политике</Link>. Эти отметки не являются согласием на сведения о здоровье, рекламу или уведомления.</p></div>
               )}
               {error && (
                 <p className="form-error" role="alert">
@@ -206,7 +210,7 @@ function AccountAccess() {
               <Button
                 className="w-full"
                 type="submit"
-                disabled={busy || (mode === "register" && !consent)}
+                disabled={busy || (mode === "register" && (!consent || !adult))}
               >
                 {busy
                   ? "Подождите…"

@@ -1,4 +1,7 @@
 import SleepDiary from "./SleepDiary";
+import CareWeek from "./CareWeek";
+import FoodPreparation from "./FoodPreparation";
+import CareImport from "./CareImport";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
@@ -33,6 +36,9 @@ type Access = {
   childName: string;
 };
 type Listing = {
+  summary?: import("@/lib/care-journal").CareSummary;
+  contextVersion: string;
+  authors?: Record<string,{createdByRole:string;updatedByRole:string;updatedAt:string}>;
   daily: { id: string; title: string; goal: string; steps: string[] }[];
   records: RecordItem[];
   profile: { childName: string; stage: string; birthDate: string };
@@ -247,6 +253,7 @@ export default function CareTools({
   const [feedingEditor, setFeedingEditor] = useState<CareRecord | null>(null);
   useEffect(() => { setFeedingEditor(null); }, [contextKey]);
   const [includeVisits, setIncludeVisits] = useState(false);
+  const [printingReport, setPrintingReport] = useState(false);
   const [includeAchievements, setIncludeAchievements] = useState(false);
   const lastDraft = useRef({ note, value, sleepStart, sleepEnd });
   lastDraft.current = { note, value, sleepStart, sleepEnd };
@@ -548,8 +555,10 @@ export default function CareTools({
           <details className="sleep-section">
             <summary>Общая сводка сна и кормлений</summary>
             <TrackerSummary records={records} now={now} />
+            <CareWeek authors={listing?.authors} summary={listing?.summary} records={records} timezone={state.preferences.timezone || "Europe/Moscow"} />
           </details>
         )}
+        {panel === "track" && child && own && listing && <CareImport key={`import:${contextKey}`} childId={cid} version={listing.contextVersion} records={records} onSaved={load} />}
         {panel === "track" && child && (
           <div className="flex flex-wrap gap-2">
             <Button
@@ -698,6 +707,7 @@ export default function CareTools({
         )}
         {panel === "food" && child && (
           <>
+            <FoodPreparation key={`food:${contextKey}`} profile={shared ? listing?.profile as ParentState["profile"] : state.profile} />
             <p>
               Дневник уже предложенных продуктов и наблюдений. Он не назначает
               начало прикорма, порции или лечение.
@@ -798,10 +808,13 @@ export default function CareTools({
             >
               Скачать сводку
             </Button>
+            <Button variant="outline" onClick={() => setPrintingReport(true)}>Печать / PDF выбранных записей</Button>
+            <Dialog open={printingReport} onOpenChange={setPrintingReport}><DialogContent className="sleep-print-sheet max-w-4xl"><DialogHeader><DialogTitle>Выбранные записи для специалиста</DialogTitle><DialogDescription>Проверьте документ перед печатью. Переписка и самочувствие родителя не включены.</DialogDescription></DialogHeader><div className="sleep-print-actions"><Button onClick={() => window.print()}>Печать / Сохранить PDF</Button><Button variant="outline" onClick={() => setPrintingReport(false)}>Закрыть</Button></div><div style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{reportText()}</div></DialogContent></Dialog>
           </>
         )}
         {panel === "family" && (
           <>
+            <CareWeek authors={listing?.authors} summary={listing?.summary} records={records} timezone={state.preferences.timezone || "Europe/Moscow"} />
             <p>
               Приглашение действует 24 часа и используется один раз. Получатель
               входит в свой аккаунт. Доступ открывает записи ребёнка; переписка,

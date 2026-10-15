@@ -29,6 +29,7 @@ def child(app, db, uid, cid):
 def initialize(db):
     db.query('CREATE TABLE IF NOT EXISTS mh_care_records (owner_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE, child_id TEXT NOT NULL, id TEXT NOT NULL, encrypted_data TEXT NOT NULL, PRIMARY KEY(owner_id,child_id,id))')
     db.query('CREATE TABLE IF NOT EXISTS mh_family_access (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE, child_id TEXT NOT NULL, guest_id TEXT REFERENCES mh_users(id) ON DELETE CASCADE, token_hash TEXT UNIQUE, expires_at BIGINT NOT NULL, permission TEXT NOT NULL)')
+    db.query('CREATE TABLE IF NOT EXISTS mh_care_authorship (owner_id TEXT NOT NULL REFERENCES mh_users(id) ON DELETE CASCADE, child_id TEXT NOT NULL, record_id TEXT NOT NULL, encrypted_data TEXT NOT NULL, PRIMARY KEY(owner_id,child_id,record_id))')
 
 def access(app,db,uid,data):
     owner=data.get('ownerId') or uid; cid=data.get('childId','primary')
@@ -88,13 +89,36 @@ def action(app,db,uid,data):
                 plan=app.unseal(row[0]);months=mod.age(state['profile'],day)
                 if plan.get('catalogVersion')==mod.catalog.VERSION and plan.get('ageMonths')==months:
                     daily=plan.get('items',[])
-        return {'daily':daily,'records':sorted(records,key=lambda r:r['at'],reverse=True),'contextVersion':version(records),
+        authors={r[0]:app.unseal(r[1]) for r in db.query('SELECT record_id,encrypted_data FROM mh_care_authorship WHERE owner_id=? AND child_id=?',(owner,cid)).fetchall() if any(v['id']==r[0] for v in records)}
+        return {'daily':daily,'records':sorted(records,key=lambda r:r['at'],reverse=True),'authors':authors,'contextVersion':version(records),
                 'summary':care_summary.summary(records,state.get('preferences',{}).get('timezone') or 'Europe/Moscow'),
                 'profile':{'childName':state['profile'].get('childName',''),'stage':state['profile']['stage'],'birthDate':state['profile']['birthDate']},'permission':permission,'achievements':care.get('achievements',[]),'appointments':care.get('appointments',[]) if permission=='owner' else []}
     if permission=='read':raise app.AppError(403,'Предоставлен только просмотр.')
+    if name=='care-import':
+        if permission!='owner':raise app.AppError(403,'Импорт доступен владельцу профиля.')
+        batch=data.get('records')
+        if not isinstance(batch,list) or not 1<=len(batch)<=100:raise app.AppError(400,'Выберите от 1 до 100 записей.')
+        if data.get('contextVersion')!=version(records):raise app.AppError(409,'Дневник изменился. Откройте предпросмотр ещё раз.')
+        keys=('kind','at','end','side','value','note','sleepType','wakeType','settlingAt','feeling')
+        def fingerprint(r):
+            value={k:r.get(k,'') for k in keys}
+            for key in ('at','end','settlingAt'):
+                parsed=care_summary.parse(value[key])
+                if parsed is not None:value[key]=parsed.astimezone(timezone.utc).isoformat()
+            return json.dumps(value,sort_keys=True,ensure_ascii=False)
+        known={fingerprint(r) for r in records}; added=[]; skipped=0
+        for record in batch:
+            if not isinstance(record,dict) or record.get('kind') not in ('sleep','wake','feeding','food','achievement'):
+                raise app.AppError(400,'Импортируйте только записи ребёнка.')
+            if fingerprint(record) in known:skipped+=1;continue
+            fresh={**record,'id':secrets.token_hex(16)}
+            action(app,db,uid,{**data,'action':'care-put','record':fresh})
+            added.append(fresh['id']);known.add(fingerprint(record))
+        return {'added':len(added),'skipped':skipped,'ids':added}
     if name=='care-delete':
         if permission!='owner':raise app.AppError(403,'Удалять записи может владелец.')
         db.query('DELETE FROM mh_care_records WHERE owner_id=? AND child_id=? AND id=?',(owner,cid,data.get('id')))
+        db.query('DELETE FROM mh_care_authorship WHERE owner_id=? AND child_id=? AND record_id=?',(owner,cid,data.get('id')))
         return {'ok':True}
     if name=='care-put':
         r=data.get('record')
@@ -136,6 +160,11 @@ def action(app,db,uid,data):
         if r['kind']=='sleep' and not r.get('end') and any(x['kind']=='sleep' and not x.get('end') and x['id']!=r['id'] for x in records):raise app.AppError(409,'Сон уже запущен. Обновите записи.')
         if r['kind']=='feeding' and r.get('value')=='Таймер кормления' and not r.get('end') and any(x['kind']=='feeding' and x.get('value')=='Таймер кормления' and not x.get('end') and x['id']!=r['id'] for x in records):raise app.AppError(409,'Таймер кормления уже запущен. Обновите записи.')
         db.query('INSERT INTO mh_care_records VALUES(?,?,?,?) ON CONFLICT(owner_id,child_id,id) DO UPDATE SET encrypted_data=excluded.encrypted_data',(owner,cid,r['id'],app.seal(r)))
+        author_row=db.query('SELECT encrypted_data FROM mh_care_authorship WHERE owner_id=? AND child_id=? AND record_id=?',(owner,cid,r['id'])).fetchone()
+        role='Владелец профиля' if permission=='owner' else 'Приглашённый взрослый'
+        author=app.unseal(author_row[0]) if author_row else {'createdByRole':'Не сохранено для прежней записи' if exists else role}
+        author.update(updatedByRole=role,updatedAt=datetime.now(timezone.utc).isoformat())
+        db.query('INSERT INTO mh_care_authorship VALUES(?,?,?,?) ON CONFLICT(owner_id,child_id,record_id) DO UPDATE SET encrypted_data=excluded.encrypted_data',(owner,cid,r['id'],app.seal(author)))
         return {'ok':True}
     raise app.AppError(400,'Неизвестное действие.')
 

@@ -29,7 +29,7 @@ export function SaveAction({message,state,save,busy}:{message:Message}&Pick<Prop
 }
 export function EvidencePassport({message}:{message:Message}){
  const e=message.evidence;
- return <details className="evidence-passport"><summary><ShieldCheck size={16}/>О характере ответа</summary><p>{e?.basis||'Знания AI и контекст текущего разговора'}</p><p>Ответ может содержать ошибки. Важные решения лучше перепроверять у подходящего специалиста.</p></details>;
+ return <details className="evidence-passport"><summary><ShieldCheck size={16}/>На чём основан ответ</summary><p>{e?.basis||'Для этого ответа подробный состав использованных данных не сохранён. Текущий дневник может отличаться.'}</p>{e?.checkedAt && <p>Снимок данных: {new Date(e.checkedAt).toLocaleString("ru-RU")}. Это время чтения дневника, а не проверки ответа врачом.</p>}<p>{e?.limitation||'Ответ может содержать ошибки. Важные решения лучше перепроверять у подходящего специалиста.'}</p></details>;
 }
 
 type Recognition={lang:string;continuous:boolean;interimResults:boolean;onresult:((e:{results:{[key:number]:{[key:number]:{transcript:string}}}})=>void)|null;onerror:((e:{error:string})=>void)|null;onend:(()=>void)|null;start:()=>void;stop:()=>void;abort:()=>void};
