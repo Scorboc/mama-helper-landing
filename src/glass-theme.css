@@ -29,6 +29,15 @@
 }
 .tile::after, .glass-nav::after { opacity: .25; }
 .tile::before { opacity: .35; }
+/* Landing: tinted cards keep their colour under the shared glass surface. */
+.landing-page .tile:is(.bg-pink-soft, .bg-blue-soft, .bg-sage-soft, .bg-violet-soft, .bg-cream) {
+  background: linear-gradient(135deg, var(--glass-glint), transparent 55%), var(--tile-tint) !important;
+}
+.landing-page .tile.bg-pink-soft { --tile-tint: hsl(var(--pink-soft) / .75); }
+.landing-page .tile.bg-blue-soft { --tile-tint: hsl(var(--blue-soft) / .75); }
+.landing-page .tile.bg-sage-soft { --tile-tint: hsl(var(--sage-soft) / .75); }
+.landing-page .tile.bg-violet-soft { --tile-tint: hsl(var(--violet-soft) / .75); }
+.landing-page .tile.bg-cream { --tile-tint: hsl(var(--cream) / .75); }
 #top .blob { opacity: .30; }
 .dark #top .blob { opacity: .16; }
 .theme-control {
