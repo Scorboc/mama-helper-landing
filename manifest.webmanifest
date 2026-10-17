@@ -1,0 +1,1 @@
+{"id": "/", "name": "Мамин помощник", "short_name": "Мамин помощник", "lang": "ru", "start_url": "/mama-helper-landing/?intro=1", "scope": "/mama-helper-landing/", "display": "standalone", "background_color": "#f7f5fc", "theme_color": "#65549b", "icons": [{"src": "/mama-helper-landing/logo-original-share.png?v=2", "type": "image/png", "sizes": "287x246", "purpose": "any"}]}
