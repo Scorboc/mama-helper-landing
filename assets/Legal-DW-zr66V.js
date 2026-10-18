@@ -1,0 +1,1 @@
+import"./parent-api-jeQT7lBP.js";import{n as e,t}from"./Legal-Ueu-8XK-.js";export{e as LegalLinks,t as default};
