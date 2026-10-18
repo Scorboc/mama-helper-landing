@@ -25,14 +25,23 @@ ROOT.mkdir(parents=True,exist_ok=True)
 LOCK=threading.Lock()
 PORT=int(os.environ.get('MAMA_AUTOMATION_PORT','8792'))
 HOSTS={f'127.0.0.1:{PORT}',f'localhost:{PORT}'}
-JOBS={'monitor','backup','daily-report','weekly-review','readiness','restore-check','ai-tests','feedback-analysis'}
+JOBS={'monitor','backup','daily-report','weekly-review','readiness','restore-check','ai-tests','feedback-analysis','telegram-dispatch'}
+JOB_LOCKS={name:threading.Lock() for name in JOBS}
+# A slow regression/provider call must never hold up health checks or reports.
+# Backup and restore share a lock so restore cannot read an unfinished archive.
+JOB_LOCKS['backup']=LOCK
+JOB_LOCKS['restore-check']=LOCK
 
 def write_json(path,data):
     tmp=path.with_suffix('.tmp');tmp.write_text(json.dumps(data,ensure_ascii=False,indent=2),encoding='utf-8');tmp.replace(path)
 
 def readiness():
+    telegram='configured' if (ROOT/'telegram-settings.enc').exists() else 'not-configured'
+    import telegram_publication, telegram_reviews
     return {'ok':True,'localOnly':True,'automaticPublication':False,'externalChatExport':False,
-            'integrations':{'telegram':'not-configured','smtp':'not-configured','payments':'not-configured',
+            'githubSourcePublication':bool(telegram_publication.settings(ROOT)),
+            'ownerEditedChatHandoff':bool(telegram_reviews.settings(ROOT)),
+            'integrations':{'telegram':telegram,'smtp':'not-configured','payments':'not-configured',
                             'instagram':'not-configured','taxes':'owner-registration-and-provider-required',
                             'aiReview':'local-feedback-triage-and-aggregate-ai-proposals'},
             'available':['monitor','encrypted-backup','aggregate-report','review-proposals','isolated-restore-check','offline-ai-regression','idempotency-journal','local-error-log','feedback-analysis']}
@@ -92,7 +101,7 @@ def backup():
     buf=io.BytesIO();manifest={};counts={}
     with tarfile.open(fileobj=buf,mode='w:gz') as tar:
         for name,path in [('accounts',os.environ['APP_SQLITE_PATH']),('operations',os.environ['APP_OPS_PATH']),('ai-budget',str(ai_budget.location())),
-                          ('n8n',str(ROOT/'state/.n8n/database.sqlite')),('automation',str(ROOT/'automation-journal.sqlite')),
+                          ('n8n',str(ROOT/'state/.n8n/database.sqlite')),('automation',str(ROOT/'automation-journal.sqlite')),('telegram-outbox',str(ROOT/'telegram-outbox.sqlite')),
                           ('feedback-review',str(Path(os.environ.get('APP_FEEDBACK_REVIEW_ROOT',str(Path(os.environ['APP_SQLITE_PATH']).parent/'feedback-review')))/'review.sqlite3'))]:
             path=Path(path)
             if not path.exists():continue
@@ -107,7 +116,8 @@ def backup():
                 info=tarfile.TarInfo(name+'.sqlite');info.size=len(content);tar.addfile(info,io.BytesIO(content))
             finally:
                 if temp.exists():temp.unlink()
-        for name,path in [('n8n-settings.json',ROOT/'settings.json'),('app-settings.json',Path(os.environ['APP_SQLITE_PATH']).parent/'settings.json'),
+        for name,path in [('n8n-settings.json',ROOT/'settings.json'),('telegram-settings.enc',ROOT/'telegram-settings.enc'),('app-settings.json',Path(os.environ['APP_SQLITE_PATH']).parent/'settings.json'),
+                          ('chat-handoff-settings.json',ROOT/'chat-handoff-settings.json'),('github-publication-settings.json',ROOT/'github-publication-settings.json'),
                           ('ai-settings.enc',Path(os.environ['APP_SQLITE_PATH']).parent/'ai-settings.enc')]:
             if path.exists():
                 content=path.read_bytes();info=tarfile.TarInfo(name);info.size=len(content);tar.addfile(info,io.BytesIO(content))
@@ -134,11 +144,14 @@ def backup():
 
 def run(name):
     if name not in JOBS:raise ValueError('Unsupported job')
-    with LOCK:
+    with JOB_LOCKS[name]:
         def feedback_review():
             import feedback_analysis
             return feedback_analysis.review()
-        result={'monitor':monitor,'backup':backup,'daily-report':report,'weekly-review':lambda:report(True),'readiness':readiness,'restore-check':lambda:reliability.restore(ROOT),'ai-tests':lambda:reliability.qa(ROOT),'feedback-analysis':feedback_review}[name]()
+        def telegram_dispatch():
+            import telegram_outbox
+            return telegram_outbox.dispatch(ROOT)
+        result={'monitor':monitor,'backup':backup,'daily-report':report,'weekly-review':lambda:report(True),'readiness':readiness,'restore-check':lambda:reliability.restore(ROOT),'ai-tests':lambda:reliability.qa(ROOT),'feedback-analysis':feedback_review,'telegram-dispatch':telegram_dispatch}[name]()
         if name=='restore-check':write_json(ROOT/'restore-status.json',result)
         return result
 
@@ -147,7 +160,12 @@ class Handler(BaseHTTPRequestHandler):
     def send(self,status,body):
         payload=json.dumps(body,ensure_ascii=False).encode();self.send_response(status)
         self.send_header('Content-Type','application/json; charset=utf-8');self.send_header('Cache-Control','no-store')
-        self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(payload)));self.end_headers();self.wfile.write(payload)
+        self.send_header('X-Content-Type-Options','nosniff');self.send_header('Content-Length',str(len(payload)))
+        try:
+            self.end_headers();self.wfile.write(payload)
+        except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError):
+            # Result is already committed to the journal; a retry can replay it.
+            pass
     def do_GET(self):
         if self.headers.get('Host') not in HOSTS:return self.send(403,{'error':'host'})
         if self.path=='/healthz':return self.send(200,{'ok':True,'service':'mama-automation','localOnly':True})

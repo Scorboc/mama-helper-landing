@@ -94,6 +94,27 @@ class AutomationTest(unittest.TestCase):
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:list(pool.map(lambda _:attempt(),range(4)))
         self.assertEqual(len(calls),1)
 
+    def test_failed_result_replays_without_repeating_work(self):
+        calls=[]
+        def action():calls.append(1);return {'ok':False,'error':'test-timeout'}
+        r=self.app.reliability
+        r.once(self.root,'failed-result-key','ai-tests',action)
+        result=r.once(self.root,'failed-result-key','ai-tests',action)
+        self.assertTrue(result['replayed']);self.assertFalse(result['ok'])
+        self.assertEqual(result['error'],'test-timeout');self.assertEqual(len(calls),1)
+
+    def test_slow_qa_does_not_block_monitor(self):
+        started=threading.Event();release=threading.Event()
+        def slow(_):started.set();release.wait(3);return {'ok':True}
+        with patch.object(self.app.reliability,'qa',side_effect=slow),patch.object(self.app,'monitor',return_value={'ok':True}):
+            worker=threading.Thread(target=lambda:self.app.run('ai-tests'));worker.start()
+            self.assertTrue(started.wait(1))
+            done=threading.Event()
+            check=threading.Thread(target=lambda:(self.app.run('monitor'),done.set()));check.start()
+            try:self.assertTrue(done.wait(.7),'monitor blocked by regression runner')
+            finally:release.set();worker.join();check.join()
+        self.assertIs(self.app.JOB_LOCKS['backup'],self.app.JOB_LOCKS['restore-check'])
+
     def test_restore_verifies_rows_and_keeps_original(self):
         with closing(sqlite3.connect(self.root/'accounts.sqlite3')) as db:
             db.execute('CREATE TABLE t(v TEXT)');db.execute("INSERT INTO t VALUES('synthetic')");db.commit()

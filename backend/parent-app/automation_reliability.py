@@ -19,7 +19,7 @@ def once(root,key,job,action):
         old=db.execute('SELECT job,state,result FROM runs WHERE k=?',(key,)).fetchone()
         if old:
             db.rollback()
-            if old[0]!=job or old[1]!='success':raise JobConflict('previous-job-needs-review')
+            if old[0]!=job or old[1] not in ('success','failed') or old[2] is None:raise JobConflict('previous-job-needs-review')
             return {**json.loads(old[2]),'replayed':True}
         db.execute('INSERT INTO runs VALUES(?,?,?,?,?)',(key,job,'running',None,int(time.time())));db.commit()
         try:
@@ -53,7 +53,7 @@ def restore(root):
     with tempfile.TemporaryDirectory(prefix='restore-drill-',dir=root) as folder, tarfile.open(fileobj=io.BytesIO(plain),mode='r:gz') as archive:
         manifest=json.load(archive.extractfile('manifest.json'))
         for name,digest in manifest['sha256'].items():
-            if name not in ('accounts','operations','ai-budget','n8n','automation','feedback-review'):raise ValueError('unexpected-database')
+            if name not in ('accounts','operations','ai-budget','n8n','automation','feedback-review','telegram-outbox'):raise ValueError('unexpected-database')
             member=archive.getmember(name+'.sqlite')
             if not member.isfile():raise ValueError('unexpected-member')
             content=archive.extractfile(member).read()
@@ -69,7 +69,12 @@ def restore(root):
 
 def qa(root):
     backend=Path(__file__).parent
-    modules=['test_age_logic','test_monthly_content','test_content_policy','test_prompt_policy','test_parent_support','test_chat_safety','test_chat_context','test_chat_freshness','test_expanded_chat_qa','test_ai_limits','test_profile_lock','test_sleep_diary','test_automation_bridge']
+    modules=['test_age_logic','test_monthly_content','test_content_policy','test_prompt_policy','test_parent_support','test_chat_safety','test_chat_context','test_chat_freshness','test_expanded_chat_qa','test_ai_limits','test_profile_lock','test_sleep_diary','test_automation_bridge','test_telegram_outbox']
+    modules.append('test_telegram_admin')
+    modules.append('test_telegram_tasks')
+    modules.extend(['test_telegram_reviews','test_telegram_publication'])
+    modules.append('test_telegram_billing')
+    modules.append('test_proxy_balance')
     modules=[m for m in modules if (backend/(m+'.py')).exists()]
     # Do not inherit production policy files, limits, provider or push switches.
     allowed={'SYSTEMROOT','WINDIR','PATH','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA','COMSPEC','PATHEXT'}
@@ -89,16 +94,28 @@ def guarded(self,address):
     if not isinstance(address,tuple) or address[0] not in ('127.0.0.1','localhost','::1'):raise RuntimeError('External network blocked during offline QA')
     return original(self,address)
 socket.socket.connect=guarded
-suite=unittest.defaultTestLoader.loadTestsFromNames(sys.argv[1:])
-result=unittest.TextTestRunner(verbosity=1).run(suite)
+loaded=unittest.defaultTestLoader.loadTestsFromNames(sys.argv[1:])
+def flatten(suite):
+    for test in suite:
+        if isinstance(test,unittest.TestSuite):yield from flatten(test)
+        else:yield test
+seen=set();unique=[];discovered=0
+for test in flatten(loaded):
+    discovered+=1
+    if test.id() not in seen:
+        seen.add(test.id());unique.append(test)
+print('MAMA_QA_DISCOVERY='+str(discovered)+',UNIQUE='+str(len(unique)),flush=True)
+result=unittest.TextTestRunner(verbosity=2).run(unittest.TestSuite(unique))
 print('MAMA_QA_SUMMARY='+str(result.testsRun)+','+str(len(result.failures))+','+str(len(result.errors)))
 sys.exit(not result.wasSuccessful())
 """
         try:
             proc=subprocess.run([sys.executable,'-c',code,*modules],cwd=isolated,env=env,capture_output=True,text=True,encoding='utf-8',timeout=240)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as exc:
             result={'ok':False,'checkedAt':int(time.time()),'mode':'offline-synthetic-regression','error':'test-timeout','paidCalls':0,'liveModelVerified':False}
             folder=root/'reports';folder.mkdir(exist_ok=True)
+            output=(exc.stdout or b'')+(exc.stderr or b'')
+            (folder/'ai-regression-latest.log').write_text(output.decode('utf-8',errors='replace') if isinstance(output,bytes) else output,encoding='utf-8')
             (folder/'ai-regression-latest.json').write_text(json.dumps(result),encoding='utf-8')
             return result
     match=re.search(r'MAMA_QA_SUMMARY=(\d+),(\d+),(\d+)',proc.stdout)

@@ -1,6 +1,6 @@
 {
   "id": "mamaLocal07",
-  "name": "MAMA 07 — Telegram администратора [НУЖНО ПОДКЛЮЧЕНИЕ]",
+  "name": "MAMA 07 — Telegram: ошибки, отчёты и предложения",
   "nodes": [
     {
       "id": "20ae9733-6498-46b6-8999-c5156b85affc",
@@ -24,11 +24,11 @@
       ],
       "parameters": {
         "method": "POST",
-        "url": "http://127.0.0.1:8792/jobs/readiness",
+        "url": "http://127.0.0.1:8792/jobs/telegram-dispatch",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
-          "timeout": 300000
+          "timeout": 60000
         },
         "sendHeaders": true,
         "headerParameters": {
@@ -60,7 +60,7 @@
         -290
       ],
       "parameters": {
-        "content": "## Только локально\nБаза и переписки не передаются внешним сервисам. Нет публикации кода, списания денег или назначения лечения.\nПроверка готовности: реальные подключения пока не настроены.",
+        "content": "## Только уведомления владельцу\nЛокальная очередь: ошибки, отчёты и обезличенные предложения. Токен зашифрован вне схемы. Переписка и сведения детей не отправляются. Неопределённая доставка не повторяется автоматически.",
         "height": 230,
         "width": 500
       }
@@ -76,6 +76,26 @@
       ],
       "parameters": {
         "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "bd39886c-71f5-4515-a818-809d67cc0740",
+      "name": "Проверить очередь каждые 10 секунд",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        320
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
       }
     }
   ],
@@ -101,15 +121,26 @@
           }
         ]
       ]
+    },
+    "Проверить очередь каждые 10 секунд": {
+      "main": [
+        [
+          {
+            "node": "Локальный проверенный процесс",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Saratov",
     "errorWorkflow": "mamaLocal18",
-    "saveDataSuccessExecution": "none",
-    "saveDataErrorExecution": "all"
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
   },
-  "active": false,
-  "description": "Локальный процесс MAMA с журналом повторов и обработкой ошибок. Сохраняет данные; не вызывает платный ИИ и не публикует изменения."
+  "active": true
 }
