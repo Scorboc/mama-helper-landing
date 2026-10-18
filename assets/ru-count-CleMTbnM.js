@@ -1,0 +1,1 @@
+var e=new Intl.PluralRules(`ru-RU`);function t(t,n,r,i){let a=e.select(t);return`${t} ${a===`one`?n:a===`few`?r:i}`}export{t};

@@ -1,0 +1,1 @@
+import{W as e,z as t}from"./index-DnGEw5Ym.js";import"./parent-api-jeQT7lBP.js";import{t as n}from"./Legal-BE72sVDd.js";var r=e(t());function i(){return(0,r.jsx)(n,{kind:`privacy`})}export{i as default};
