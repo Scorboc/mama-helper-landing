@@ -49,24 +49,31 @@ def game_constraints(question, messages=None):
         q=text.lower().replace('ё','е')
         if re.search(r'теперь (?:есть|можно использовать) (?:игруш|мяч|предмет)|игрушки появились',q):
             no_objects=False
-        if re.search(r'нет игруш|игрушек нет|без (?:игруш|предмет|материал)|ничего нет|нет материал',q):
+        if re.search(r'нет игруш|игрушек нет|без (?:игруш|предмет|материал)|ничего нет|нет материал|(?:предмет|материал|игруш)[^.!?]{0,60}недоступн',q):
             no_objects=True
-    return question+(' Без предметов и игрушек.' if no_objects else '')
+        if re.search(r'не подош|не подход',q) and re.search(r'тянет[^.!?]{0,40}в рот',q):
+            no_objects=True
+    rejected_sounds=any(re.search(r'(?:повторени\w* звук|звуков)[^.!?]{0,50}(?:не понрав|не нрав|надоел)',t.lower()) for t in texts)
+    return question+(' Без предметов и игрушек.' if no_objects else '')+(' Не хочу повторять звуки.' if rejected_sounds else '')
 
 
-def context(profile, question='', messages=None):
+def context(profile, question='', messages=None, compact=False):
     age=months(profile)
     if profile and profile.get('stage')=='pregnancy':
         return 'Активный профиль: беременность. Проверяй границы применимости по текущему сроку; не предполагай наличие родившегося ребёнка.'
     if age is None:return 'Точный возраст неизвестен. Персональные действия, зависящие от возраста, до уточнения не предлагать.'
     result=f'Точный возраст активного ребёнка: {age} полных месяцев. Для каждой рекомендации проверь ОБЕ границы: минимальный и максимальный возраст. Не расширяй диапазон из-за просьбы или старого контекста.'
     q=question.lower().replace('ё','е')
-    if re.search(r'развит|уход|гигиен|зуб|горш|мыть|умыван',q) and not re.search(r'просто поговорить|не хочу.*(?:совет|план)',q):
+    if not compact and re.search(r'развит|уход|гигиен|зуб|горш|мыть|умыван',q) and not re.search(r'просто поговорить|не хочу.*(?:совет|план)',q):
         tips=[{k:c[k] for k in ('title','text','minMonths','maxMonths')} for c in catalog.monthly.advice(age) if c['section']!='Советы педиатров']
         result+='\nРедакционная подборка на текущий месяц. Используй только если соответствует вопросу; не выдавай за обязательные навыки или процедуры: '+json.dumps(tips,ensure_ascii=False)
-    if game_request(q):
+    if game_intent(q,messages):
         pool=eligible_games(profile,game_constraints(q,messages),messages)
+        if compact:pool=pool[:4]  # A small eligible choice, never clipped instructions.
         outlines=[dict({k:g[k] for k in ('id','baseId','title','minMonths','maxMonths','goal','steps','materials')}, ageLabel=age_label(g)) for g in pool]
+        if compact:
+            for outline in outlines:outline.pop('steps',None)
+            result+='\nВ сокращённом каталоге выбери название; проверенные шаги добавит приложение. Не придумывай шаги.'
         result+='\nДля игрового запроса выбери подходящий вариант из этого каталога. Название и возрастные границы сохраняй. maxMonths — служебный предел; в ageLabel уже записан последний допустимый полный месяц включительно. Если называешь диапазон возраста, копируй только ageLabel дословно, без оговорок: не переводи месяцы в годы и десятичные числа. Соблюдай ограничения вопроса и не возвращай отвергнутую механику. Если ничего не подходит, уточни конкретное препятствие. Каталог: '+json.dumps(outlines,ensure_ascii=False)
     return result
 
@@ -76,8 +83,29 @@ def game_request(question):
     if re.search(r'(?:можно|стоит|нужно|надо)\s+(?:ли\s+)?предложить\s+(?:ребенку|ему|ей)[^.!?\n]{0,180}(?:заняться тем|параллельн|то же)',q):return False
     return bool(re.search(r'\bигр(?!уш)\w*|поигра|заняти|занять|рисов|сенсорн\w*\s+короб|голосом|жестами|материал|механик|повторять вчера|выбрать иную|вместо лечебного массажа',q))
 
+def game_safety_question(question):
+    q=str(question or '').lower().replace('ё','е')
+    return bool(re.search(r'исключить|избегать|опасн|безопасн|можно ли|почему нельзя',q) and re.search(r'игр|занят|предмет|детал|тянет|бусин|магнит|батарей',q))
+
+def game_intent(question,messages=None):
+    """A short refusal belongs to the current game exchange, not every old game."""
+    q=str(question or '').lower().replace('ё','е')
+    if re.search(r'просто поговор|не нрав\w* совет|не (?:нужны|хочу) совет|без совет|для мамы|мне[^.!?]{0,30}(?:тревож|груст|плохо)',q):return False
+    if game_safety_question(q):return False
+    if game_request(q):return True
+    if not re.search(r'не подход|не подош|не нрав|надоел|недоступн|без предмет|без игруш|мелкие предмет|предлож\w* друг|друг\w* вариант|еще вариант',q):return False
+    for m in reversed((messages or [])[-12:]):
+        if m.get('role')!='user' or m.get('text')==question:continue
+        text=str(m.get('text',''))
+        if game_request(text) and not game_safety_question(text):return True
+        if not re.search(r'не подход|не подош|не нрав|надоел|недоступн|без предмет|без игруш|мелкие предмет|предлож\w* друг|друг\w* вариант|еще вариант',text,re.I):return False
+    return False
+
 def eligible_games(profile,question,messages=None):
     q=question.lower().replace('ё','е');pool=catalog.candidates(months(profile))
+    if re.search(r'картонн\w* короб|из короб',q):pool=[g for g in pool if 'короб' in g['materials'].lower()]
+    if re.search(r'игр\w* с картин|игр\w*[^.!?]{0,30}картинк',q):pool=[g for g in pool if re.search(r'картин|книг',g['materials'].lower())]
+    if 'не хочу повторять звуки' in q:pool=[g for g in pool if g['baseId'] not in ('animal-voice','sound-dialogue','two-sounds','sound-answer','word-sound')]
     if re.search(r'без (?:игруш|предмет|материал)|нет игруш|игрушек нет|нет материал|ничего нет|голосом и жест',q):pool=[g for g in pool if g['materials']=='Ничего']
     if (profile or {}).get('health') or re.search(r'не ходит|не сидит|не ползает|вместо лечебного массажа',q):pool=[g for g in pool if g['area'] not in ('Движение','Координация')]
     if re.search(r'ку-ку[^.!?]{0,30}(?:надоел|не нрав|не хочу)|(?:надоел|не хочу)[^.!?]{0,30}ку-ку',q):pool=[g for g in pool if 'peek' not in g['baseId']]
@@ -85,10 +113,20 @@ def eligible_games(profile,question,messages=None):
     if re.search(r'вкладыван[^.!?]{0,60}(?:надоел|не нрав)|не хочу[^.!?]{0,40}вклады',q):pool=[g for g in pool if g['baseId']!='box-delivery']
     if re.search(r'тих\w* игр|спокойн\w* игр|перед сном|перед засып',q):
         pool=[g for g in pool if g['area'] not in ('Движение','Координация')]
-    if re.search(r'надоел|не нрав|не подход|не хочу повтор|друг\w* механик',q):
+    if re.search(r'надоел|не нрав|не подход|не подош|не хочу повтор|друг\w* механик',q):
         previous=next((str(m.get('text','')) for m in reversed(messages or []) if m.get('role')=='assistant'),'')
         used={g['baseId'] for g in catalog.candidates(months(profile)) if game_named(g['title'],previous)}
         pool=[g for g in pool if g['baseId'] not in used]
+    # Keep all explicit rejections in the recent game exchange, not only the last.
+    previous='';rejected=set()
+    for message in (messages or [])[-30:]:
+        text=str(message.get('text',''));lower=text.lower().replace('ё','е')
+        if message.get('role')=='assistant':previous=text
+        elif re.search(r'надоел|не нрав|не понрав|не подход|не подош|недоступн|не хочу повтор|друг\w* механик',lower):
+            rejected.update(g['baseId'] for g in catalog.candidates(months(profile)) if game_named(g['title'],previous))
+        elif not game_request(text):
+            rejected.clear();previous=''
+    pool=[g for g in pool if g['baseId'] not in rejected]
     return pool
 
 def game_named(title, answer):
@@ -99,16 +137,19 @@ def game_named(title, answer):
 def render_game_answer(answer,profile,question,messages=None):
     """The model selects a reviewed title; game steps come only from the catalogue."""
     q=question.lower().replace('ё','е')
+    if game_safety_question(q):return answer
     if re.search(r'температур|лихорад|рвот|вялый|болен|задыха|судорог|сейчас[^.!?]*болит',q):
         return answer  # A game renderer must never replace illness guidance with play.
+    if re.search(r'уже пробовал\w*[^.!?]{0,40}игр',q) and not re.search(r'друг|замен|иначе',q):
+        return 'Как прошла игра и что именно хочется изменить — сложность, материалы или само действие?'
     if re.search(r'магнит|батарей|бусин|воздушн\w* шар|мелк\w* детал|безопасн\w* игров\w* мест|мест\w* для игр',q):
         return answer  # Preserve the actual safety question and its warning.
     named_game=any(game_named(g['title'],answer) for g in catalog.candidates(months(profile))) if months(profile) is not None else False
-    explicit=bool(re.search(r'предлож|придум|подбер|выбер|игровой способ|во что|чем занять|что можно делать|нужна.*игр|какие.*игр|новая игра|дай.*игр|игр\w*\s+вместо|вместо лечебного массажа',q))
+    explicit=bool(re.search(r'предлож|придум|подбер|выбер|игровой способ|во что|чем занять|что можно (?:сделать|делать)|(?:нужна|хочу|хочется).*игр|какие.*игр|новая игра|дай.*игр|игр\w*\s+вместо|вместо лечебного массажа',q))
     previous=[str(m.get('text','')) for m in (messages or [])[-30:] if m.get('role')=='user' and m.get('text')!=question]
-    followup=bool(re.search(r'надоел|не нрав|не подход|друг\w*|механик|материал|без игруш|нет игруш',q)) and any(game_request(text) for text in previous)
+    followup=bool(re.search(r'надоел|не нрав|не понрав|не подход|не подош|недоступн|друг\w*|механик|материал|без игруш|нет игруш',q)) and any(game_request(text) for text in previous)
     # A named game in an answer does not make a behavioural question a game request.
-    direct=game_request(q) and (explicit or followup)
+    direct=game_intent(q,messages) and (explicit or followup or not game_request(q))
     if not direct:return answer
     if months(profile) is None:
         if (profile or {}).get('stage')=='pregnancy':
@@ -118,16 +159,23 @@ def render_game_answer(answer,profile,question,messages=None):
     pool=eligible_games(profile,q,messages)
     selected=[g for g in pool if game_named(g['title'],answer)][:3]
     if not selected:
-        if not named_game and re.search(r'уточн|есть ли[^?]*\?|умеет ли[^?]*\?|что именно[^?]*\?',answer,re.I):return answer
-        if not pool:return 'Для указанных условий в проверенном каталоге пока нет подходящего занятия. Что именно нужно изменить в условиях игры?'
+        if not pool and re.search(r'игр\w* с картин|игр\w*[^.!?]{0,30}картинк',q):
+            return 'В проверенной подборке для текущего возраста пока нет игры именно с картинками. Не буду выдавать другую механику за ваш запрос. Можно выбрать занятие без предметов, если вам подойдёт такой вариант.'
+        if not pool and re.search(r'картонн\w* короб|из короб',q):
+            return 'Для игры именно с картонной коробкой на текущий месяц в проверенной подборке нет подходящего варианта. Не буду придумывать занятие без проверки возрастных условий. Можно выбрать занятие без предметов или с другими доступными вещами.'
+        if not pool:return 'Для этих условий в проверенной подборке пока нет другой подходящей игры. Сохраню ваши ограничения: не буду повторять отвергнутые действия или предлагать недоступные материалы.'
         selected=pool[:1]
     intro=('Лечебный массаж назначает врач по показаниям. Возраст сам по себе не требует такой процедуры. '
            'Для обычного общения можно выбрать короткую игру без требования ходить или сидеть.\n\n' if 'вместо лечебного массажа' in q else '')
+    if re.search(r'мне[^.!?]{0,25}скучно|самой скучно',q):
+        intro+='Не обязательно долго развлекать ребёнка. Можно попробовать по одной короткой реплике или действию с вашей стороны и закончить, если вам скучно.\n\n'
     if re.search(r'сейчас спит|малыш спит|новорожденн\w*[^.!?]{0,25}спит',q):
         intro+='Не будите ребёнка ради игры. Следующие варианты — для спокойного бодрствования, когда он сам проснётся.\n\n'
     if re.search(r'врач|педиатр|оценк\w* слух|обследован',q) and re.search(r'вместо|замен|отмен',q):
         intro+='Игры не заменяют предложенную врачом оценку или лечение. Сохраните его рекомендации; следующие варианты — только обычное общение, если оно сейчас подходит ребёнку.\n\n'
-    if re.search(r'надоел|не нрав|друг\w* механик',q):
+    if re.search(r'тянет[^.!?]{0,40}в рот',q) and all(g['materials']=='Ничего' for g in selected):
+        intro+='Вы написали, что ребёнок тянет предметы в рот, поэтому выберем игру без предметов.\n\n'
+    elif re.search(r'надоел|не нрав|не подош|не подход|друг\w* механик',q):
         intro+='Вы написали, что прежняя механика не подходит или надоела, поэтому выберем другое действие.\n\n'
     if re.search(r'нет материал|без (?:предмет|игруш|материал)|голосом и жест',q):intro+='Эти варианты не требуют дополнительных предметов.\n\n'
     return intro+'\n\n'.join(f'**«{g["title"]}»**\nЦель: {g["goal"]}\nНужно: {g["materials"]}.\n'+'\n'.join(g['steps']) for g in selected)
@@ -189,12 +237,14 @@ def other_profile_reference(text, allow_observation=False, allow_social=False):
         return False  # An illustrated social cue, never an alternate input profile.
     if allow_social and re.search(r'(?:интерес|наблюда|подражан|взгляд|игра|общени|контакт)[^.!?\n]{0,90}друг(?:ой|ого|ому|им)\s+ребен',q) and not re.search(r'питан|корм|смес|препарат|болит|температур|леч|диагноз|назнач|доз|возраст',q):
         return False  # Interest in peers is about the active child's social behaviour.
+    if allow_social and re.search(r'очеред|взять|игруш|играет|подел|делит|машин|попрос|передать|совместн|договор',q) and not re.search(r'питан|корм|смес|препарат|болит|температур|леч|диагноз|назнач|доз|возраст',q):
+        return False  # Another participant in sharing/turn-taking, not a care profile.
     social=re.search(r'(?:бьет|ударил|ударяет|толкает|кусает|играет с|ссорится с)[^.!?\n]{0,50}друг(?:ого|ому|им)\s+ребен|(?:предложить|предложите|помогите)\s+(?:ребенку|ему|ей)[^.!?\n]{0,100}(?:занят|делает|играет)\s+другой\s+ребен',q)
     return not (social and social.start()<other.start())
 
 
 def clean(answer, profile=None, question=None):
-    social_context=bool(question and profile and profile_scope_reply(question,profile) is None and re.search(r'общени|сверстник',question,re.I))
+    social_context=bool(question and profile and profile_scope_reply(question,profile) is None and re.search(r'общени|сверстник|делит\w* игруш|делиться|очеред|жаднича',question,re.I))
     # Internal diary names belong to the evidence record, not the parent's reply.
     fields={'recordedSleepMinutesTotal':'отмеченная длительность сна за период',
             'recordedIntervalMinutes':'длительность отмеченного сна',

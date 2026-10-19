@@ -4,9 +4,9 @@ import json
 import re
 from pathlib import Path
 
-VERSION = 'mama-reviewed-20261013-v13'
+VERSION = 'mama-reviewed-20261017-v15'
 DIRECTORY = Path(__file__).with_name('prompts')
-MANIFEST = json.loads((DIRECTORY / 'reviewed-20261013-v13.json').read_text(encoding='utf-8'))
+MANIFEST = json.loads((DIRECTORY / 'reviewed-20261017-v15.json').read_text(encoding='utf-8'))
 
 
 def approved_part(name):

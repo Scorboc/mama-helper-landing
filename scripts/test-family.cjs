@@ -2,11 +2,16 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
-function load(file) {
-  const filename = path.resolve(__dirname, '../src/lib', file + '.ts');
+const modules = new Map();
+function load(file, parent = path.resolve(__dirname, '../src/lib/entry.ts')) {
+  const resolved = path.resolve(path.dirname(parent), file);
+  const filename = path.extname(resolved) ? resolved : resolved + '.ts';
+  if (modules.has(filename)) return modules.get(filename).exports;
+  if (filename.endsWith('.json')) return JSON.parse(fs.readFileSync(filename, 'utf8'));
   const code = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
   const result={exports:{}};
-  new Function('require','module','exports',code)(name=>load(name.replace('./','')),result,result.exports);
+  modules.set(filename,result);
+  new Function('require','module','exports',code)(name=>load(name,filename),result,result.exports);
   return result.exports;
 }
 const {emptyState,defaultProfile}=load('parent-model');

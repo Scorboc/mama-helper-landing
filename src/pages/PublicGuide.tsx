@@ -26,7 +26,7 @@ export default function PublicGuide() {
   const articleIndex=slug?slugs.indexOf(slug):-1;
   const [start,setStart]=useState(''), [end,setEnd]=useState(''), [nextDay,setNextDay]=useState(false);
   const [episodes,setEpisodes]=useState<number[]>([]), [error,setError]=useState('');
-  useEffect(()=>{const old=document.title;document.title=(articleIndex>=0?articles[articleIndex][0]:'Дневник ухода: понятные шаги')+' — MAMA Helper';return()=>{document.title=old;};},[articleIndex]);
+  useEffect(()=>{const old=document.title;document.title=(articleIndex>=0?articles[articleIndex][0]:'Дневник ухода: понятные шаги')+' — Мамин помощник';return()=>{document.title=old;};},[articleIndex]);
   function add() {
     const minutes=(v:string)=>Number(v.slice(0,2))*60+Number(v.slice(3));
     const span=minutes(end)+(nextDay?1440:0)-minutes(start);
@@ -34,7 +34,7 @@ export default function PublicGuide() {
     setEpisodes([...episodes,span]);setError('');setStart('');setEnd('');setNextDay(false);
   }
   return <main className="public-page mx-auto max-w-3xl px-4 py-8">
-    <nav className="flex justify-between gap-4 mb-8"><Link to="/">MAMA Helper</Link><Link to="/first-aid">Срочная помощь · 112</Link></nav>
+    <nav className="flex justify-between gap-4 mb-8"><Link to="/">Мамин помощник</Link><Link to="/first-aid">Срочная помощь · 112</Link></nav>
     {slug ? <><Link className="standalone-link" to="/guide">Все полезные материалы</Link><h1 className="text-3xl my-6">{articleIndex>=0?articles[articleIndex][0]:'Материал не найден'}</h1><p className="leading-relaxed">{articleIndex>=0?articles[articleIndex][1]:'Вернитесь к списку и выберите материал.'}</p><Link className="standalone-link mt-6" to="/account">Открыть свой кабинет</Link></> : <>
     <h1 className="text-3xl mb-4">Забота без лишних шагов</h1>
     <p className="mb-6">Короткие инструкции по дневнику, общению и совместному уходу. Это информационные материалы, не медицинские назначения.</p>
@@ -46,7 +46,7 @@ export default function PublicGuide() {
       {episodes.map((n,i)=><div className="flex justify-between items-center" key={i}><span>Эпизод {i+1}: {n} мин.</span><Button variant="ghost" aria-label={`Удалить эпизод ${i+1}`} onClick={()=>setEpisodes(episodes.filter((_,j)=>j!==i))}>Удалить</Button></div>)}
     </section>
     {articles.map(([title,text],i)=><details className="sleep-section mb-4" id={`guide-${i+1}`} key={title}><summary>{title}</summary><p className="leading-relaxed mt-3">{text}</p><Link className="standalone-link" to={'/guide/'+slugs[i]}>Открыть отдельную страницу</Link></details>)}
-    <Link className="standalone-link" to="/account">Перейти в MAMA Helper</Link>
+    <Link className="standalone-link" to="/account">Перейти в Мамин помощник</Link>
     </>}
   </main>;
 }

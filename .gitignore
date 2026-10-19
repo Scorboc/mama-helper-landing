@@ -53,3 +53,10 @@ outputs/
 *.p12
 *.pfx
 *-private.json
+
+# Retired design experiments and private credential recovery notes
+design-prototype*/
+preview-room/
+preview-room-v2/
+nursery-preview*/
+docs/ai/VM_KEYS_RECOVERY_20261012.md

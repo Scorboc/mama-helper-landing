@@ -1,4 +1,4 @@
-import importlib.util, io, json, os, sqlite3, tarfile, tempfile, threading, unittest, urllib.request, urllib.error
+import importlib.util, io, json, os, sqlite3, subprocess, sys, tarfile, tempfile, threading, unittest, urllib.request, urllib.error
 from pathlib import Path
 from contextlib import closing
 from unittest.mock import patch
@@ -37,6 +37,33 @@ class AutomationTest(unittest.TestCase):
         with tarfile.open(fileobj=io.BytesIO(Fernet(self.key).decrypt(encrypted)),mode='r:gz') as tar:
             self.assertIn('accounts.sqlite',tar.getnames());self.assertIn('manifest.json',tar.getnames())
         self.assertEqual(original,(self.root/'accounts.sqlite3').read_bytes());self.assertTrue(result['verified'])
+    def test_backup_recovers_hot_journal_without_committing_interrupted_changes(self):
+        source=self.root/'automation-journal.sqlite'
+        code="""import os,sqlite3,sys
+db=sqlite3.connect(sys.argv[1]);db.execute('PRAGMA cache_size=5');db.execute('PRAGMA synchronous=FULL')
+db.execute('CREATE TABLE sample(id INTEGER PRIMARY KEY,value TEXT)')
+db.executemany('INSERT INTO sample VALUES(?,?)',((i,'committed-'+('x'*1000)) for i in range(120)));db.commit()
+db.execute('BEGIN IMMEDIATE');db.execute("UPDATE sample SET value='uncommitted-'+value")
+os._exit(0)
+"""
+        subprocess.run([sys.executable,'-c',code,str(source)],check=True)
+        with closing(sqlite3.connect(source.resolve().as_uri()+'?mode=ro',uri=True)) as db:
+            with self.assertRaises(sqlite3.OperationalError) as error:db.execute('SELECT COUNT(*) FROM sample').fetchone()
+            self.assertEqual(error.exception.sqlite_errorcode,sqlite3.SQLITE_READONLY_ROLLBACK)
+        with patch.object(self.app.ai_budget,'location',return_value=self.root/'absent-budget.sqlite'):
+            result=self.app.backup()
+        self.assertTrue(result['verified'])
+        restored=self.app.reliability.restore(self.root)
+        self.assertEqual(restored['databases']['automation']['rows'],120)
+        with closing(sqlite3.connect(source)) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM sample WHERE value LIKE 'committed-%'").fetchone()[0],120)
+            self.assertEqual(db.execute('PRAGMA integrity_check').fetchone()[0],'ok')
+
+    def test_snapshot_does_not_create_a_missing_source(self):
+        source=self.root/'missing.sqlite'
+        with self.assertRaises(sqlite3.OperationalError):self.app.snapshot_database(source,self.root/'snapshot.sqlite')
+        self.assertFalse(source.exists())
+
     def test_http_auth_origin_and_payload_guards(self):
         # Existing endpoint protection remains mandatory for feedback jobs too.
         server=self.app.ThreadingHTTPServer(('127.0.0.1',0),self.app.Handler)

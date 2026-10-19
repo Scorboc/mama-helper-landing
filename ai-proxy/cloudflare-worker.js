@@ -1,5 +1,5 @@
 import { validateCare, CARE_RULES } from './services.js';
-const ORIGIN = "https://mama-helper-landing--preview.poehali.dev",
+const ORIGIN = "http://127.0.0.1:5173",
   COOKIE = "mh_session",
   enc = new TextEncoder();
 export default {

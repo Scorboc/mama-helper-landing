@@ -116,9 +116,10 @@
     "executionOrder": "v1",
     "timezone": "Europe/Saratov",
     "errorWorkflow": "mamaLocal18",
-    "saveDataSuccessExecution": "none",
-    "saveDataErrorExecution": "all"
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
   },
-  "active": false,
-  "description": "Локальный процесс MAMA с журналом повторов и обработкой ошибок. Сохраняет данные; не вызывает платный ИИ и не публикует изменения."
+  "description": "Локальный процесс MAMA с журналом повторов и обработкой ошибок. Сохраняет данные; не вызывает платный ИИ и не публикует изменения.",
+  "active": false
 }

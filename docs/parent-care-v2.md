@@ -31,4 +31,4 @@ Worker deployment runs safeguard tests before publishing. Test mocks verify logi
 - Internet search, vetted clinical retrieval, background push and payments are not enabled by this change.
 - Before public launch: confirm personal-data handling, provider terms, consent wording and retention policies with appropriate specialists; do not collect real health records during the shared-account test.
 - General safety gates cannot guarantee all unsafe outputs are caught. Paragraphs may appear before the full answer completes; on error the temporary answer is removed.
-- Frontend is published through Poehali; GitHub Worker deployment alone does not publish the website UI.
+- Frontend is published separately from the API; GitHub Worker deployment alone does not publish the website UI.

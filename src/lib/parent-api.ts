@@ -437,6 +437,7 @@ export async function streamChat(
   onText: (text: string) => void,
 ): Promise<{
   answer: string;
+  transientAnswer?: boolean;
   state: ParentState;
   revision: number;
   quota?: Quota;

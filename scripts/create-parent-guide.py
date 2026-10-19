@@ -11,7 +11,7 @@ from reportlab.graphics.shapes import Drawing
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'public/mamin-pomoshchnik-new-features.pdf'
-URL='https://mama-helper-landing--preview.poehali.dev/'
+URL='http://127.0.0.1:5173/'
 pdfmetrics.registerFont(TTFont('DV','/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
 pdfmetrics.registerFont(TTFont('DVB','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'))
 PURPLE=HexColor('#6338C7'); DARK=HexColor('#32224F'); MUTED=HexColor('#676075'); BG=HexColor('#F7F4FC')

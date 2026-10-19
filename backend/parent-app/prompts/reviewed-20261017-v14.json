@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261017-v14",
+  "approvedAt": "2026-10-17",
+  "approval": "Owner explicitly authorized fixing all benchmark findings and connecting rules locally.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261017-v14.md",
+      "sha256": "4b8cc74790253576628b0709488b9a516d706b128d50818d33e969bb762e506f"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261013-v10.md",
+      "sha256": "9f864e7d72201619137e52c1e46f28e825b1201e499ba2c675f4897342a29b2f"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261013-v9.md",
+      "sha256": "e15cf84d401e4a7654c9827cf3d435008ce3579801cbf05222357b9ac83ddff4"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261017-v14.md",
+      "sha256": "53204ba981c9d6294aa8dfc20fae48dc237d4863dbaf725deae3c6fbd3d9e4a1"
+    }
+  }
+}

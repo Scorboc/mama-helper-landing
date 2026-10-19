@@ -79,6 +79,8 @@ export default function ParentServices({state,busy,save,ask,onProfile}:Props){
  useEffect(()=>{
   if(!p||busy||care.tasks.some(t=>t.id.startsWith(`day-${day}-`)))return;
   void generateDay();
+ // The plan is generated once per day and per profile stage; generateDay reads the same values.
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  },[p?.stage,p?.birthDate,p?.week,p?.weekDate,day,care.tasks,busy]);
  async function addIdea(item:CareTask){
   if(care.tasks.some(t=>t.id===item.id))return;

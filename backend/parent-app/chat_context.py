@@ -27,7 +27,11 @@ def recent_relevant_notes(state,question):
         text=str(n.get('text','')).lower()
         important=bool(re.search(r'аллерг|реакц|противопоказ|назнач|лекар|не перенос|нельзя',text))
         return (important,any(w in text for w in words),n.get('date',''))
-    return sorted(notes,key=rank,reverse=True)[:4]
+    ranked=sorted(notes,key=rank,reverse=True)
+    relevant=[n for n in ranked if rank(n)[0] or rank(n)[1]]
+    # At the final reduction stage keep safety/relevant notes; an unrelated old
+    # observation does not deserve the same space as an allergy or current facts.
+    return relevant[:4] if relevant else ranked[:1]
 
 def compact_daily(text):
     try:

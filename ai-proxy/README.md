@@ -3,15 +3,15 @@
 Cloudflare Worker proxy for CheapAI.
 
 Why it exists:
-- Poehali cloud functions currently time out on direct network calls to https://cheapai.io.
+- Legacy cloud functions currently time out on direct network calls to https://cheapai.io.
 - The main backend can point to this worker through the server secret CHEAPAI_API_URL.
 - CheapAI key stays outside the browser and outside GitHub.
 
 Worker secrets:
 - CHEAPAI_API_KEY: real CheapAI key.
-- PROXY_TOKEN: random long token shared only with Poehali backend.
+- PROXY_TOKEN: random long token shared only with MAMA backend.
 
-Poehali backend secrets after deploy:
+MAMA backend secrets after deploy:
 - CHEAPAI_API_URL=https://your-worker.workers.dev
 - CHEAPAI_PROXY_TOKEN=<same PROXY_TOKEN>
 

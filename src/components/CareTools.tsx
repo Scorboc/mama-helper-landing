@@ -266,6 +266,8 @@ export default function CareTools({
     return () => {
       drafts[draftKey] = lastDraft.current;
     };
+  // The draft store is shared and keyed by draftKey; only a key change should re-seed the form.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftKey]);
   function changePanel(id: string) {
     drafts[draftKey] = lastDraft.current;
@@ -344,8 +346,12 @@ export default function CareTools({
     onMood("");
     void load();
     return () => {
+      // Invalidate in-flight loads for the previous context. Reading the counter here is intended.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       scope.current++;
     };
+  // load is recreated every render; listing it would reset the list on each render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextKey]);
   useEffect(() => {
     if (!active || !panel) return;
@@ -361,6 +367,8 @@ export default function CareTools({
       window.removeEventListener("care-records-changed", update);
       document.removeEventListener("visibilitychange", update);
     };
+  // load is recreated every render; the poll re-runs on context, panel and visibility changes only.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextKey, panel, active]);
   useEffect(() => {
     void families();
@@ -407,6 +415,14 @@ export default function CareTools({
     });
   }
   const records = listing?.records || [];
+  const moodRecords = own ? records.filter(r => r.kind === "mood").sort((a, b) => Date.parse(b.at) - Date.parse(a.at)) : [];
+  const latestMood = moodRecords[0];
+  const moodDate = (at: string) => new Intl.DateTimeFormat("ru-RU", {
+    timeZone: state.preferences.timezone || "Europe/Moscow", dateStyle: "medium", timeStyle: "short",
+  }).format(new Date(at));
+  const localDay = (at: string | number) => new Intl.DateTimeFormat("en-CA", {
+    timeZone: state.preferences.timezone || "Europe/Moscow", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(at));
   const child = listing?.profile.stage === "child";
   const feedingTimer = records.find(
     (r) => r.kind === "feeding" && r.value === "Таймер кормления" && !r.end,
@@ -631,18 +647,30 @@ export default function CareTools({
         {panel === "mood" && own && (
           <>
             <p>Как вы сегодня? Запись видна только вам.</p>
+            {latestMood ? <p role="status">Последняя отметка: <strong>{moods[latestMood.value || ""] || latestMood.value}</strong> · {moodDate(latestMood.at)}</p> : <p>Пока нет отметок самочувствия.</p>}
             <div className="flex gap-2 flex-wrap">
               {Object.entries(moods).map(([id, label]) => (
                 <Button
                   key={id}
                   disabled={busy}
                   variant="outline"
+                  aria-pressed={!!latestMood && localDay(latestMood.at) === localDay(now) && latestMood.value === id}
                   onClick={() => void add("mood", { value: id })}
                 >
                   {label}
                 </Button>
               ))}
             </div>
+            {moodRecords.length > 0 && <details className="mt-4">
+              <summary className="cursor-pointer py-3 font-semibold">История самочувствия</summary>
+              <ol aria-label="История самочувствия">
+                {moodRecords.slice(0, 60).map(record => <li key={record.id} className="border-b py-3">
+                  <strong>{moods[record.value || ""] || record.value}</strong> · <time dateTime={record.at}>{moodDate(record.at)}</time>
+                  {record.note && <p>{record.note}</p>}
+                </li>)}
+              </ol>
+              {moodRecords.length > 60 && <p className="text-sm muted">Показаны последние 60 отметок. Полная история доступна в выгрузке данных.</p>}
+            </details>}
           </>
         )}
         {panel === "mood" && !own && (

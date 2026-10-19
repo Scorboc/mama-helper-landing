@@ -39,10 +39,6 @@ html { scrollbar-color: hsl(var(--muted-foreground) / .5) hsl(var(--background))
 .parent-workspace .cabinet-header { margin: 0 auto 12px; background: hsl(var(--card)); border-color: hsl(var(--border)); box-shadow: none; backdrop-filter: none; }
 .parent-workspace .cabinet-header a { min-height: 44px; }
 .parent-workspace .cabinet-header > div:last-child button { min-width: 44px; width: 44px; }
-.parent-workspace .cabinet-tabs > button[data-state=active] {
-  background: hsl(var(--primary) / .09) !important; color: hsl(var(--primary)) !important;
-}
-.parent-workspace .cabinet-tabs > button { padding: 4px 1px; }
 .parent-workspace .care-journal summary:not(.sr-only), .parent-workspace details > summary:not(.sr-only) {
   min-height: 44px; padding-top: 12px; padding-bottom: 12px; cursor: pointer;
 }
@@ -91,10 +87,9 @@ html { scrollbar-color: hsl(var(--muted-foreground) / .5) hsl(var(--background))
 .chat-quick-care__manual input[aria-invalid=true] { border-color: hsl(var(--destructive)); }
 .chat-quick-care__manual .chat-quick-care__validation { color: hsl(var(--destructive)); }
 .chat-quick-care__manual input { color-scheme: light; }
-.dark .chat-quick-care__manual input { color-scheme: dark; }
 .chat-workspace:has(.chat-quick-care__manual) .chat-composer { display: flex; justify-content: center; padding: 4px 12px; }
 .chat-workspace:has(.chat-quick-care__manual) .chat-composer > :not(.chat-emergency-link) { display: none; }
-@media (min-width: 640px) { .chat-quick-care__times { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 640px) { .chat-quick-care__times { grid-template-columns: repeat(2, minmax(0, 1fr)); }}
 .tracker-dock { background: hsl(var(--card)); }
 .tracker-content:focus-visible { outline-offset: -4px; }
 .public-page { width: min(100%, 800px); min-height: 100dvh; margin: 0 auto; padding: 24px 20px 40px; background: hsl(var(--background)); color: hsl(var(--foreground)); line-height: 1.65; }
@@ -134,13 +129,11 @@ html { scrollbar-color: hsl(var(--muted-foreground) / .5) hsl(var(--background))
   .parent-workspace .cabinet-header .brand-theme { gap: 4px; }
   .parent-workspace .cabinet-header .site-logo { height: 30px; }
   .first-aid-urgent { padding: 20px; }
-  .chat-composer { width: calc(100% - 16px); padding: 8px; }
-}
+  .chat-composer { width: calc(100% - 16px); padding: 8px; }}
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   [role=dialog], [role=dialog] * { animation: none !important; transition: none !important; }
-  .landing-page :is(a, article, .group > span) { transition: none; transform: none; }
-}
+  .landing-page :is(a, article, .group > span) { transition: none; transform: none; }}
 .chat-daily-actions { margin-bottom: 16px; }
 .chat-daily-actions .chat-quick-care { margin-top: 0; scroll-margin-top: 12px; background: hsl(var(--card)); }
 .chat-daily-actions .quick-care-profile { flex: 1 1 100%; justify-content: flex-start; text-align: left; padding-left: 0; color: hsl(var(--foreground)); }

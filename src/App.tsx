@@ -7,6 +7,11 @@ import { Component, lazy, Suspense, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import PublicFirstAid from "./pages/PublicFirstAid";
 import FirstAid from "@/components/FirstAid";
+import RoomTransition from "@/components/RoomTransition";
+import RoomSurface from "@/components/RoomSurface";
+import RoomPageShell from "@/components/RoomPageShell";
+import RoomMediaProvider from "@/components/RoomMediaProvider";
+import "@/components/room-guest.css";
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Account = lazy(() => import("./pages/Account"));
@@ -18,10 +23,10 @@ const DataRights = lazy(() => import("./pages/DataRights"));
 const PublicGuide = lazy(() => import("./pages/PublicGuide"));
 
 function OpeningPage() {
-  return <main className="public-page route-message" aria-busy="true">
+  return <RoomSurface><main className="public-page route-message" aria-busy="true">
     <p role="status">Открываем страницу…</p>
     <Link className="standalone-link" to="/first-aid">Срочная помощь · 112</Link>
-  </main>;
+  </main></RoomSurface>;
 }
 
 class PageBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -29,7 +34,7 @@ class PageBoundary extends Component<{ children: ReactNode }, { failed: boolean 
   static getDerivedStateFromError() { return { failed: true }; }
   render() {
     if (!this.state.failed) return this.props.children;
-    return <main className="public-page route-message">
+    return <RoomSurface><main className="public-page route-message">
       <h1>Не удалось открыть страницу</h1>
       <p role="alert">Проверьте соединение и попробуйте обновить страницу. Сохранённые записи остаются в аккаунте.</p>
       <button className="glass-btn px-5 py-3" onClick={() => window.location.reload()}>Обновить страницу</button>
@@ -38,7 +43,7 @@ class PageBoundary extends Component<{ children: ReactNode }, { failed: boolean 
         <summary>Открыть памятку первой помощи</summary>
         <FirstAid />
       </details>
-    </main>;
+    </main></RoomSurface>;
   }
 }
 
@@ -49,27 +54,30 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <RoomMediaProvider><RoomTransition />
         <PageBoundary><Suspense fallback={<OpeningPage />}><Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/cabinet" element={<ParentWorkspace key="account" />} />
+
+          <Route path="/cabinet" element={<RoomSurface><ParentWorkspace key="account" /></RoomSurface>} />
           <Route path="/demo" element={<Navigate to="/account" replace />} />
           <Route
             path="/chat"
-            element={<ParentWorkspace key="chat" initialTab="chat" />}
+            element={<RoomSurface><ParentWorkspace key="chat" initialTab="chat" /></RoomSurface>}
           />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Legal kind="account" />} />
-          <Route path="/offer" element={<Legal kind="offer" />} />
-          <Route path="/billing" element={<Billing />} />
-          <Route path="/data-rights" element={<DataRights />} />
-          <Route path="/first-aid" element={<PublicFirstAid />} />
-          <Route path="/guide" element={<PublicGuide />} />
-          <Route path="/guide/:slug" element={<PublicGuide />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes></Suspense></PageBoundary>
+          <Route element={<RoomPageShell />}>
+            <Route path="/account" element={<Account />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Legal kind="account" />} />
+            <Route path="/offer" element={<Legal kind="offer" />} />
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/data-rights" element={<DataRights />} />
+            <Route path="/first-aid" element={<PublicFirstAid />} />
+            <Route path="/guide" element={<PublicGuide />} />
+            <Route path="/guide/:slug" element={<PublicGuide />} />
+            <Route path="*" element={<NotFound />} />
+          </Route>
+        </Routes></Suspense></PageBoundary></RoomMediaProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

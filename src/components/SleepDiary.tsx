@@ -287,7 +287,7 @@ export default function SleepDiary({
         </label>
         <p className="muted">
           Время устройства: {Intl.DateTimeFormat().resolvedOptions().timeZone}.
-          Зелёный — дневной, фиолетовый — ночной, серый — сон без отметки.
+          Зелёный — дневной, янтарный — ночной, серый — сон без отметки.
           Пустые участки — нет записей.
         </p>
         <div className="sleep-scale">

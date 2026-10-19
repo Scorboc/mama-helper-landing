@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import ThemeControl from './ThemeControl';
 import Icon from '@/components/ui/icon';
 
 const links = [
@@ -15,9 +14,9 @@ const Header = () => {
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-5">
       <div className="glass-nav mx-auto flex max-w-[1120px] items-center justify-between gap-3 rounded-[18px] px-3 py-2">
         <div className="brand-theme"><a href="#top" className="flex items-center gap-2">
-          <img src="/logo-mark.png" alt="" className="site-logo h-10 w-auto" />
+          <img src="/logo-mark.png?v=3" alt="" width={40} height={40} className="site-logo h-10 w-auto" />
           <span className="font-heading text-[15px] font-medium">Мамин помощник</span>
-        </a><ThemeControl /></div>
+        </a></div>
 
         <nav aria-label="О сайте" className="hidden items-center gap-1 lg:flex">
           {links.map((l) => (

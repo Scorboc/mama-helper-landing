@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {emptyCare,makeWeek,localDay} from '../ai-proxy/services.js';
 const endpoint=process.env.MAMA_API_URL;
 if(!endpoint||new URL(endpoint).protocol!=='https:')throw Error('Set MAMA_API_URL');
-const origin='https://mama-helper-landing--preview.poehali.dev';
+const origin=process.env.MAMA_HELPER_ORIGIN||'http://127.0.0.1:5173';
 const password=crypto.randomUUID()+crypto.randomUUID(),email=`qa-${crypto.randomUUID()}@example.invalid`;
 let token='',session;const report=[];
 async function call(action,data={}){

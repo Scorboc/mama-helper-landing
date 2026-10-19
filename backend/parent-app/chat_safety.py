@@ -8,6 +8,7 @@ These guards supplement the system instructions; they are not clinical triage.
 """
 import re
 import parent_support
+import medical_guardrails
 from datetime import date
 import importlib.util
 from pathlib import Path
@@ -18,7 +19,7 @@ _policy=importlib.util.module_from_spec(_policy_spec);_policy_spec.loader.exec_m
 EMERGENCY_PATTERN = re.compile(
     r'\bне\s+дыш|задыха|судорог|без созн|подавил|отравил|'
     r'(?:трудно|тяжело)\s+дыш|затруднен\w*\s+дыхан|трудно\s+разбуд|синеет|'
-    r'перестал\w*\s+дыш|не\s+может\s+(?:вдохн|дыш)|не\s+(?:могу|удается)\s+разбуд|'
+    r'перестал\w*\s+дыш|не\s+может\s+(?:эффективно\s+)?(?:(?:говорить|плакать|кашлять)\s*(?:,|или|и|ни)\s*){0,3}(?:вдохн|дыш|кашля)|не\s+(?:могу|удается)\s+разбуд|'
     r'потерял\w*\s+созн|проглотил\w*[^.!?\n]{0,30}(?:магнит|батарейк)|'
     r'сильн[^.!?\n]*кровотеч|не хочу жить|суицид|'
     r'покончить|убить себя|навредить себе|навредить ребен'
@@ -35,6 +36,8 @@ def emergency_question(question):
     q = str(question or '').lower().replace('ё', 'е')
     for clause in re.split(r'[.!?\n;]+|,\s*сейчас\b|\b(?:но|а сейчас|теперь)\b', q):
         for match in EMERGENCY_PATTERN.finditer(clause):
+            if re.search(r'навредить|убить себя|покончить',match.group()) and medical_guardrails.unwanted_thought_without_intent(q):
+                continue
             before = clause[:match.start()]
             nearby = before[-45:]
             after = clause[match.end():match.end()+70]
@@ -55,6 +58,32 @@ def emergency_question(question):
                 continue
             return True
     return False
+
+def urgent_reply(question, profile=None, messages=None):
+    """Trusted local urgent route, ahead of profile, quota and generation rules."""
+    adult=parent_support.urgent_reply(question)
+    if adult:return adult
+    harm=followup_reply(question,messages)
+    if harm:return harm
+    current=question
+    if not emergency_question(current):
+        q=medical_guardrails.norm(question)
+        if re.search(r'приеха|врач[^.!?]{0,25}(?:рядом|здесь)|риск (?:прошел|миновал)|уже дышит нормально',q):return None
+        if not re.search(r'сначала|помощь|ждать|игр|упражнен|что (?:теперь|дальше)',q):return None
+        recent=[m for m in (messages or [])[-8:] if m.get('role')=='user']
+        for message in reversed(recent):
+            text=str(message.get('text',''))
+            if re.search(r'приеха|риск (?:прошел|миновал)|уже дышит нормально',medical_guardrails.norm(text)):return None
+            if emergency_question(text):current=text;break
+            if not re.search(r'сначала|помощь|ждать|что (?:теперь|дальше)',medical_guardrails.norm(text)):return None
+        else:return None
+    q=medical_guardrails.norm(current)
+    if re.search(r'навредить|не хочу жить|суицид|убить себя|покончить',q) and not medical_guardrails.unwanted_thought_without_intent(q):
+        return ('Сейчас звоните 112: сообщите, что есть риск причинить вред и нужна помощь. '
+                'Отойдите от опасных предметов и позовите надёжного взрослого, если он доступен. '
+                'Если с вами малыш, сначала положите его в безопасную кроватку. Не ждите ответа чата; следуйте указаниям диспетчера.')
+    age=None if _policy.profile_scope_reply(current,profile) else _policy.months(profile)
+    return medical_guardrails.emergency_reply(current,age)
 
 def review(answer, state, care_stats=None):
     """Conservative post-check of known dangerous suggestions, not clinical triage."""
@@ -130,6 +159,7 @@ def review(answer, state, care_stats=None):
             answer=(answer+'\n\nВ текущем дневнике активного ребёнка за последние семь дней нет записей сна. '
                     'Это отсутствие данных, а не ноль часов сна. Сообщение в чате само не создаёт '
                     'и не исправляет отметку. Новые ответы учитывают сохранённые изменения; прежние ответы остаются в истории.').strip()
+    answer = medical_guardrails.review(answer,state,age)
     answer = parent_support.review(answer, question)
     return re.sub(r'(?<=[.!?])(?=[А-ЯЁ])', ' ', answer).strip()
 
@@ -172,7 +202,7 @@ def scenario_reply(question, profile=None):
                 'и как это влияет на сон и жизнь. При возникших сейчас трудностях дыхания, '
                 'посинении или необычной вялости нужна срочная помощь — звоните 112.')
     if re.search(r'прикорм|пюре|кусоч|кормить|кормлен|еда|еду',q) and re.search(r'полулеж|полусид|шезлон|не сидит|сидит неустойчив|неустойчиво сид|(?:неувер|не\s+увер|неустойчив)[^.!?\n]{0,60}(?:сид|поз)',q):
-        return ('Пюре тоже нельзя давать полулёжа или полусидя. Для любой еды нужны устойчивое '
+        return ('Пюре, как и кусочки, нельзя давать полулёжа или полусидя. Для любой еды нужны устойчивое '
                 'вертикальное положение с подходящей поддержкой и контроль головы. '
                 'Не усаживайте силой и не считайте один возраст признаком готовности: '
                 'оцените её вместе с педиатром, если положение или глотание вызывают сомнения. '
@@ -264,6 +294,7 @@ def followup_reply(question, messages):
 
 def reply(question, profile=None):
     q=question.lower().replace('ё','е')
+    if medical_guardrails.boundary_request(question):return medical_guardrails.boundary_reply()
     urgent = parent_support.urgent_reply(question)
     if urgent:
         return urgent
@@ -350,7 +381,8 @@ def reply(question, profile=None):
                 'проверок; при этом продолжайте отвечать на его реальные потребности в кормлении '
                 'и уходе. Кто мог бы помочь вам отдохнуть сегодня?')
     if re.search(r'кухн|горяч\w* плит|готовлю',q) and re.search(r'игр|занят',q):
-        return 'Начинайте, когда готовка уже закончена и горячие предметы убраны. '+_policy.play(profile)
+        return ('Не могу предложить игру без присмотра рядом с горячей плитой. Для совместного занятия сначала остановите готовку и уберите горячие предметы; '
+                'если занятие сейчас невозможно, его можно отложить. Для короткой паузы вместе: '+_policy.play(profile))
 
     if re.search(r'кроват',q) and re.search(r'щеп|крошится|отслаива|заноз',q):
         return ('Если от кроватки отходят щепки или покрытие, пока не используйте её: ребёнок может '
@@ -380,6 +412,10 @@ def reply(question, profile=None):
                 'Повторяющиеся трудности со сном и кормлением обсудите с педиатром. Есть ли сейчас '
                 'рядом отдельное безопасное спальное место для малыша?')
     if re.search(r'игр|занят|моторик|сенсорн\w*\s+короб',q) and re.search(r'в рот|во рту|бусин|крупа|мелк|\bрис\b',q):
+        if _policy.game_safety_question(q):
+            return ('Исключите игры с бусинами, крупой, сухой фасолью, магнитами, батарейками, воздушными шарами и съёмными мелкими деталями. '
+                    'Присмотр не делает их безопасными. Выбирайте целые предметы подходящего размера и возрастной маркировки, '
+                    'проверяйте их перед игрой и оставайтесь рядом. При подозрении на проглатывание батарейки или магнита нужна немедленная помощь — 112.')
         return _policy.play(profile)+'\n\nПрисмотр не делает мелкие предметы безопасными. Не используйте бусины, крупу и съёмные мелкие детали.'
     if re.search(r'голов|лбом',q) and re.search(r'бь[ею]т|бить|бил|стуч|удар',q):
         return ('В такой ситуации сначала важно защитить ребёнка от травмы. Оставайтесь рядом, уберите '

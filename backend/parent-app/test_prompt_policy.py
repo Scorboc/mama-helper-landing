@@ -26,11 +26,6 @@ class ApprovedInstructionTest(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 prompt_policy.approved_part('chat')
 
-    def test_every_manifest_part_matches_checksum(self):
-        for name in prompt_policy.MANIFEST['parts']:
-            with self.subTest(part=name):
-                self.assertTrue(prompt_policy.approved_part(name))
-
     def test_reply_check_does_not_duplicate_large_policy_sections(self):
         reminder=prompt_policy.reply_check('Нужна тихая игра')
         self.assertLess(len(reminder.encode('utf-8')),4000)

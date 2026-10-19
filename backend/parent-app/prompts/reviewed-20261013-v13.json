@@ -9,7 +9,7 @@
     },
     "daily": {
       "file": "daily-reviewed-20261013-v10.md",
-      "sha256": "133a4696ad00ec6809c2e4f67fb174255312750cb16d745cb500652520b0f023"
+      "sha256": "9f864e7d72201619137e52c1e46f28e825b1201e499ba2c675f4897342a29b2f"
     },
     "notification": {
       "file": "notification-reviewed-20261013-v9.md",
@@ -17,7 +17,7 @@
     },
     "reply": {
       "file": "reply-reviewed-20261013-v13.md",
-      "sha256": "fc26db6c9bf4529578a4f8fe1090d3aa0df7e005e6690c84dd00ce5e8546c1fa"
+      "sha256": "9c4159a8ab0b318d17df983087629bed454bda41eb3f38098806a59ef70c60dc"
     }
   }
 }

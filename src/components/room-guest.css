@@ -1,0 +1,101 @@
+/* Guest welcome and the visible tour button; palette matches the room scenes. */
+.room-guest {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+  background: #3a3429;
+  overflow: hidden;
+}
+.room-guest-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 43%; }
+.room-guest-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(40, 36, 30, .10), rgba(40, 36, 30, .58)); }
+.room-guest-card {
+  position: relative;
+  width: min(100%, 400px);
+  padding: 26px;
+  border-radius: 24px;
+  background: #fffaf1f5;
+  color: #2d352c;
+  border: 1px solid #ffffffb3;
+  box-shadow: 0 24px 60px rgba(20, 18, 14, .35);
+}
+.room-guest-eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #5a6b55; }
+.room-guest-card h1 { font-size: 36px; line-height: 1.1; letter-spacing: -.02em; font-weight: 650; margin: 10px 0 12px; }
+.room-guest-card p { font-size: 16px; line-height: 1.55; margin: 0 0 12px; color: #3c4638; }
+.room-guest-note { font-size: 14px !important; color: #5a6b55 !important; margin-bottom: 22px !important; }
+.room-guest-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 50px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: #3f543c;
+  color: #fffaf1;
+  font-weight: 650;
+  text-decoration: none;
+}
+.room-guest-links { display: grid; gap: 2px; margin-top: 12px; }
+.room-guest-links a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 10px 6px;
+  color: #3f543c;
+  font-weight: 600;
+  text-decoration: none;
+}
+.room-guest-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.room-guest-primary:focus-visible, .room-guest-links a:focus-visible { outline: 3px solid #3f543c; outline-offset: 3px; }
+
+/* Visible entry to the child walk for members: a tab hanging from the top bar, like the menu. */
+.room-surface .room-chat-topbar { position: sticky; }
+.room-surface .room-chat-topbar { gap: 8px; }
+.room-surface .room-chat-intro {
+  position: relative;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid #d8bc7b66;
+  border-top: 0;
+  border-radius: 0 0 18px 18px;
+  background: #243322d9;
+  color: #f8e8bd;
+  font: 500 13px/1.3 Onest, sans-serif;
+  text-decoration: none;
+  box-shadow: 0 5px 16px #17231930, inset 0 -1px 0 #ffe4a51a;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.room-surface .room-chat-intro:hover { background: #33442eea; }
+.room-surface .room-chat-intro:focus-visible { outline: 2px solid #ffdf9f; outline-offset: -3px; }
+
+/* The assistant's greeting sits on a calm panel, so it reads on any room photo. */
+.room-surface .room-chat-welcome {
+  padding: 16px 20px 18px;
+  margin: 0 auto 14px;
+  max-width: 460px;
+  border-radius: 22px;
+  background: #243322a6;
+  border: 1px solid #d8bc7b40;
+  box-shadow: 0 10px 30px #17231940;
+  text-shadow: none;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.room-surface .room-chat-welcome p { color: #f2e7cf; }
+.room-surface .room-chat-welcome .room-medical-note { color: #e6dbc3; font-size: 13px; }
+
+/* Tap targets: links in footers, standalone links and public navigation are at least 44px tall. */
+footer a, .standalone-link, .public-page nav a, .account-page nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}

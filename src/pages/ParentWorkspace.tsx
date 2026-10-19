@@ -1,27 +1,31 @@
 import SimpleMyDay from "@/components/SimpleMyDay";
+import RoomChatWelcome, { RoomChatFeed } from "@/components/RoomChatWelcome";
+import RoomChatMenu from "@/components/RoomChatMenu";
+import RoomNavigation, { type RoomSection } from "@/components/RoomNavigation";
+import RoomChatTools, { RoomChatShortcut, type RoomChatPanel } from "@/components/RoomChatTools";
+import { Compass } from "lucide-react";
+import { isRoomLocation, rememberRoom } from "@/lib/room-experience";
+import { ApiError } from "@/lib/parent-api";
 import CareTools from "@/components/CareTools";
 import AgeGuidance from "@/components/AgeGuidance";
 import GuideWelcome from "@/components/GuideWelcome";
 import FirstAid from "@/components/FirstAid";
 import Favorites, { FavoriteButton } from "@/components/Favorites";
 import { familyList, switchChild, addChild } from "@/lib/family";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import ThemeControl from "@/components/ThemeControl";
+import { type CSSProperties, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import ProductIdeas from "@/components/ProductIdeas";
 import ChatQuickCare from "@/components/ChatQuickCare";
 import ChatMessageText from "@/components/ChatMessageText";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  Heart,
-  House,
-  MessageCircle,
   UserRound,
   ArrowLeft,
   Send,
   LogOut,
-  ClipboardList,
   ChevronDown,
   Check,
+  ArrowUp,
+  Ellipsis,
 } from "lucide-react";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
@@ -65,6 +69,7 @@ import {
 import { api, Session, Quota, BillingInfo, streamChat } from "@/lib/parent-api";
 import { randomId } from "@/lib/id";
 import { readChatDraft, writeChatDraft, clearChatDrafts } from "@/lib/chat-drafts";
+import { localEmergencyNotice } from "@/lib/emergency-notice";
 import {
   EvidencePassport,
   VoiceInput,
@@ -82,6 +87,7 @@ export default function ParentWorkspace({
   const [loading, setLoading] = useState(true);
   const [sessionAttempt, setSessionAttempt] = useState(0);
   const location = useLocation();
+  const roomScene = isRoomLocation(location.search, location.pathname);
   const navigate = useNavigate();
   const allowedTabs = [
     "home",
@@ -138,10 +144,11 @@ export default function ParentWorkspace({
   const draftKey = `${user?.id || "pending"}:${state.activeChildId || "primary"}:${state.conversationId || "legacy-active"}`;
   const scrollPositions = useRef<Record<string, number>>({});
   const [childPickerOpen, setChildPickerOpen] = useState(false);
-  const quickActions = useRef<HTMLDivElement>(null);
+
   function setTab(next: string) {
     if (next === tab) {
-      tabNavigation.current?.scrollIntoView({
+      if (roomScene) window.scrollTo({ top: 0, behavior: "smooth" });
+      else tabNavigation.current?.scrollIntoView({
         block: "start",
         behavior: "smooth",
       });
@@ -168,14 +175,14 @@ export default function ParentWorkspace({
       window.scrollTo({
         top:
           scrollPositions.current[tab] ??
-          (tabNavigation.current?.getBoundingClientRect().top ?? 0) +
+          (roomScene ? 0 : (tabNavigation.current?.getBoundingClientRect().top ?? 0) +
             window.scrollY -
-            12,
+            12),
         behavior: "instant",
       }),
     );
     return () => cancelAnimationFrame(frame);
-  }, [tab]);
+  }, [tab, roomScene]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -212,6 +219,21 @@ export default function ParentWorkspace({
   const guidanceTopic = new URLSearchParams(location.search).get("topic");
   const guidanceChild = new URLSearchParams(location.search).get("child");
   const [partial, setPartial] = useState("");
+  const [urgentAnswer, setUrgentAnswer] = useState("");
+  const [roomPanel, setRoomPanel] = useState<RoomChatPanel>(null);
+  useEffect(() => {
+    if (loading || !user || !roomScene) return;
+    const params = new URLSearchParams(location.search);
+    const panel = params.get("panel");
+    if (panel !== "children" && panel !== "options") return;
+    if (panel === "children") {
+      if (state.profile) setChildPickerOpen(true);
+      else params.set("tab", "profile");
+    } else setRoomPanel("options");
+    params.delete("panel");
+    navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
+  }, [loading, user, roomScene, state.profile, location.pathname, location.search, navigate]);
+  useEffect(() => setRoomPanel(null), [tab]);
   const [retryRequest, setRetryRequest] = useState<{
     question: string;
     messageId: string;
@@ -245,8 +267,9 @@ export default function ParentWorkspace({
     setError("");
     api<Session>("session")
       .then(async (s) => {
+        rememberRoom();
         if (s.user.emailVerificationRequired) {
-          navigate("/account?mode=email-await", { replace: true });
+          navigate("/account?mode=email-await&next=" + encodeURIComponent(window.location.pathname + window.location.search), { replace: true });
           return;
         }
         const requestedChild = new URLSearchParams(window.location.search).get(
@@ -275,7 +298,12 @@ export default function ParentWorkspace({
         }
       })
       .catch((e) => {
-        if (active) setError(e.message);
+        if (active && isRoomLocation(window.location.search) && e instanceof ApiError && e.status === 401) {
+          navigate("/account?mode=login&next=" + encodeURIComponent(location.pathname + window.location.search), { replace: true });
+          return;
+        }
+        // A guest (401) gets the sign-in card, not an error.
+        if (active && !(e instanceof ApiError && e.status === 401)) setError(e.message);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -283,9 +311,10 @@ export default function ParentWorkspace({
     return () => {
       active = false;
     };
-  }, [sessionAttempt, navigate]);
+  }, [sessionAttempt, navigate, location.pathname]);
   useEffect(() => {
     setDraft(messageDrafts.current[draftKey] ?? (user ? readChatDraft(draftKey) : ""));
+    setUrgentAnswer("");
   }, [draftKey, user]);
   useEffect(() => {
     if (tab !== "chat" || loading) return;
@@ -295,16 +324,16 @@ export default function ParentWorkspace({
         const answers = log.querySelectorAll<HTMLElement>(".bubble.assistant");
         const lastAnswer = answers[answers.length - 1];
         log.scrollTop = lastAnswer
-          ? lastAnswer.getBoundingClientRect().top - log.getBoundingClientRect().top + log.scrollTop - 12
+          ? lastAnswer.getBoundingClientRect().top - log.getBoundingClientRect().top + log.scrollTop - (roomScene ? 16 : 12)
           : log.scrollHeight;
-        if (log.querySelector(".bubble.user"))
+        if (!roomScene && log.querySelector(".bubble.user"))
           log.scrollIntoView({ block: "start", behavior: "instant" });
       }
     });
     return () => {
       cancelAnimationFrame(frame);
     };
-  }, [loading, draftKey, tab]);
+  }, [loading, draftKey, tab, urgentAnswer, roomScene]);
   useEffect(() => {
     if (tab !== "chat" || !chatBusy || responseAnchored.current) return;
     const frame = requestAnimationFrame(() => {
@@ -316,11 +345,11 @@ export default function ParentWorkspace({
         answer.getBoundingClientRect().top -
         log.getBoundingClientRect().top -
         16;
-      log.scrollIntoView({ block: "start", behavior: "instant" });
+      if (!roomScene) log.scrollIntoView({ block: "start", behavior: "instant" });
       responseAnchored.current = true;
     });
     return () => cancelAnimationFrame(frame);
-  }, [tab, chatBusy]);
+  }, [tab, chatBusy, roomScene]);
   useEffect(() => {
     const tick = () => setClock(Date.now());
     const timer = window.setInterval(tick, 60000);
@@ -384,10 +413,6 @@ export default function ParentWorkspace({
     if (!q || busy || chatBusy || lock.current) return;
     const last = state.messages[state.messages.length - 1];
     const retry = last?.role === "user" && last.text === q;
-    if (state.messages.length >= 118 && !retry) {
-      setError("Начните новый чат, чтобы продолжить.");
-      return;
-    }
     lock.current = true;
     setBusy(true);
     setChatBusy(true);
@@ -395,6 +420,8 @@ export default function ParentWorkspace({
     setAnswerMinHeight(Math.max(0, (chatLog.current?.clientHeight || 0) - 32));
     setError("");
     setNotice("");
+    // Show the fixed emergency handoff before waiting for network, profile or quota.
+    setUrgentAnswer(localEmergencyNotice(q));
     const messageId =
       retryRequest?.question === q
         ? retryRequest.messageId
@@ -426,6 +453,7 @@ export default function ParentWorkspace({
         setPartial((current) => current + text),
       );
       setState(result.state);
+      setUrgentAnswer(result.transientAnswer ? result.answer : "");
       setRevision(result.revision);
       if (result.quota) setQuota(result.quota);
       setRetryRequest(null);
@@ -436,7 +464,7 @@ export default function ParentWorkspace({
       setNotice(
         result.sleepContext?.records
           ? `Ответ подготовлен с записями сна: ${result.sleepContext.childName}, последние ${result.sleepContext.days} дней (${result.sleepContext.records} эпизодов).`
-          : "Переписка сохранена",
+          : result.transientAnswer ? "История заполнена. Срочная помощь показана ниже; прежняя переписка сохранена." : "Переписка сохранена",
       );
     } catch (e) {
       const detail = (e as Error).message;
@@ -658,21 +686,47 @@ export default function ParentWorkspace({
         </div>
       </main>
     );
+  const chatSettings = <>
+<div className={state.profile ? "chat-tools compact" : "chat-tools"}>
+                <ChatContext
+                  state={state}
+                  quota={quota}
+                  onProfile={() => { setRoomPanel(null); if (state.profile) setChildPickerOpen(true); else setTab("profile"); }}
+                />
+                <ProductIdeas />
+              </div>
+              <ConversationControls
+                state={state}
+                save={async (s, n) => {
+                  const ok = await save(s, n);
+                  if (ok) {
+                    setRetryRequest(null);
+                  }
+                  return ok;
+                }}
+                busy={busy || chatBusy}
+              />
+              {roomScene && <div className="room-account-tools">
+                <Link to="/">На главную</Link>
+                <a href="/mamin-pomoshchnik-instruction.pdf" target="_blank" rel="noreferrer">Инструкция — скачать PDF</a>
+                <span>Информационный помощник для родителей</span>
+              </div>}
+  </>;
   return (
     <div
+      style={{ "--room-composer-height": `${composerHeight}px` } as CSSProperties}
       className={`parent-workspace ${tab === "trackers" ? "with-tracker-dock" : ""} ${tab === "chat" ? "chat-workspace" : ""}`}
     >
       <a className="skip-link" href="#main-content">К основному содержимому</a>
-      <header className="cabinet-header">
+      {!roomScene && <header className="cabinet-header">
         <div className="brand-theme">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo-mark.png" alt="" className="site-logo h-12" />
+            <img src="/logo-mark.png?v=3" alt="" width={48} height={48} className="site-logo h-12" />
             <strong>Мамин помощник</strong>
           </Link>
-          <ThemeControl />
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/billing" aria-label={billing?.mode === "test" ? "Бесплатный тест" : "Доступ и оплата"} className="rounded-full border px-3 py-2 text-xs text-primary">{billing?.mode === "test" ? "Тест" : billing?.mode === "paid" ? "Подписка" : "Доступ"}</Link>
+          <Link to="/billing" aria-label="Доступ и оплата" className="rounded-full border px-3 py-2 text-xs text-primary">{billing?.mode === "paid" ? "Подписка" : "Доступ"}</Link>
           <Button
             variant="ghost"
             onClick={() => void logout()}
@@ -682,9 +736,15 @@ export default function ParentWorkspace({
             <LogOut size={18} />
           </Button>
         </div>
-      </header>
+      </header>}
       <main id="main-content" tabIndex={-1} className="cabinet-main">
-        <div className="cabinet-greeting">
+        {roomScene && <RoomChatMenu
+          profile={state.profile} disabled={busy || chatBusy}
+          onProfile={() => state.profile ? setChildPickerOpen(true) : setTab("profile")} onOptions={() => setRoomPanel("options")}
+          onSettings={() => setTab("settings")} onLogout={() => void logout()}
+        />}
+        {!roomScene && <Link className="standalone-link" to="/first-aid">Срочная помощь · 112</Link>}
+        {roomScene ? <h1 className={tab === "chat" ? "sr-only" : "room-section-title"}>{sectionTitles[tab] || "Ваш кабинет"}</h1> : <div className="cabinet-greeting">
           <div>
             <span className="cap">
               {state.profile?.role === "dad"
@@ -694,12 +754,12 @@ export default function ParentWorkspace({
             <h1>{sectionTitles[tab] || "Ваш кабинет"}</h1>
             {tab !== "chat" && <p className="muted mt-2">{contextLabel(state.profile)}</p>}
           </div>
-          <HeartCloud className="h-24 w-24 hidden sm:block" />
-        </div>
-        <div ref={quickActions} className={tab === "chat" ? "chat-daily-actions" : "hidden"}>
+          {tab === "chat" ? <Link className="room-replay" to="/?intro=1"><Compass size={17} />Знакомство</Link> : <HeartCloud className="h-24 w-24 hidden sm:block" />}
+        </div>}
+        {!roomScene && <div className={tab === "chat" ? "chat-daily-actions" : "hidden"}>
           <ChatQuickCare key={state.activeChildId || "primary"} state={state} onTrackers={() => setTab("trackers")} onProfile={() => setChildPickerOpen(true)} profileBusy={busy || chatBusy} />
-        </div>
-        {(tab !== "chat" || state.profile?.stage !== "child") && <Button
+        </div>}
+        {!roomScene && (tab !== "chat" || state.profile?.stage !== "child") && <Button
           className="child-picker"
           aria-label={`Выбрать ребёнка: ${contextLabel(state.profile)}`}
           variant="outline"
@@ -721,7 +781,11 @@ export default function ParentWorkspace({
           <ChevronDown size={18} />
         </Button>}
         <Dialog open={childPickerOpen} onOpenChange={setChildPickerOpen}>
-          <DialogContent className="ios-sheet">
+          <DialogContent className="ios-sheet" onCloseAutoFocus={event => {
+            if (!roomScene || document.querySelector('[role="dialog"][data-state="open"]')) return;
+            const notch = document.querySelector<HTMLElement>(".room-chat-notch");
+            if (notch) { event.preventDefault(); notch.focus(); }
+          }}>
             <DialogHeader>
               <DialogTitle>Ваши дети</DialogTitle>
               <DialogDescription>
@@ -785,6 +849,7 @@ export default function ParentWorkspace({
           </section>
         )}
         <Tabs
+          className="workspace-tabs"
           value={tab}
           onValueChange={(v) => {
             setTab(v);
@@ -806,38 +871,8 @@ export default function ParentWorkspace({
                 Назад
               </Button>
             )}
-            <nav className="cabinet-tabs" aria-label="Разделы личного кабинета">
-              {(
-                [
-                  ["home", "Сегодня", House],
-                  ["chat", "Чат", MessageCircle],
-                  ["trackers", "Записи", ClipboardList],
-                  ["favorites", "Избранное", Heart],
-                  ["more", "Профиль", UserRound],
-                ] as const
-              ).map(([id, label, Icon]) => {
-                const selected =
-                  id === "more" ? profileTabs.includes(tab) : tab === id;
-                return (
-                  <button
-                    type="button"
-                    key={id}
-                    aria-current={selected ? "page" : undefined}
-                    data-state={selected ? "active" : "inactive"}
-                    onClick={() =>
-                      setTab(
-                        id === "more" && !selected
-                          ? lastProfileTab.current
-                          : id,
-                      )
-                    }
-                  >
-                    <Icon size={21} />
-                    <span>{label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+            <RoomNavigation active={(profileTabs.includes(tab) ? "more" : tab) as RoomSection}
+              onNavigate={id => setTab(id === "more" && !profileTabs.includes(tab) ? lastProfileTab.current : id)} />
           </div>
           {error && tab !== "chat" && (
             <p role="alert" className="form-error my-4">
@@ -883,7 +918,7 @@ export default function ParentWorkspace({
           </TabsContent>
           <TabsContent value="more">
             <section className="tile">
-              <h2>Профиль</h2>
+              <h2 className={roomScene ? "sr-only" : undefined}>Профиль</h2>
               <p className="muted">Дети, настройки и полезные материалы</p>
               <Link className="standalone-link" to="/guide">Короткие инструкции и инструмент дневника</Link>
               <div className="workspace-more ios-list">
@@ -921,7 +956,7 @@ export default function ParentWorkspace({
             value="chat"
             className="workspace-pane data-[state=inactive]:hidden"
           >
-            {state.profile?.stage === "child" &&
+            {!roomScene && state.profile?.stage === "child" &&
               guidanceTopic &&
               (!guidanceChild ||
                 guidanceChild === (state.activeChildId || "primary")) && (
@@ -932,34 +967,21 @@ export default function ParentWorkspace({
               )}
             <section className="tile chat-card" style={{ paddingBottom: composerHeight + 24 }}>
               <h2 className="sr-only">Чат с помощником</h2>
-              <div className={state.profile ? "chat-tools compact" : "chat-tools"}>
-                <ChatContext
-                  state={state}
-                  quota={quota}
-                  onProfile={() => state.profile ? setChildPickerOpen(true) : setTab("profile")}
-                />
-                <ProductIdeas />
-              </div>
-              <ConversationControls
-                state={state}
-                save={async (s, n) => {
-                  const ok = await save(s, n);
-                  if (ok) {
-                    setRetryRequest(null);
-                  }
-                  return ok;
-                }}
-                busy={busy || chatBusy}
-              />
+              <RoomChatFeed enabled={roomScene} scrollRef={mountChatLog}>
+              {!roomScene && chatSettings}
+              {roomScene && state.profile?.stage === "child" && guidanceTopic &&
+                (!guidanceChild || guidanceChild === (state.activeChildId || "primary")) &&
+                <AgeGuidance childId={state.activeChildId || "primary"} topic={guidanceTopic} />}
               <div
                 className="chat-log"
-                ref={mountChatLog}
+                ref={roomScene ? undefined : mountChatLog}
                 role="log"
                 aria-label="Переписка"
                 aria-live="polite"
                 tabIndex={0}
               >
-                {!state.messages.length && (
+                {roomScene && <RoomChatWelcome hasProfile={!!state.profile} compact={state.messages.length > 0} />}
+                {!state.messages.length && !roomScene && (
                   <div className="bubble assistant">
                     <span>Мамин помощник</span>
                     <p>
@@ -981,12 +1003,12 @@ export default function ParentWorkspace({
                         : undefined
                     }
                   >
-                    <span>{m.role === "user" ? "Вы" : "Мамин помощник"}</span>
+                    <span className={roomScene ? "room-message-author" : undefined}>{m.role === "user" ? "Вы" : "Мамин помощник"}</span>
                     <p>{m.role === "assistant" ? <ChatMessageText text={m.text} /> : m.text}</p>
                     {m.role === "assistant" && m.careVersion && careVersion && m.careVersion !== careVersion && <p className="text-sm muted" role="note">Дневник обновлён после этого ответа.</p>}
-                    {m.role === "assistant" && (
-                      <>
-                        <EvidencePassport message={m} />
+                    {m.role === "assistant" && (roomScene ? <details className="room-answer-actions">
+                      <summary><Ellipsis size={18} /><span>Действия с ответом</span><ChevronDown size={14} /></summary>
+                      <div>                        <EvidencePassport message={m} />
                         <ReadAnswer text={m.text} />
                         <FavoriteButton
                           message={m}
@@ -995,10 +1017,20 @@ export default function ParentWorkspace({
                           busy={busy || chatBusy}
                         />
                         <AnswerFeedback message={m} />
-                      </>
-                    )}
+</div>
+                    </details> : <>                        <EvidencePassport message={m} />
+                        <ReadAnswer text={m.text} />
+                        <FavoriteButton
+                          message={m}
+                          state={state}
+                          save={save}
+                          busy={busy || chatBusy}
+                        />
+                        <AnswerFeedback message={m} />
+</>)}
                   </div>
                 ))}
+                {urgentAnswer && <section className="bubble assistant" role="alert"><strong>Срочная помощь</strong><p><ChatMessageText text={urgentAnswer} /></p><a href="tel:112">Позвонить 112</a></section>}
                 {chatBusy && (
                   <div
                     className="bubble assistant"
@@ -1021,6 +1053,9 @@ export default function ParentWorkspace({
                 </Button>
               )}
               <MemoryReview state={state} save={save} busy={busy} pendingOnly />
+              </RoomChatFeed>
+            </section>
+              {roomScene && <RoomChatShortcut onOpen={() => setRoomPanel("quick")} />}
               <div ref={composer} className="chat-composer" role="region" aria-label="Написать вопрос">
                 {error && <p id="chat-request-error" role="alert" className="form-error chat-request-error">{error}</p>}
                 <VoiceInput
@@ -1059,7 +1094,7 @@ export default function ParentWorkspace({
                         void send(draft);
                       }
                     }}
-                    placeholder="Напишите свой вопрос…"
+                    placeholder="Ваш вопрос…"
                     aria-label="Ваш вопрос"
                     aria-describedby={error ? "chat-request-error" : undefined}
                   />
@@ -1068,12 +1103,11 @@ export default function ParentWorkspace({
                     disabled={busy || chatBusy || !draft.trim()}
                     aria-label="Отправить"
                   >
-                    <Send size={20} />
+                    {roomScene ? <ArrowUp size={22} /> : <Send size={20} />}
                   </Button>
                 </form>
                 <Link className="chat-emergency-link" to="/first-aid">Срочная помощь · 112</Link>
               </div>
-            </section>
           </TabsContent>
           <TabsContent value="advisor">
             {state.profile?.stage === "child" && (
@@ -1391,7 +1425,7 @@ export default function ParentWorkspace({
                           health: e.target.value,
                         })
                       }
-                      placeholder="Для теста используйте вымышленные данные"
+                      placeholder="Только сведения, подтверждённые специалистом"
                     />
                   </label>
                   <div className="flex items-start gap-3">
@@ -1534,7 +1568,7 @@ export default function ParentWorkspace({
                 <p className="break-all">{user?.email}</p>
                 {/^test-account-/.test(user.id) && (
                   <div className="rounded-xl bg-cream p-4 my-3">
-                    <strong>Общий тестовый аккаунт</strong>
+                    <strong>Общий аккаунт</strong>
                     <p>
                       Используйте только вымышленные сведения: другие участники
                       с этим логином видят те же данные. Для личной переписки
@@ -1568,7 +1602,10 @@ export default function ParentWorkspace({
             </div>
           </TabsContent>
         </Tabs>
-        <div className="cabinet-foot">
+        {roomScene && <RoomChatTools panel={roomPanel} onPanelChange={setRoomPanel} quickCare={
+          <ChatQuickCare key={state.activeChildId || "primary"} state={state} onTrackers={() => { setRoomPanel(null); setTab("trackers"); }} onProfile={() => { setRoomPanel(null); setChildPickerOpen(true); }} profileBusy={busy || chatBusy} />
+        }>{chatSettings}</RoomChatTools>}
+        {!(roomScene && tab === "chat") && <div className="cabinet-foot">
           <Link to="/">
             <ArrowLeft size={16} />
             На главную
@@ -1581,7 +1618,7 @@ export default function ParentWorkspace({
             Инструкция — скачать PDF
           </a>
           <span>Информационный помощник для родителей</span>
-        </div>
+        </div>}
       </main>
       <Dialog
         open={deleteOpen}

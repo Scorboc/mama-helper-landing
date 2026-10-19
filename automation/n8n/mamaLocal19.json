@@ -37,7 +37,7 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
-          "timeout": 100000
+          "timeout": 180000
         },
         "sendHeaders": true,
         "headerParameters": {
@@ -52,13 +52,13 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 5000,
+      "notes": "Без входных данных. Токен — в существующем credential mamaBridgeLocalOnly. Idempotency-Key сохраняется при HTTP-повторах; оплаченный вызов ИИ внутри задания не повторяется.",
       "credentials": {
         "httpHeaderAuth": {
           "id": "mamaBridgeLocalOnly",
           "name": "MAMA — локальный мост"
         }
-      },
-      "notes": "Без входных данных. Токен — в существующем credential mamaBridgeLocalOnly. Idempotency-Key сохраняется при HTTP-повторах; оплаченный вызов ИИ внутри задания не повторяется."
+      }
     },
     {
       "id": "3cd8b995-92ca-4a7c-9e3e-dc4cf35a3883",
@@ -117,10 +117,10 @@
     "executionOrder": "v1",
     "timezone": "Europe/Saratov",
     "errorWorkflow": "mamaLocal18",
-    "saveDataSuccessExecution": "none",
-    "saveDataErrorExecution": "all"
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all",
+    "availableInMCP": true
   },
-  "active": false,
   "description": "Каждые 30 минут локально классифицирует отзывы. ИИ получает только enum-счётчики, готовит проекты правил владельцу; не более одного вызова в сутки, 1 ₽/день и 10 ₽/месяц внутри общего бюджета. Переписку не экспортирует, правила не меняет.",
-  "versionId": "5ba12af9-6eae-47da-85c2-f5035d1ca0e2"
+  "active": false
 }

@@ -184,7 +184,7 @@ def build_chat_context(state, current_question='', care_version=None, compact=Fa
     evidence = answer_scenarios.context(current_question)
     if evidence:
         blocks.append(evidence)
-    blocks.append(_content.context(state.get('profile'),current_question,state.get('messages')))
+    blocks.append(_content.context(state.get('profile'),current_question,state.get('messages'),compact))
     style = state.get('preferences', {}).get('answerStyle', 'short')
     blocks.append({'short':'Формат: кратко, до 120 слов.',
                    'steps':'Формат: короткий пошаговый план из 3–5 пунктов.',
@@ -288,6 +288,8 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
             raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
         auth_header = 'Bearer ' + auth_token
         model = choose_chat_model(question)
+    output_limit=max(max_tokens, 900 if system_prompt and model == 'z-ai/glm-5.3-flash' else 3000 if system_prompt else 4800) if provider == 'proxyapi' else max_tokens
+    luna=provider=='proxyapi' and model=='openai/gpt-6-luna'
     payload = json.dumps({
         'model': model,
         'messages': [
@@ -296,10 +298,10 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
             *([] if system_prompt else [{'role': 'system', 'content': prompt_policy.reply_check(question)}]),
             {'role': 'user', 'content': question},
         ],
-        'max_tokens': max(max_tokens, 900 if system_prompt and model == 'z-ai/glm-5.3-flash' else 3000 if system_prompt else 4800) if provider == 'proxyapi' else max_tokens,
-        **({'reasoning_effort': 'low' if model in ('z-ai/glm-5.3-flash','z-ai/glm-5.3') else 'minimal'} if provider == 'proxyapi' else {}),
+        ('max_completion_tokens' if luna else 'max_tokens'): output_limit,
+        **({'reasoning_effort': 'low' if model in ('z-ai/glm-5.3-flash','z-ai/glm-5.3','openai/gpt-6-luna') else 'minimal'} if provider == 'proxyapi' else {}),
         **({'response_format': {'type':'json_object'}} if provider == 'proxyapi' and system_prompt else {}),
-        'temperature': 0.2,
+        **({} if luna else {'temperature':0.2}),
     }, ensure_ascii=False).encode('utf-8')
     request = urllib.request.Request(request_url, data=payload, method='POST', headers={
         'Content-Type': 'application/json',
@@ -307,7 +309,7 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
         'Authorization': auth_header,
         **({'OpenAI-Project': yandex_folder_id} if using_yandex else {}),
         'x-data-logging-enabled': 'false',
-        'User-Agent': 'MamaHelper/0.1 (+https://mama-helper-landing--preview.poehali.dev)',
+        'User-Agent': 'MamaHelper/0.1',
         'Connection': 'close',
     })
 
@@ -315,7 +317,7 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
         # Never mutate process-wide DNS functions: requests run on multiple threads.
         started = time.monotonic()
         try:
-            lease = ai_budget.reserve(model, 'daily' if system_prompt else 'chat', len(payload), json.loads(payload)['max_tokens'])
+            lease = ai_budget.reserve(model, 'daily' if system_prompt else 'chat', len(payload), output_limit)
         except ai_budget.BudgetError as exc:
             raise AppError(exc.status, exc.message) from None
         usage = None
@@ -332,6 +334,8 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
             content = choice.get('message', {}).get('content')
             if not isinstance(content, str) or not content.strip() or choice.get('finish_reason') == 'length':
                 raise ValueError('AI returned empty or truncated content')
+            if not system_prompt and not _safety.medical_guardrails.valid_language(content,question):
+                raise ValueError('AI returned corrupted language')
             outcome = 'ok'
             return content.strip()
         finally:
@@ -892,7 +896,6 @@ def handle_action(db, action, data, headers, ip):
         message_id = data.get('messageId')
         if not isinstance(message_id, str) or not re.fullmatch(r'[a-zA-Z0-9-]{1,100}', message_id):
             raise AppError(400, 'Неверный идентификатор сообщения.')
-        rate_limit(db, 'chat:' + user[0], 30, 900)
         question = question.strip()
         paid = _birthdays.paid_access(db,user[0])
         if paid:
@@ -922,22 +925,31 @@ def handle_action(db, action, data, headers, ip):
                 raise AppError(409, 'Данные изменились в другой вкладке. Перезагрузите страницу перед отправкой.')
             state['messages'].append({'id': message_id, 'role': 'user', 'text': question})
 
-        is_emergency = _safety.emergency_question(question)
+        urgent_reply = _safety.urgent_reply(question,state.get('profile'),state.get('messages',[])[:-1])
+        is_emergency = bool(urgent_reply) or _safety.emergency_question(question)
+        if not is_emergency:
+            rate_limit(db, 'chat:' + user[0], 30, 900)
+        if is_emergency and len(state['messages']) >= 120:
+            # The full conversation stays byte-for-byte intact. Show urgent help
+            # separately instead of dropping history or blocking at the size cap.
+            return {'answer':urgent_reply or EMERGENCY_TEXT,'transientAnswer':True,
+                    'state':normalize_state(unseal(state_row[0])),
+                    'revision':state_row[1],'quota':ai_quota.public(quota)}, None
         if quota['used'] >= quota['base'] and quota['bonus'] == 0 and not safe_reply and not profile_scope_reply and not is_emergency:
             if billing.enabled() and billing.access(db,user[0])['mode'] == 'none':
                 raise AppError(402, 'Для ответов ИИ нужен действующий доступ. История, трекеры и срочная помощь доступны. Откройте «Доступ и оплата».')
             raise AppError(429, 'Лимит ответов на этот период исчерпан. История, трекеры и срочная помощь доступны.' if billing.enabled() or paid else f"Тестовый лимит исчерпан: использовано {quota['used']} из {quota['base']} AI-ответов. История, трекеры и срочная помощь доступны.")
-        if len(state['messages']) >= 120:
+        if len(state['messages']) >= 120 and not is_emergency:
             raise AppError(400, 'История слишком длинная. Начните новый чат.')
         quota_charged = not is_emergency and not safe_reply and not profile_scope_reply
         sleep_context_meta = None
         answer_evidence = None
         care_version = None
         care_stats = None
-        if safe_reply:
+        if is_emergency:
+            answer = urgent_reply or EMERGENCY_TEXT
+        elif safe_reply:
             answer = safe_reply
-        elif is_emergency:
-            answer = EMERGENCY_TEXT
         elif profile_scope_reply:
             answer = profile_scope_reply
         else:
@@ -989,7 +1001,8 @@ def handle_action(db, action, data, headers, ip):
                 answer = fallback_chat_answer(question, state, diag_code)
         if quota_charged:
             answer = _content.render_game_answer(answer,state.get('profile'),question,state.get('messages'))
-        answer = _content.clean(_safety.review(answer, state, care_stats), state.get('profile'),question)
+        if not is_emergency:
+            answer = _content.clean(_safety.review(answer, state, care_stats), state.get('profile'),question)
         card_entry = extract_medical_card_entry(question)
         if card_entry:
             card_entry['confirmation'] = 'pending'

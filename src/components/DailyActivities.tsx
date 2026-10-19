@@ -24,7 +24,7 @@ export default function DailyActivities({state,active=true}:{state:ParentState;a
  const contextKey=JSON.stringify([cid,profileKey,today,zone]);
  requestScope.current.select(contextKey);
  useEffect(()=>{const tick=()=>setToday(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));tick();const timer=setInterval(tick,60000);return()=>clearInterval(timer);},[zone]);
- useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;requestScope.current.cancel();};},[]);
+ useEffect(()=>{const scope=requestScope.current;mounted.current=true;return()=>{mounted.current=false;scope.cancel();};},[]);
  const load=useCallback(async()=>{
    const ticket=requestScope.current.begin(contextKey);
    const current=()=>mounted.current && requestScope.current.current(ticket);

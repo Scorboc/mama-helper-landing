@@ -1,5 +1,5 @@
-const API=process.env.MAMA_HELPER_API||'https://mama-helper-ai-proxy.reborntechsar.workers.dev';
-const ORIGIN=process.env.MAMA_HELPER_ORIGIN||'https://mama-helper-landing--preview.poehali.dev';
+const API=process.env.MAMA_HELPER_API||'http://127.0.0.1:8787/api';
+const ORIGIN=process.env.MAMA_HELPER_ORIGIN||'http://127.0.0.1:5173';
 const LOGIN=process.env.MAMA_HELPER_TEST_LOGIN;
 const PASSWORD=process.env.MAMA_HELPER_TEST_PASSWORD;
 const KEEP_DIALOG=process.env.MAMA_HELPER_KEEP_QA_DIALOG==='1';

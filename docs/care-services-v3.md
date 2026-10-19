@@ -29,4 +29,4 @@
 `npx tsc --noEmit && npm run build`
 `node scripts/test-parent-model.mjs && node scripts/test-preschool.mjs`
 
-Worker deployment runs ten live scenario requests in an isolated synthetic account and deletes it afterward. Failures are visible in GitHub Actions; passing unit tests does not prove live availability or clinical safety. Browser QA and Poehali publishing status must be reported separately.
+Worker deployment runs ten live scenario requests in an isolated synthetic account and deletes it afterward. Failures are visible in GitHub Actions; passing unit tests does not prove live availability or clinical safety. Browser QA and frontend publishing status must be reported separately.

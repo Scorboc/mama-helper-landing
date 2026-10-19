@@ -1,0 +1,184 @@
+/* The approved olive/amber palette belongs to the application, including public routes. */
+html:not(.nursery-preview) {
+  color-scheme: dark;
+  color: #f5edda;
+  background: #29382b;
+  font-family: Onest, sans-serif;
+  --background: 139 18% 17% !important;
+  --foreground: 40 52% 92% !important;
+  --card: 139 16% 21% !important;
+  --card-foreground: 40 52% 92% !important;
+  --popover: 139 18% 17% !important;
+  --popover-foreground: 40 52% 92% !important;
+  --primary: 39 70% 76% !important;
+  --primary-foreground: 139 24% 16% !important;
+  --secondary: 133 15% 29% !important;
+  --secondary-foreground: 40 52% 92% !important;
+  --muted: 139 14% 25% !important;
+  --muted-foreground: 43 21% 78% !important;
+  --accent: 133 15% 29% !important;
+  --accent-foreground: 40 52% 92% !important;
+  --border: 42 27% 43% !important;
+  --input: 42 27% 43% !important;
+  --ring: 39 70% 76% !important;
+  --cream: 133 14% 26% !important;
+  --inner: 139 14% 23% !important;
+  --sage: 133 18% 38% !important;
+  --sage-soft: 133 18% 28% !important;
+  --destructive: 17 81% 77% !important;
+  --destructive-foreground: 139 24% 16% !important;
+  --pink: 17 60% 65% !important;
+  --pink-soft: 17 26% 25% !important;
+  --mark: 39 70% 76% !important;
+  --gold: 39 70% 76% !important;
+  --fur: 133 15% 29% !important;
+  /* Legacy component aliases resolve to the same palette. */
+  --violet: 139 18% 25% !important;
+  --violet-soft: 133 14% 26% !important;
+  --blue: 133 15% 29% !important;
+  --blue-soft: 139 14% 23% !important;
+  --teal: 133 18% 38% !important;
+  --coral: 17 60% 65% !important;
+  --orange: 39 70% 76% !important;
+  --glass-fill: #29382bed;
+  --glass-edge: #d7bd8355;
+  --glass-glint: #ffe7b014;
+  --glass-shadow: #16231840;
+  --glass-fallback: #29382b;
+}
+
+html:not(.nursery-preview) body {
+  background: #29382b;
+  background-image: none;
+  color: #f5edda;
+}
+html:not(.nursery-preview) ::selection { color: #233321; background: #f4d799; }
+html:not(.nursery-preview) { scrollbar-color: #a69b70 #29382b; }
+
+/* Reading pages use a calm surface over the same room, with no photo behind body text. */
+.room-surface .public-page {
+  background: hsl(var(--background) / .96);
+  color: hsl(var(--foreground));
+  overflow-wrap: anywhere;
+}
+.room-surface .public-page .tile,
+.room-surface .account-page > .tile:not(.account-card) {
+  background: linear-gradient(128deg, #fff1cb12, transparent 54%), #29382bf5 !important;
+  color: #f5edda;
+  border: 1px solid #d7bd8355 !important;
+  box-shadow: inset 0 1px 0 #fff1c92b, 0 8px 24px #16231826 !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.room-surface .account-page { background-image: none; }
+.room-surface :is(.public-page, .account-page) :is(a, .cap) { color: #f4d799; }
+.room-surface :is(.public-page, .account-page) .muted { color: #d6cfba; }
+.room-surface :is(.public-page, .account-page) :is(input, textarea, select) {
+  color: #f5edda;
+  background-color: #213125;
+  border-color: #c6ad7360;
+  caret-color: #ffdf9f;
+  color-scheme: dark;
+}
+.room-surface :is(.public-page, .account-page) :is(input, textarea)::placeholder { color: #d6cfba; opacity: 1; }
+.room-surface :is(.public-page, .account-page) .glass-btn {
+  background: #f4d799;
+  color: #233321;
+  border-color: transparent;
+  box-shadow: inset 0 1px 0 #fff1c936;
+}
+.room-surface :is(.public-page, .account-page) .glass-btn:hover { background: #ffe4ad; }
+.room-surface :is(.public-page, .account-page) :is(a, button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid #ffdf9f;
+  outline-offset: 3px;
+}
+.room-surface .form-error { background: #55382ff2; color: #ffe1c3; border-color: #d6a67c; }
+.room-surface .mark-hl { background: #f4d799; color: #233321; }
+
+/* Older controls and portal forms use the same warm accents. */
+body:has(.room-surface) :is(input, textarea, select) {
+  --tw-shadow: inset 0 1px 2px #16231829, inset 0 1px 0 #fff1c91a;
+  --tw-shadow-colored: inset 0 1px 2px #16231829, inset 0 1px 0 #fff1c91a;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+body:has(.room-surface) input:is([type="checkbox"], [type="radio"]) { accent-color: #f4d799; box-shadow: none; }
+.room-surface .parent-workspace .glass-btn {
+  background: #f4d799 !important;
+  color: #233321 !important;
+  border-color: #f4d799 !important;
+}
+.room-surface .parent-workspace .glass-btn:hover { background: #ffe4ad !important; }
+.room-surface .guide-welcome .guide-open-button {
+  min-height: 44px;
+  background: #f4d799;
+  color: #233321;
+  box-shadow: 0 4px 14px #16231826, inset 0 1px 0 #fff1c936;
+}
+.room-surface .guide-welcome .guide-open-button:hover { background: #ffe4ad; }
+.room-surface .parent-workspace .age-guidance-card a { color: #f4d799; }
+.room-surface .sleep-bar { background: #c5a363; }
+
+/* Emergency semantics stay distinct within the shared palette. */
+.room-surface .first-aid a { color: #f4d799 !important; text-underline-offset: 3px; }
+.room-surface .first-aid .first-aid-call-button { color: #fff !important; background: #b83f3a; }
+.room-surface .first-aid .first-aid-call-button:hover { background: #a63632; }
+.room-surface .first-aid .first-aid-call-secondary { color: #f5edda !important; border-color: #d7bd8380; }
+.room-surface .first-aid-note { background: #344430; color: #f5edda; }
+.room-surface .first-aid-dont { background: #4b382d; color: #ffe7ce; }
+.room-surface .first-aid-card h3 { font-weight: 600; }
+
+@media (prefers-reduced-transparency: reduce) {
+  .room-surface .public-page .tile,
+  .room-surface .account-page > .tile:not(.account-card) { background: #29382b !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+
+/* The same edge-to-edge controls surround every standalone app page. */
+.room-surface .parent-workspace .room-chat-topbar,
+.room-surface .room-route-shell .room-chat-topbar {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(92px, 132px) minmax(0, 1fr);
+  align-items: start; gap: 4px; width: min(100%, 420px); margin-inline: auto;
+}
+.room-surface .room-chat-topbar .room-chat-notch { width: 100%; }
+.room-surface .room-chat-topbar :is(.room-chat-intro, .room-chat-help) {
+  display: flex; align-items: center; justify-content: center; min-height: 44px;
+  min-width: 0; padding: 4px; font-size: 11px; line-height: 1.3; text-align: center;
+  color: #f8e8bd;
+}
+.room-surface .room-chat-help { text-decoration: underline; text-underline-offset: 3px; }
+.room-surface .room-chat-context {
+  display: flex; align-items: center; justify-content: center; gap: 6px; flex: none;
+  min-height: 44px; width: 100%; max-width: 100%; padding: 6px 12px;
+  color: #f8e8bd; font-size: 12px; line-height: 1.4;
+}
+.room-chat-context span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.room-chat-context svg { flex: none; }
+.room-chat-context:disabled { opacity: .65; }
+.room-chat-context:focus-visible, .room-chat-help:focus-visible { outline: 2px solid #ffdf9f; outline-offset: -2px; }
+.room-surface:has(> .room-route-shell) { padding-top: 0; }
+.room-route-shell { min-height: 100dvh; padding-bottom: calc(var(--room-nav-height) + 20px); }
+.room-route-shell > .room-chat-topbar {
+  padding-top: env(safe-area-inset-top);
+  height: calc(44px + env(safe-area-inset-top));
+}
+.room-route-content { min-width: 0; scroll-margin-top: calc(60px + env(safe-area-inset-top)); }
+.room-route-content > :is(.public-page, .account-page) {
+  min-height: calc(100dvh - 44px - var(--room-nav-height));
+  padding-top: 16px;
+  padding-bottom: 24px;
+}
+.room-route-content > .account-page { background: transparent !important; }
+.room-route-error { max-width: 760px; margin: 12px auto; }
+.room-route-content :is(details, [id]) { scroll-margin-top: calc(60px + env(safe-area-inset-top)); }
+.room-surface .room-navigation { z-index: 40; margin: 0; }
+.room-surface .room-navigation > :is(button, a) {
+  display: flex; align-items: center; padding: 0 3px;
+  text-decoration: none; line-height: 1.4; font-family: Onest, sans-serif;
+  background: transparent; border: 1px solid transparent;
+}
+.room-surface .room-navigation > :is(button, a):hover { background: #c7b67c12; }
+.room-surface .room-navigation > :is(button, a):focus-visible { outline: 2px solid #ffdf9f; outline-offset: -3px; }
+
+/* Short phones keep urgent calls above the longer reminder, clear of navigation. */
+@media (max-width: 600px) and (max-height: 740px) {
+  .room-surface .first-aid-urgent .first-aid-call { order: -1; }
+}

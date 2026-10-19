@@ -96,6 +96,20 @@ def report(weekly=False):
     (reports/(name+'.md')).write_text('\n'.join(text),encoding='utf-8')
     return {'ok':True,'report':name,'proposals':len(ideas),'method':result['method'],'externalMessagesSent':False}
 
+def snapshot_database(path, target):
+    # A hot rollback journal needs SQLite's normal recovery. Retry only that
+    # explicit error, never permissions/corruption, and never create a source.
+    for mode in ('ro', 'rw'):
+        try:
+            with closing(sqlite3.connect(path.resolve().as_uri()+'?mode='+mode,uri=True,timeout=30)) as source, closing(sqlite3.connect(target)) as dest:
+                source.backup(dest)
+                if dest.execute('PRAGMA integrity_check').fetchone()[0]!='ok':raise RuntimeError('Backup integrity failed')
+                tables=[r[0] for r in dest.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
+                return {t:dest.execute('SELECT COUNT(*) FROM "'+t.replace('"','""')+'"').fetchone()[0] for t in tables}
+        except sqlite3.OperationalError as error:
+            if mode!='ro' or getattr(error,'sqlite_errorcode',None)!=sqlite3.SQLITE_READONLY_ROLLBACK:
+                raise
+
 def backup():
     stamp=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:8]
     buf=io.BytesIO();manifest={};counts={}
@@ -107,11 +121,7 @@ def backup():
             if not path.exists():continue
             temp=ROOT/(name+'-snapshot.sqlite')
             try:
-                with closing(sqlite3.connect('file:'+path.as_posix()+'?mode=ro',uri=True)) as source, closing(sqlite3.connect(temp)) as dest:
-                    source.backup(dest)
-                    if dest.execute('PRAGMA integrity_check').fetchone()[0]!='ok':raise RuntimeError('Backup integrity failed')
-                    tables=[r[0] for r in dest.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")]
-                    counts[name]={t:dest.execute('SELECT COUNT(*) FROM "'+t.replace('"','""')+'"').fetchone()[0] for t in tables}
+                counts[name]=snapshot_database(path,temp)
                 content=temp.read_bytes();manifest[name]=hashlib.sha256(content).hexdigest()
                 info=tarfile.TarInfo(name+'.sqlite');info.size=len(content);tar.addfile(info,io.BytesIO(content))
             finally:

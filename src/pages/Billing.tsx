@@ -43,8 +43,8 @@ export default function Billing() {
       <p>Трекеры, графики, заметки, избранное и семейные функции. Продление по вашему действию, без автоматических списаний.</p>
       <p className="muted text-sm">Неиспользованные ответы не переносятся. Новый период можно оплатить после окончания текущего. История, отметки и срочная помощь доступны и после окончания доступа.</p>
     </section>
-    {active && <p role="status">{billing?.mode === "test" ? "Владелец назначил вам бесплатный тестовый доступ" : "Ваш платный доступ активен"}{billing?.endsAt ? " до " + new Date(billing.endsAt * 1000).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" }) + " МСК" : ""}.</p>}
-    {!billing?.paymentConfigured && <p role="status" className="rounded-xl border p-4">Оплата ещё не подключена. Деньги не списываются. Бесплатный тестовый доступ владелец назначает выбранным аккаунтам вручную.</p>}
+    {active && <p role="status">{billing?.mode === "test" ? "Ваш доступ активен" : "Ваш платный доступ активен"}{billing?.endsAt ? " до " + new Date(billing.endsAt * 1000).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" }) + " МСК" : ""}.</p>}
+    {!billing?.paymentConfigured && <p role="status" className="rounded-xl border p-4">Онлайн-оплата пока недоступна. Деньги не списываются.</p>}
     {!loggedIn ? <Button asChild><Link to="/account?mode=login">Войти в аккаунт</Link></Button> : !active && <>
       <div className="flex items-start gap-3"><Checkbox id="offer-accepted" checked={accepted} onCheckedChange={v => setAccepted(v === true)} /><label htmlFor="offer-accepted" className="leading-relaxed">Принимаю <Link className="underline" to="/offer">оферту</Link> на доступ за 480 ₽ и 300 ответов и подборок ИИ на календарный месяц.</label></div>
       <Button onClick={() => void checkout()} disabled={busy || !accepted || !billing?.paymentConfigured}>Открыть оплату · 480 ₽</Button>

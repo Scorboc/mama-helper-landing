@@ -28,7 +28,7 @@ class BudgetTests(unittest.TestCase):
         self.env.stop(); self.temp.cleanup()
 
     def test_concurrent_reservations_cannot_spend_the_same_budget(self):
-        amount = budget.price(1124, 20, Decimal('10.11'), Decimal('33.68'))
+        amount = budget.price(1124, 20, Decimal('16.84'), Decimal('58.95'))
         os.environ.update(AI_BUDGET_DAY_RUB=str(Decimal(amount)/budget.MICRO),AI_MAX_CONCURRENT_CALLS='20')
         def reserve(number):
             try:
@@ -51,7 +51,7 @@ class BudgetTests(unittest.TestCase):
             reserved=db.execute('SELECT accounted_micro FROM ai_spend WHERE id=?',(second,)).fetchone()[0]
         budget.finish(second,None,'error')
         result=budget.summary()
-        self.assertAlmostEqual(result['today']['estimatedRub'],budget.price(100,20,Decimal('10.11'),Decimal('33.68'))/budget.MICRO)
+        self.assertAlmostEqual(result['today']['estimatedRub'],budget.price(100,20,Decimal('16.84'),Decimal('58.95'))/budget.MICRO)
         self.assertEqual(result['today']['reservedRub'],reserved/budget.MICRO)
         self.assertEqual(result['today']['unknownUsage'],1)
         with budget.scope('old-request','old'):
@@ -65,7 +65,7 @@ class BudgetTests(unittest.TestCase):
         self.assertEqual(status,'unknown'); self.assertGreater(money,0)
 
     def test_month_cap_and_moscow_day_boundary(self):
-        amount=budget.price(1124,20,Decimal('10.11'),Decimal('33.68'))
+        amount=budget.price(1124,20,Decimal('16.84'),Decimal('58.95'))
         os.environ['AI_BUDGET_MONTH_RUB']=str(Decimal(amount)/budget.MICRO)
         stamp=lambda text:datetime.fromisoformat(text).replace(tzinfo=ZoneInfo('Europe/Moscow')).timestamp()
         with patch.object(budget.time,'time',return_value=stamp('2026-10-11T23:59:00')):

@@ -45,7 +45,8 @@ class SafetyTest(unittest.TestCase):
         self.assertIn('продолжайте отвечать',night)
         self.assertNotIn('до утра',night)
         game=safety.reply('Игра для речи на кухне вместо мультиков')
-        self.assertIn('готовка уже закончена',game)
+        self.assertIn('остановите готовку',game)
+        self.assertIn('уберите горячие предметы',game)
         self.assertIn('возраст неизвестен',game)
     def test_unsafe_sleep_and_play(self):
         self.assertIn('Не грейте матрас',safety.reply('Месячный малыш спит на мне на диване'))

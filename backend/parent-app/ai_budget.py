@@ -21,9 +21,12 @@ from zoneinfo import ZoneInfo
 MICRO = 1_000_000
 ACTOR = contextvars.ContextVar('ai_budget_actor', default='')
 REQUEST = contextvars.ContextVar('ai_budget_request', default='')
-PRICE_SOURCE = 'https://proxyapi.ru/models/z-ai/glm-5.3-flash'
-DEFAULT_RATES = {'z-ai/glm-5.3-flash': {'inputPerMillion':'10.11', 'outputPerMillion':'33.68',
-                                     'checkedAt':'2026-10-12', 'source':PRICE_SOURCE}}
+PRICE_SOURCE = 'https://proxyapi.ru/models/browse'
+DEFAULT_RATES = {
+    'z-ai/glm-5.3-flash': {'inputPerMillion':'16.84','outputPerMillion':'58.95','checkedAt':'2026-10-17','source':PRICE_SOURCE},
+    'openai/gpt-6-luna': {'inputPerMillion':'30','outputPerMillion':'150','checkedAt':'2026-10-17','source':PRICE_SOURCE},
+    'anthropic/claude-haiku-5-5': {'inputPerMillion':'30','outputPerMillion':'150','checkedAt':'2026-10-17','source':PRICE_SOURCE},
+}
 
 
 class BudgetError(Exception):

@@ -1,0 +1,192 @@
+.room-intro { position: relative; width: 100%; min-height: 100svh; background: #a28e73; color: #2d352c; }
+/* Continuous native scroll, with a stable travel distance on mobile. */
+.room-intro-scroll { height: calc(100dvh + var(--room-scroll-distance, 700svh)); touch-action: pan-y pinch-zoom; }
+html.room-scrolling { scroll-behavior: auto !important; scroll-snap-type: none; overscroll-behavior-y: none; }
+html.room-scrolling body { overscroll-behavior-y: none; }
+.room-stage { position: sticky; top: 0; isolation: isolate; display: grid; place-items: center; width: 100%; height: 100dvh; overflow: clip; }
+.room-ambient { position: absolute; inset: -30px; z-index: -1; background: linear-gradient(#49433344, #433b3044), url('/media/room/start-v12.webp') center / cover; filter: blur(24px); }
+.room-film { position: absolute; inset: 0; width: 100%; height: 100%; }
+.room-film video, .room-film .room-still { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center 43%; }
+.room-intro-header, .room-intro-footer { position: absolute; z-index: 5; left: 0; width: 100%; padding: 16px max(18px, calc((100vw - 780px) / 2)); }
+.room-intro-header { top: 0; padding-top: max(16px, env(safe-area-inset-top)); display: flex; align-items: center; justify-content: flex-end; gap: 12px; background: linear-gradient(#403a3377, transparent); }
+.room-brand { display: flex; align-items: center; gap: 8px; color: #fffaf1; font-size: 14px; font-weight: 650; line-height: 1.15; text-shadow: 0 1px 8px #332b2480; }
+.room-brand img { height: 42px; width: 42px; object-fit: contain; }
+.room-control { min-height: 44px; padding: 10px 13px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border-radius: 24px; background: #fffaf0ed; border: 1px solid #ffffff70; color: #303a2e; font-size: 13px; line-height: 1.3; font-weight: 600; }
+.room-intro button:focus-visible, .room-intro a:focus-visible { outline: 3px solid white; outline-offset: 4px; box-shadow: 0 0 0 6px #384a35; }
+.room-cue-layer { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 180ms ease; }
+.room-cue-layer.is-active { opacity: 1; }
+.room-cue { position: absolute; width: 82%; max-width: 340px; padding: 16px 18px; border-radius: 18px; background: #fffaf1f5; color: #303a2e; box-shadow: 0 5px 24px #49311e24; border: 1px solid #ffffffb3; }
+.room-cue-left { left: 5%; } .room-cue-right { right: 5%; }
+.room-cue-layer[data-cue="diary"] .room-cue { top: auto !important; bottom: 150px; }
+.room-cue h2 { font-size: clamp(17px, 4.6vw, 22px); font-weight: 650; line-height: 1.2; letter-spacing: -.02em; margin: 0; }
+.room-cue p { font-size: clamp(14px, 3.6vw, 17px); line-height: 1.4; margin: 7px 0 0; }
+.room-intro-footer { bottom: 0; padding-bottom: max(18px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, #403a3370); }
+.room-controls-row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.room-scroll-hint { display: flex; align-items: center; justify-content: center; gap: 7px; margin: 0 0 14px; color: #fffaf1; font-size: 14px; line-height: 1.35; text-shadow: 0 1px 8px #332b24; }
+.room-progress { height: 2px; background: #fffaf14d; margin-top: 14px; overflow: hidden; border-radius: 4px; }
+.room-progress span { display: block; height: 100%; background: #fffaf1; transform-origin: left; }
+.room-start-card { position: absolute; z-index: 4; width: min(88%, 370px); padding: 24px; background: #fffaf1f5; border: 1px solid #ffffffb3; border-radius: 24px; box-shadow: 0 12px 50px #33291b30; }
+.room-eyebrow { font-size: 10px; letter-spacing: .14em; color: #566050; }
+.room-start-card h1 { font-size: 28px; line-height: 1.15; margin: 14px 0; letter-spacing: -.025em; }
+.room-start-card p { font-size: 15px; line-height: 1.55; margin-bottom: 20px; }
+.room-primary, .room-text-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; padding: 12px; border-radius: 30px; font-size: 14px; font-weight: 600; }
+.room-primary { background: #3f543c; color: #fffaf1; } .room-text-button { margin-top: 4px; }
+.room-entry-loading { min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 24px; background: #f7f3ec; color: #303a2e; text-align: center; }
+.room-entry-loading a { text-decoration: underline; min-height: 44px; padding: 12px; }
+.room-surface { position: relative; isolation: isolate; min-height: 100svh; padding-top: max(8px, env(safe-area-inset-top)); }
+.room-surface::before { content: ''; position: fixed; inset: 0; z-index: -1; background: linear-gradient(180deg, #f6eee100 0%, #f6eee12b 20%, #f6eee190 100%), url('/media/room/rest-v12.webp') center top / cover no-repeat; }
+.room-surface > .parent-workspace, .room-surface > .account-page { background: transparent !important; min-height: 88svh; }
+.room-surface .parent-workspace .cabinet-header { background: #fffcf5f2 !important; border-radius: 22px; margin: 0 auto 8px; max-width: 900px; }
+.room-surface .parent-workspace .cabinet-header { flex-wrap: wrap !important; }
+.room-surface .parent-workspace .cabinet-header .brand-theme { flex: 1 0 205px; }
+.room-surface .cabinet-main { max-width: 932px; }
+/* Cabinet pages other than the chat sit on a calm panel, like the sign-in card, so text never sits on the photo. */
+.room-surface > .parent-workspace:not(:has(.chat-workspace)) > .cabinet-main {
+  margin: 0 auto 28px;
+  padding: clamp(16px, 3vw, 26px);
+  border-radius: 26px;
+  background: transparent;
+  text-shadow: 0 1px 4px #000000b3, 0 0 10px #00000059;
+  color: #f5eee0;
+  box-shadow: none;
+}
+/* Windows are frosted glass over the room photo; the page behind them is clear. */
+.room-surface .parent-workspace:not(.chat-workspace) .tile,
+.room-surface .account-card,
+.room-surface .parent-workspace:not(.chat-workspace) .room-account-tools,
+.room-surface .room-chat-welcome {
+  background: linear-gradient(135deg, #ffffff24, #ffffff08 60%), #1b281d73 !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.15);
+  border: 1px solid #ffe6b04d !important;
+  box-shadow: inset 0 1px 0 #fff3d133, 0 12px 32px #0b120d33 !important;
+  color: #f7f0de;
+  text-shadow: 0 1px 2px #0000008c;
+}
+.room-surface > .parent-workspace:not(:has(.chat-workspace)) > .cabinet-main :is(h1, h2, h3, p, label, span, a, small) { color: inherit; }
+.room-surface > .parent-workspace:not(:has(.chat-workspace)) > .cabinet-main .cap { color: #e9d9b0; }
+.room-surface > .parent-workspace:not(:has(.chat-workspace)) > .cabinet-main a { color: #ffe3a6; }
+.room-surface > .parent-workspace:not(:has(.chat-workspace)) > .cabinet-main .muted { color: #cfd9c8; }
+.room-surface > .parent-workspace:not(:has(.chat-workspace)) > .cabinet-main .tile a { color: #f4d799; }
+.room-surface > .parent-workspace:not(:has(.chat-workspace)) > .cabinet-main .tile .muted { color: #d6cfba; }
+.room-surface > .parent-workspace:not(:has(.chat-workspace)) > .cabinet-main .cabinet-greeting { background: transparent; padding: 0; }
+.room-surface .chat-workspace .child-picker { position: static; z-index: auto; }
+.room-surface .cabinet-greeting { background: #fffcf5ed; padding: 12px 16px; border-radius: 18px; }
+.room-surface .parent-workspace .tile { background: #fffdf8f5 !important; }
+.room-surface .chat-quick-care { background: #fffdf8f5; border-radius: 18px; }
+.room-surface .chat-tools.compact { display: block; }
+.room-surface .chat-context > p { font-size: 12px; line-height: 1.4; }
+.room-surface .chat-tools .chat-ideas-button { min-height: 44px; margin-top: 4px; padding: 8px 10px; }
+.room-quick-care { border-radius: 16px; background: #fffdf8f5; color: hsl(var(--foreground)); margin-bottom: 10px; }
+.room-quick-care > summary { padding: 12px 14px; min-height: 48px; cursor: pointer; font-size: 14px; }
+.room-quick-care > summary span { margin-left: 7px; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.room-chat-options > summary { cursor: pointer; min-height: 44px; padding: 8px 0; font-size: 13px; }
+.room-chat-options > summary span { display: block; padding-left: 16px; margin-top: 3px; font-size: 11px; color: hsl(var(--muted-foreground)); }
+.room-surface .chat-log { max-height: max(320px, 48svh); }
+.room-replay { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; gap: 7px; padding: 9px 12px; border: 1px solid hsl(var(--border)); border-radius: 24px; font-size: 13px; background: hsl(var(--card)); color: hsl(var(--foreground)); white-space: nowrap; }
+.room-chat-welcome p { font-size: 15px; line-height: 1.55 !important; }
+.room-feature-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
+.room-feature-links a { display: flex; flex-direction: column; gap: 4px; padding: 11px; min-height: 44px; border: 1px solid hsl(var(--border)); border-radius: 13px; background: hsl(var(--card)); text-decoration: none; color: hsl(var(--foreground)); }
+.room-feature-links strong { font-size: 14px; font-weight: 600; } .room-feature-links span { font-size: 12px; line-height: 1.4; color: hsl(var(--muted-foreground)); }
+.room-feature-links a:focus-visible, .room-replay:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+.room-chat-welcome .room-medical-note { font-size: 12px; color: hsl(var(--muted-foreground)); margin-bottom: 0; }
+@media (min-width: 700px) { .room-surface::before { background-size: auto, auto 100vh; background-color: #b5a58d; }}
+@media (max-width: 430px) { .room-surface .cabinet-header { border-radius: 0; } .room-feature-links { grid-template-columns: 1fr; } .room-feature-links a { flex-direction: row; align-items: center; justify-content: space-between; gap: 10px; } .room-feature-links span { text-align: right; max-width: 65%; }}
+@media (prefers-reduced-motion: reduce) { .room-cue-layer { transition: none; }}
+
+/* Room chat is an application viewport: only its central feed scrolls. */
+.room-surface:has(> .chat-workspace) { height: 100dvh; min-height: 0; padding: max(6px, env(safe-area-inset-top)) 0 0; }
+.room-surface > .chat-workspace { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 0; }
+.room-surface .chat-workspace .cabinet-header { flex: none; width: min(calc(100% - 24px), 900px); min-height: 48px; margin: 0 auto 4px; padding: 2px 10px; flex-wrap: nowrap !important; gap: 6px !important; }
+.room-surface .chat-workspace .cabinet-header .brand-theme { flex: 1 1 auto; min-width: 0; }
+.room-surface .chat-workspace .cabinet-header .site-logo { width: 32px; height: 32px; }
+.room-surface .chat-workspace .cabinet-header strong { font-size: 13px; }
+.room-surface .chat-workspace .room-replay { padding: 8px; font-size: 12px; border: 0; background: transparent; gap: 5px; }
+.room-surface .chat-workspace .cabinet-main { flex: 1; display: flex; flex-direction: column; width: 100%; min-height: 0; margin: 0 auto; padding: 0 12px calc(var(--room-composer-height, 114px) + 82px + env(safe-area-inset-bottom)) !important; }
+.room-surface .chat-workspace .child-picker { flex: none; width: 100%; max-width: none; min-height: 48px !important; padding: 5px 12px; margin: 0 0 6px; gap: 10px; }
+.room-surface .chat-workspace .child-avatar { width: 30px; height: 30px; }
+.room-surface .chat-workspace .child-picker > span:nth-child(2) { display: flex; align-items: baseline; gap: 8px; }
+.room-surface .chat-workspace .child-picker strong { order: -1; font-size: 14px; }
+.room-surface .chat-workspace .child-picker small { font-size: 11px; }
+.room-surface .chat-workspace .workspace-tabs { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.room-surface .chat-workspace .workspace-pane[data-state=active] { flex: 1; display: flex; flex-direction: column; min-height: 0; margin: 0; }
+.room-surface .chat-workspace .chat-card { flex: 1; display: flex; flex-direction: column; min-height: 0; width: 100%; padding: 0 12px !important; margin: 0; }
+.room-chat-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scroll-padding-top: 60px; padding-bottom: 8px; }
+.room-chat-scroll:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+.room-surface .chat-workspace .chat-log { overflow: visible; max-height: none; min-height: 0; padding: 8px 0; scroll-margin-top: 0; }
+.room-chat-toolbar { position: sticky; top: 0; z-index: 3; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 0 8px; background: #fffdf8; border-bottom: 1px solid hsl(var(--border)); }
+.room-chat-toolbar:has(> details[open]) { position: static; }
+.room-chat-toolbar > details { flex: 1 1 calc(50% - 4px); margin: 0; border-radius: 0; background: transparent; }
+.room-chat-toolbar > details[open] { flex-basis: 100%; }
+.room-chat-toolbar > details > summary { min-height: 44px !important; padding: 12px 0 !important; font-size: 12px !important; line-height: 20px; white-space: nowrap; }
+.room-surface .room-account-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 12px 0; padding-top: 8px; border-top: 1px solid hsl(var(--border)); font-size: 13px; }
+.room-account-tools > a { display: inline-flex; align-items: center; min-height: 44px; text-decoration: underline; }
+/* Cabinet footer links sit outside the panel on the photo: give them the same dark glass. */
+.room-surface .parent-workspace:not(.chat-workspace) .room-account-tools { margin: 12px auto; padding: 12px 18px; border-top: 0; border-radius: 18px; background: #2d3e328c; max-width: 932px; text-shadow: 0 1px 4px #000000a6; }
+/* Guest sign-in card on the photo: the same text shadow keeps its text readable. */
+.room-surface .account-card, .room-surface .account-card p, .room-surface .account-card h1 { text-shadow: 0 1px 4px #000000a6; }
+/* The dark cabinet panel keeps light text: the light-theme muted and link colours measured 1.6-2:1 on it. */
+.room-surface .cabinet-main { --muted-foreground: 40 22% 92%; }
+.room-surface .cabinet-main a:not([class*="btn"]):not([class*="button"]) { color: #f2dca0; }
+.room-account-tools > span { flex-basis: 100%; color: hsl(var(--muted-foreground)); font-size: 12px; }
+.room-surface .room-quota { font-size: 13px; margin: 8px 0 !important; }
+.room-surface .chat-workspace .chat-composer { padding: 8px 12px; gap: 4px 8px; }
+.room-surface .chat-workspace .chat-composer .voice-row { margin: 0; }
+.room-surface .chat-workspace .chat-composer textarea { height: 48px; }
+.room-surface .chat-workspace .bubble { max-width: 100%; }
+.room-surface > .parent-workspace, .room-surface .account-card { opacity: 0; visibility: hidden; }
+body:has(.room-handoff.leaving, .room-handoff.moving[data-room-reveal="true"]) .room-surface[data-room-ready="true"] > .parent-workspace,
+body:has(.room-handoff.leaving, .room-handoff.moving[data-room-reveal="true"]) .room-surface[data-room-ready="true"] > .parent-workspace,
+body:has(.room-handoff.leaving, .room-handoff.moving[data-room-reveal="true"]) .room-surface[data-room-ready="true"] .account-card {
+  visibility: visible;
+  animation: room-ui-arrive 1800ms linear both;
+}
+body:not(:has(.room-handoff)) .room-surface[data-room-ready="true"] > .parent-workspace,
+body:not(:has(.room-handoff)) .room-surface[data-room-ready="true"] .account-card {
+  visibility: visible;
+  /* A direct visit fades in quickly; the long fade is only for the camera handoff. */
+  animation: room-ui-arrive 260ms ease-out both;
+}
+.room-surface .route-message { background: transparent; }
+.room-handoff { position: fixed; inset: 0; z-index: 60; isolation: isolate; display: grid; place-items: center; overflow: clip; background: #a28e73; pointer-events: none; }
+.room-handoff .room-ambient { background-image: linear-gradient(#49433344, #433b3044), url('/media/room/rest-v12.webp'); }
+.room-outro-preload { display: none; }
+.room-handoff .room-film > * { position: absolute; inset: 0; }
+.room-handoff:not(.moving) video { visibility: hidden; }
+.room-handoff.moving { z-index: 0; }
+body:has(.room-handoff.moving) .room-surface { z-index: 1; }
+.room-handoff.leaving { animation: room-frame-leave 1800ms linear both; }
+@keyframes room-ui-arrive { from { opacity: 0; } to { opacity: 1; } }
+@keyframes room-frame-leave { from { opacity: 1; } to { opacity: 0; } }
+@media (max-width: 350px) { .room-surface .chat-workspace .cabinet-header strong { font-size: 11px; } .room-chat-toolbar > details > summary { font-size: 11px !important; }}
+@media (prefers-reduced-motion: reduce) {
+  body:has(.room-handoff.leaving, .room-handoff.moving[data-room-reveal="true"]) .room-surface[data-room-ready="true"] > .parent-workspace,
+body:has(.room-handoff.leaving, .room-handoff.moving[data-room-reveal="true"]) .room-surface[data-room-ready="true"] .account-card,
+body:not(:has(.room-handoff)) .room-surface[data-room-ready="true"] > .parent-workspace,
+  body:not(:has(.room-handoff)) .room-surface[data-room-ready="true"] .account-card { animation-duration: 120ms; }
+  .room-handoff.leaving { animation-duration: 120ms; }}
+/* Keep the camera allocated on mobile; display:none may defer its preparation. */
+.room-outro-preload { display: block; position: fixed; inset: 0; opacity: 0; pointer-events: none; z-index: -1; }
+.room-outro-preload .room-film > * { position: absolute; inset: 0; }
+/* A single parent opacity also includes the notch, navigation and account shell. */
+html[data-room-transition] .room-surface > .parent-workspace,
+html[data-room-transition] .room-surface .account-card {
+  visibility: visible !important; opacity: 1 !important; animation: none !important;
+}
+html[data-room-transition="holding"] .room-surface,
+html[data-room-transition="revealing"] .room-surface {
+  opacity: var(--room-interface-opacity, 0); visibility: visible;
+}
+html[data-room-transition="holding"] .room-surface::before,
+html[data-room-transition="revealing"] .room-surface::before {
+  opacity: var(--room-interface-opacity, 0); animation: none !important;
+}
+html[data-room-transition="complete"] .room-surface { opacity: 1; }
+.room-journey-active { position: fixed; inset: 0; z-index: 0; overflow: clip; pointer-events: none; background: #a28e73; }
+.room-journey-active .room-film > * { position: absolute; inset: 0; }
+.room-intro-shared { background: transparent; z-index: 1; }
+html:is([data-room-transition="holding"], [data-room-transition="revealing"]) .room-guest {
+  z-index: 1; opacity: var(--room-interface-opacity, 0);
+}
+html[data-room-camera="moving"] .room-guest { background: transparent; }
+html[data-room-camera="moving"] .room-guest-bg { visibility: hidden; }
