@@ -1,0 +1,11 @@
+{
+  "generator": "Higgsfield / GPT Image 2.5",
+  "job_id": "6eb0853f-7cdf-4d7d-a296-50982955bd73",
+  "created": "2026-10-19",
+  "asset": "child-hands.png",
+  "sha256": "05a4b2a1841a2d66b3649d574fd6b9fe645b2b16be638ae25c1e17f8ef4226aa",
+  "bytes": 2949147,
+  "reference": "media/room/rest-v12.webp, existing synthetic public intro asset",
+  "approval": "Owner approved 1 generation for 2.75 credits and approved result in chat",
+  "rendering": "Original unmodified RGBA image; left/right halves composited locally with runtime alpha-fringe suppression and fingertip anchoring. Image animation, not rigged 3D or recorded footage. No typed values or user data sent to generation service."
+}

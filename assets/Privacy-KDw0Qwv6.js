@@ -1,1 +1,0 @@
-import{pt as e,vt as t}from"./index-ChDnF4pB.js";import{t as n}from"./Legal-Dp801VIJ.js";var r=t(e());function i(){return(0,r.jsx)(n,{kind:`privacy`})}export{i as default};

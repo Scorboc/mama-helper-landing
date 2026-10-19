@@ -1,1 +1,0 @@
-import{_t as e,ft as t}from"./index-DSdCMrc_.js";import{t as n}from"./Legal-x8TJh-OC.js";var r=e(t());function i(){return(0,r.jsx)(n,{kind:`privacy`})}export{i as default};

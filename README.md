@@ -1,7 +1,4 @@
-# MAMA helper · room interface review
+MAMA public frontend
 
-Mobile review of the selected olive glass design and scroll-driven room introduction.
-
-This branch contains public frontend assets only. It uses a synthetic profile and sample conversation, with optional state stored on the viewer's own device. It does not access real MAMA accounts, medical records or an external AI service. Sending a question explains the preview boundary. The application's working source and API integration remain in the main local project.
-
-Open: https://scorboc.github.io/mama-helper-landing/?intro=1
+Built from main d00b17660c328a49570706cf2eb7aeabd7a360c5.
+Existing synthetic demo adapter retained. No production accounts, private records, or external AI are connected.

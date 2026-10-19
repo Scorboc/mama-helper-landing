@@ -1,1 +1,0 @@
-import"./parent-api-UU4jnrAX.js";import{n as e,t}from"./Legal-Be1SnwYX.js";export{e as LegalLinks,t as default};
