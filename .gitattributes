@@ -1,0 +1,14 @@
+# Текстовые файлы хранятся и выкладываются с переводами строк LF на любой ОС,
+# независимо от настройки core.autocrlf (на Windows она по умолчанию включена).
+* text=auto eol=lf
+
+# Инструкции ИИ сверяются по SHA-256 (prompt_policy.py): байты не должны меняться
+# при checkout, иначе сервер не запустится.
+backend/parent-app/prompts/** -text whitespace=cr-at-eol
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.woff2 binary
+*.sqlite binary
