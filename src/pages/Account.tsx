@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, lazy, Suspense, useEffect, useRef, useState, type KeyboardEvent, type FormEvent as InputFormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Heart, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Heart, ArrowLeft, Eye, EyeOff, Minus, PanelTopOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,6 +9,9 @@ import { Fox } from "@/components/Critters";
 import AccountSecurity from "@/components/AccountSecurity";
 import RecoveryCodeCard from "@/components/RecoveryCodeCard";
 import EmailAccount from "@/components/EmailAccount";
+import { workspaceReturn } from "@/lib/room-experience";
+import { typingKey, type TypingPulse } from "@/lib/typing-keyboard";
+const TypingHands = lazy(() => import("@/components/TypingHands"));
 
 export default function Account() {
   const [params] = useSearchParams();
@@ -25,16 +28,59 @@ function AccountAccess() {
   );
   const [returnTo] = useState(() => {
     const next = new URLSearchParams(window.location.search).get("next");
-    return next &&
-      (next === "/cabinet" || next.startsWith("/cabinet?") || next === "/chat")
-      ? next
-      : "/cabinet";
+    return workspaceReturn(next);
   });
   const [params, setParams] = useSearchParams();
   const requestedMode = params.get("mode");
   const mode = ["login", "recover", "register"].includes(requestedMode || "")
     ? requestedMode!
     : params.has("next") ? "login" : "register";
+  const typingPulse = useRef<TypingPulse[]>([]);
+  const typingSerial = useRef(0);
+  const physicalInputAt = useRef(-Infinity);
+  const [typingActive, setTypingActive] = useState(false);
+  const [minimized, setMinimized] = useState(false);
+  const windowToggle = useRef<HTMLButtonElement>(null);
+  const lastField = useRef<HTMLInputElement | null>(null);
+  const windowContent = useRef<HTMLDivElement>(null);
+  const typingEnabled = mode === "login" || mode === "register";
+  function toggleWindow() {
+    if (!minimized) {
+      const field = windowContent.current?.querySelector<HTMLInputElement>('input:focus');
+      if (field) lastField.current = field;
+      typingPulse.current = [];
+      setTypingActive(false);
+      windowToggle.current?.focus();
+    } else {
+      requestAnimationFrame(() => {
+        (lastField.current?.isConnected ? lastField.current : windowContent.current?.querySelector<HTMLInputElement>('input'))?.focus();
+      });
+    }
+    setMinimized(v => !v);
+  }
+  function animateKey(event: KeyboardEvent<HTMLInputElement>) {
+    if (!typingEnabled || event.nativeEvent.isComposing) return;
+    const key = typingKey(event.code, event.key);
+    if (!key) return;
+    physicalInputAt.current = performance.now();
+    typingPulse.current.push({ code: key.code, russian: /[а-яё]/i.test(event.key), id: ++typingSerial.current });
+    if (typingPulse.current.length > 16) typingPulse.current.shift();
+  }
+  function animateMobileInput(event: InputFormEvent<HTMLInputElement>) {
+    // Virtual keyboards may omit keydown/code. Never read or copy the field value.
+    if (!typingEnabled || performance.now() - physicalInputAt.current < 70) return;
+    const input = event.nativeEvent as InputEvent;
+    if (input.isComposing) return;
+    if (input.inputType === "deleteContentBackward") {
+      typingPulse.current.push({ code: "Backspace", russian: false, id: ++typingSerial.current });
+      if (typingPulse.current.length > 16) typingPulse.current.shift();
+      return;
+    }
+    if (input.inputType !== "insertText" || !input.data || Array.from(input.data).length !== 1) return;
+    const key = typingKey("", input.data);
+    if (key) typingPulse.current.push({ code:key.code, russian:/[а-яё]/i.test(input.data), id:++typingSerial.current });
+    if (typingPulse.current.length > 16) typingPulse.current.shift();
+  }
   function setMode(next: string) {
     const nextParams = new URLSearchParams(params);
     nextParams.set("mode", next);
@@ -44,6 +90,8 @@ function AccountAccess() {
     setPassword("");
     setConfirmation("");
     setRecovery("");
+    typingPulse.current = [];
+    setTypingActive(false);
   }
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,6 +102,8 @@ function AccountAccess() {
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (error) { setMinimized(false); requestAnimationFrame(() => errorRef.current?.focus()); } }, [error]);
   const [newCode, setNewCode] = useState("");
   const [verificationRequired, setVerificationRequired] = useState(false);
   const [storage, setStorage] = useState<"checking" | "server" | "device" | "unavailable">(
@@ -91,7 +141,7 @@ function AccountAccess() {
       if (invite)
         window.history.replaceState(null, "", window.location.pathname);
       if (result.recoveryCode) setNewCode(result.recoveryCode);
-      else navigate(result.user.emailVerificationRequired ? "/account?mode=email-await" : returnTo, { replace: true });
+      else navigate(result.user.emailVerificationRequired ? "/account?mode=email-await&next=" + encodeURIComponent(returnTo) : returnTo, { replace: true });
       setVerificationRequired(!!result.user.emailVerificationRequired);
     } catch (err) {
       setError((err as Error).message);
@@ -104,14 +154,24 @@ function AccountAccess() {
       <Link className="back-link" to="/">
         <ArrowLeft size={18} /> На главную
       </Link>
-      <div className="account-card tile">
-        <Fox className="mx-auto mb-4 h-20 w-20" />
-        <h1>{newCode ? "Ваш аккаунт готов" : "Своя маленькая опора"}</h1>
-        <p className="muted">
-          Личный кабинет для мам и пап. Доступ — 480 ₽ в месяц; бесплатный тест назначает владелец.
-        </p>
+      <div className="account-card account-window tile" data-minimized={minimized}>
+        {!newCode && <header className="account-window__bar">
+          <h1 className="account-window__title">{mode === "register" ? "Регистрация" : mode === "login" ? "Вход" : "Восстановление доступа"}</h1>
+          <button ref={windowToggle} type="button" onClick={toggleWindow} disabled={busy} aria-expanded={!minimized} aria-controls="account-window-content"
+            aria-label={minimized ? "Развернуть окно" : "Свернуть окно"} title={minimized ? "Развернуть окно" : "Свернуть окно"}>
+            {minimized ? <PanelTopOpen size={19} /> : <Minus size={19} />}
+            <span>{minimized ? "Развернуть" : "Свернуть"}</span>
+          </button>
+        </header>}
+        <div id="account-window-content" ref={windowContent} hidden={minimized} className="account-window__content" data-typing={typingEnabled && !newCode}>
+        <div className="account-window__form">
+        {!typingEnabled && <Fox className="mx-auto mb-4 h-20 w-20" />}
+        {(newCode || !typingEnabled) && <h1>{newCode ? "Ваш аккаунт готов" : "Своя маленькая опора"}</h1>}
+        {!typingEnabled && <p className="muted">
+          Личный кабинет для мам и пап. Профиль, переписка и ваши записи — в одном месте.
+        </p>}
         {newCode ? (
-          <RecoveryCodeCard code={newCode} continueLabel={verificationRequired ? "Код сохранён — подтвердить почту" : undefined} onDone={() => { setNewCode(""); navigate(verificationRequired ? "/account?mode=email-await" : returnTo, { replace: true }); }} />
+          <RecoveryCodeCard code={newCode} continueLabel={verificationRequired ? "Код сохранён — подтвердить почту" : undefined} onDone={() => { setNewCode(""); navigate(verificationRequired ? "/account?mode=email-await&next=" + encodeURIComponent(returnTo) : returnTo, { replace: true }); }} />
         ) : (
           <>
             <nav className="account-modes" aria-label="Доступ к аккаунту">
@@ -120,8 +180,8 @@ function AccountAccess() {
               ))}
             </nav>
             <form onSubmit={submit} className="space-y-5 mt-6" aria-busy={busy}>
-              <label className="form-field">
-                Электронная почта
+              <label className={`form-field${typingEnabled ? " account-field-inline" : ""}`}>
+                <span>{mode === "login" ? "Логин" : "Эл. почта"}</span>
                 <Input
                   type={mode === "register" ? "email" : "text"}
                   inputMode={mode === "register" ? "email" : "text"}
@@ -130,6 +190,8 @@ function AccountAccess() {
                   required
                   maxLength={254}
                   value={email}
+                  onFocus={e => { lastField.current = e.currentTarget; setTypingActive(true); }} onBlur={() => { setTypingActive(false); typingPulse.current = []; }}
+                  onKeyDown={animateKey} onInput={animateMobileInput}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={
                     mode === "register" ? "you@example.ru" : "Почта или логин"
@@ -151,7 +213,7 @@ function AccountAccess() {
                   />
                 </label>
               )}
-              <div className="form-field">
+              <div className={`form-field${typingEnabled ? " account-field-inline" : ""}`}>
                 <label htmlFor="account-password">{mode === "recover" ? "Новый пароль" : "Пароль"}</label>
                 <div className="password-field">
                   <Input
@@ -165,6 +227,8 @@ function AccountAccess() {
                       mode === "login" ? "current-password" : "new-password"
                     }
                     value={password}
+                    onFocus={e => { lastField.current = e.currentTarget; setTypingActive(true); }} onBlur={() => { setTypingActive(false); typingPulse.current = []; }}
+                    onKeyDown={animateKey} onInput={animateMobileInput}
                     onChange={(e) => setPassword(e.target.value)}
                   />
                   <button
@@ -176,14 +240,16 @@ function AccountAccess() {
                   </button>
                 </div>
                 {mode !== "login" && (
-                  <span className="muted text-sm">
+                  <span className="muted text-sm account-field-inline__hint">
                     От 12 символов. Можно использовать длинную фразу.
                   </span>
                 )}
               </div>
-              {mode !== "login" && <label className="form-field">
-                Повторите пароль
-                <Input name="password-confirmation" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmation} onChange={e => setConfirmation(e.target.value)} />
+              {mode !== "login" && <label className={`form-field${typingEnabled ? " account-field-inline" : ""}`}>
+                <span>Повторите пароль</span>
+                <Input name="password-confirmation" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmation}
+                  onFocus={e => { lastField.current = e.currentTarget; setTypingActive(true); }} onBlur={() => { setTypingActive(false); typingPulse.current = []; }}
+                  onKeyDown={animateKey} onInput={animateMobileInput} onChange={e => setConfirmation(e.target.value)} />
               </label>}
               {mode === "recover" && <p className="muted text-sm">Нужен код, сохранённый при регистрации. После восстановления все прежние сеансы завершатся. Если забыли только код, а пароль помните, войдите и получите новый код в настройках безопасности.</p>}
               {mode === "register" && (
@@ -203,7 +269,7 @@ function AccountAccess() {
                 </div><p className="text-sm muted">О данных — в <Link className="underline" to="/privacy">отдельной политике</Link>. Эти отметки не являются согласием на сведения о здоровье, рекламу или уведомления.</p></div>
               )}
               {error && (
-                <p className="form-error" role="alert">
+                <p className="form-error" role="alert" ref={errorRef} tabIndex={-1}>
                   {error}
                 </p>
               )}
@@ -232,6 +298,9 @@ function AccountAccess() {
           </>
         )}
         <Link to="/first-aid" className="standalone-link mt-6">Срочная помощь · 112</Link>
+        </div>
+        {typingEnabled && !newCode ? <Suspense fallback={<div className="typing-hands" aria-hidden="true" />}><TypingHands active={typingActive && !minimized} pulse={typingPulse} /></Suspense> : null}
+        </div>
       </div>
     </main>
   );
