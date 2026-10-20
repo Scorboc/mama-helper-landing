@@ -85,7 +85,12 @@ def game_request(question):
 
 def game_safety_question(question):
     q=str(question or '').lower().replace('ё','е')
-    return bool(re.search(r'исключить|избегать|опасн|безопасн|можно ли|почему нельзя',q) and re.search(r'игр|занят|предмет|детал|тянет|бусин|магнит|батарей',q))
+    # "Подбери безопасную игру" requests a game. Asking what to exclude,
+    # whether a material is safe, or how to secure a play area needs safety guidance.
+    safety=re.search(r'исключить|избегать|(?<!без)опасн|можно ли|почему нельзя|'
+                     r'безопасн\w*\s+ли|безопасност|как\s+обезопасить|'
+                     r'безопасн\w*\s+игров\w*\s+мест|мест\w*\s+для\s+игр',q)
+    return bool(safety and re.search(r'игр|занят|предмет|детал|тянет|бусин|магнит|батарей',q))
 
 def game_intent(question,messages=None):
     """A short refusal belongs to the current game exchange, not every old game."""
@@ -145,7 +150,7 @@ def render_game_answer(answer,profile,question,messages=None):
     if re.search(r'магнит|батарей|бусин|воздушн\w* шар|мелк\w* детал|безопасн\w* игров\w* мест|мест\w* для игр',q):
         return answer  # Preserve the actual safety question and its warning.
     named_game=any(game_named(g['title'],answer) for g in catalog.candidates(months(profile))) if months(profile) is not None else False
-    explicit=bool(re.search(r'предлож|придум|подбер|выбер|игровой способ|во что|чем занять|что можно (?:сделать|делать)|(?:нужна|хочу|хочется).*игр|какие.*игр|новая игра|дай.*игр|игр\w*\s+вместо|вместо лечебного массажа',q))
+    explicit=bool(re.search(r'предлож|придум|подбер|выбер|игровой способ|во что|чем занять|что можно (?:сделать|делать)|(?:нужна|хочу|хочется).*игр|какие.*игр|новая игра|да(?:й|вай).*игр|игр\w*\s+вместо|вместо лечебного массажа',q))
     previous=[str(m.get('text','')) for m in (messages or [])[-30:] if m.get('role')=='user' and m.get('text')!=question]
     followup=bool(re.search(r'надоел|не нрав|не понрав|не подход|не подош|недоступн|друг\w*|механик|материал|без игруш|нет игруш',q)) and any(game_request(text) for text in previous)
     # A named game in an answer does not make a behavioural question a game request.
@@ -218,6 +223,11 @@ def profile_scope_reply(question, profile):
     """Stop an alternate child/age from being smuggled into the active chat."""
     if not profile:return None
     q=str(question or '').replace('ё','е')
+    # A dose's source is not the child being advised. Keep actual requests
+    # "для другого ребёнка" and alternate ages subject to the ordinary guard.
+    q=re.sub(r'доз\w*\s+(?:(?:с|от)\s+)?другого\s+ребенка|'
+             r'доз\w*[^.!?\n]{0,40}котор\w*\s+назнач\w*\s+другому\s+ребенку',
+             'дозировку из чужого назначения',q,flags=re.I)
     if other_profile_reference(q):return _scope_text(profile)
     age=months(profile)
     if age is None:return None
@@ -243,7 +253,36 @@ def other_profile_reference(text, allow_observation=False, allow_social=False):
     return not (social and social.start()<other.start())
 
 
+def answer_text(answer):
+    """Render a complete JSON answer as text before sentence-level safety filters."""
+    text=str(answer or '').strip()
+    fenced=re.fullmatch(r'```(?:json)?\s*([\s\S]*?)\s*```',text,re.I)
+    candidate=fenced.group(1) if fenced else text
+    if not candidate.startswith(('{','[')):return text
+    try:
+        value=json.loads(candidate)
+    except (ValueError,RecursionError):
+        return text
+    def render(item,depth=0):
+        if depth>8:return ''
+        if isinstance(item,dict):
+            return '\n\n'.join(str(k).replace('_',' ')+': '+render(v,depth+1)
+                               for k,v in item.items() if v is not None)
+        if isinstance(item,list):return '\n\n'.join(render(v,depth+1) for v in item if v is not None)
+        return str(item)
+    return render(value).strip() or 'В ответе нет содержательных данных. Попробуйте повторить вопрос.'
+
+
+def dose_transfer_warning(text):
+    q=text.lower().replace('ё','е')
+    return bool(re.search(r'(?:не\s+(?:используйте|переносите|давайте|берите|копируйте|применяйте)|'
+                         r'(?:нельзя|опасно|не следует|не нужно)\s+(?:переносить|использовать|давать|копировать|применять))[^.!?\n]{0,100}'
+                         r'(?:доз|схем|назнач|препарат|лекарств)',q)
+                and re.search(r'(?:друг(?:ого|ому)\s+ребен|чуж)',q))
+
+
 def clean(answer, profile=None, question=None):
+    answer=answer_text(answer)
     social_context=bool(question and profile and profile_scope_reply(question,profile) is None and re.search(r'общени|сверстник|делит\w* игруш|делиться|очеред|жаднича',question,re.I))
     # Internal diary names belong to the evidence record, not the parent's reply.
     fields={'recordedSleepMinutesTotal':'отмеченная длительность сна за период',
@@ -280,8 +319,8 @@ def clean(answer, profile=None, question=None):
             continue
         if (_INVITE.search(part) or _MORE_INVITE.search(part)) and not re.search(r'не\s+ждите|112|103|врач|педиатр',part,re.I):continue
         # Reporting age to a dispatcher/clinician is not changing the chat profile.
-        medical_handoff=bool(re.search(r'112|103|(?:сообщ|назов|укаж|скаж)[^.!?\n]{0,140}(?:диспетчер|токсиколог|медицинск\w*\s+работник|врачу)',part,re.I))
-        if profile and not medical_handoff and (_ASK_OTHER_AGE.search(part) or other_profile_reference(part,allow_observation=True,allow_social=social_context)):
+        medical_handoff=bool(re.search(r'112|103|(?:сообщ|назов|укаж|скаж|уточн)[^.!?\n]{0,140}(?:диспетчер|токсиколог|медицинск\w*\s+работник|врач|фармацевт)',part,re.I))
+        if profile and not medical_handoff and not dose_transfer_warning(part) and (_ASK_OTHER_AGE.search(part) or other_profile_reference(part,allow_observation=True,allow_social=social_context)):
             removed_scope_prompt=True
             continue
         kept.append(part)

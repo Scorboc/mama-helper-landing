@@ -44,7 +44,7 @@ def adult_request(question):
         return False
     if re.search(r'(?:дыхательн|заземл)[^.!?\n]{0,55}(?:для ребенка|ребенку|малышу)', q):
         return False
-    return bool(re.search(r'\b(?:я|мне|меня|взросл\w*|плачу)\b|плохо сплю|для мамы|маме|у мамы|веду (?:машину|автомобиль)|за рулем', q))
+    return bool(re.search(r'\b(?:я|мне|меня|взросл\w*|плачу|беременна)\b|плохо сплю|для мамы|маме|у мамы|веду (?:машину|автомобиль)|за рулем', q))
 
 
 def no_advice(question):
@@ -54,11 +54,13 @@ def no_advice(question):
 def urgent_reply(question):
     """Narrow present-tense adult red flags; never label them as stress."""
     q = normalize(question)
+    if re.search(r'(?:ребенку|малышу|сыну|дочке|дочери|у ребенка)[^.!?\n]{0,50}(?:трудно|тяжело|не может)[^.!?\n]{0,25}дыш',q):
+        return None  # A parent's pregnancy or fear does not change the symptom's subject.
     if not adult_request(q):
         return None
     current = bool(re.search(r'сейчас|внезапно|нараста|начал|стало|сдавил|сильн\w* (?:боль|давление|одышк)', q))
     chest = bool(re.search(r'(?:давит|сдавил\w*|сжимает|тяжесть|боль)\s+(?:мне\s+)?(?:в\s+)?груд', q))
-    breathing = bool(re.search(r'не могу (?:нормально )?дышать|тяжело дышать|не могу сказать|синеют губы', q))
+    breathing = bool(re.search(r'не могу (?:нормально )?дышать|(?:тяжело|трудно) дышать|не хватает воздуха|не могу сказать|синеют губы', q))
     breast = bool(re.search(r'уплотнен|сосок|сцеж|мастит|молочн\w* желез|кормлю грудью', q))
     if breast and not breathing and not re.search(r'давит|сдавил|сжимает|внезапн\w* боль|сильн\w* боль', q):
         return None  # Breast symptoms are not interchangeable with chest pain.

@@ -1002,7 +1002,7 @@ def handle_action(db, action, data, headers, ip):
         if quota_charged:
             answer = _content.render_game_answer(answer,state.get('profile'),question,state.get('messages'))
         if not is_emergency:
-            answer = _content.clean(_safety.review(answer, state, care_stats), state.get('profile'),question)
+            answer = _content.clean(_safety.review(_content.answer_text(answer), state, care_stats), state.get('profile'),question)
         card_entry = extract_medical_card_entry(question)
         if card_entry:
             card_entry['confirmation'] = 'pending'

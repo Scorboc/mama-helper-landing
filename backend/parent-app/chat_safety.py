@@ -17,7 +17,7 @@ _policy_spec=importlib.util.spec_from_file_location("content_policy",Path(__file
 _policy=importlib.util.module_from_spec(_policy_spec);_policy_spec.loader.exec_module(_policy)
 
 EMERGENCY_PATTERN = re.compile(
-    r'\bне\s+дыш|задыха|судорог|без созн|подавил|отравил|'
+    r'\bне\s+дыш|задыха|судорог|судорожн\w* приступ|без созн|подавил|отравил|'
     r'(?:трудно|тяжело)\s+дыш|затруднен\w*\s+дыхан|трудно\s+разбуд|синеет|'
     r'перестал\w*\s+дыш|не\s+может\s+(?:эффективно\s+)?(?:(?:говорить|плакать|кашлять)\s*(?:,|или|и|ни)\s*){0,3}(?:вдохн|дыш|кашля)|не\s+(?:могу|удается)\s+разбуд|'
     r'потерял\w*\s+созн|проглотил\w*[^.!?\n]{0,30}(?:магнит|батарейк)|'
@@ -52,12 +52,22 @@ def emergency_question(question):
                 if re.search(r'навредить|убить себя|покончить',match.group()) and re.search(r'не хочу|не собираюсь|намерения нет',clause) and not re.search(r'теряю контроль|не могу останов|есть план',clause):
                     continue
             current = re.search(r'сейчас|только что|внезапно|начал\w*|стало', clause)
-            if not current and re.search(r'вчера|раньше|прошл\w*|когда-то|в детстве', clause):
+            if not current and re.search(r'вчера|раньше|прошл\w*|когда-то|в детстве|(?:недел\w*|дн\w*|час\w*|минут\w*) назад', clause):
                 continue
             if not current and (re.search(r'если|не допустить|как предотвратить|как избежать',before) or re.search(r'на будущее|когда-нибудь|в теории|для памятки',clause)):
                 continue
             return True
     return False
+
+def resolved_emergency(question):
+    """An explicit resolution may stop carry-over, never a newly reported red flag."""
+    q=medical_guardrails.norm(question)
+    if emergency_question(q):return False
+    return bool(re.search(
+        r'приеха|врач[^.!?]{0,25}(?:рядом|здесь)|риск (?:прошел|миновал)|уже дышит нормально|'
+        r'(?:приступ|судороги|опасность|угроза)\s+(?:полностью\s+)?(?:прошл\w*|законч\w*|миновал\w*)|'
+        r'сейчас\s+(?:он\s+|она\s+|ребенок\s+)?(?:все\s+)?(?:здоров\w*|хорошо|дышит нормально|симптомов нет)',q))
+
 
 def urgent_reply(question, profile=None, messages=None):
     """Trusted local urgent route, ahead of profile, quota and generation rules."""
@@ -68,12 +78,12 @@ def urgent_reply(question, profile=None, messages=None):
     current=question
     if not emergency_question(current):
         q=medical_guardrails.norm(question)
-        if re.search(r'приеха|врач[^.!?]{0,25}(?:рядом|здесь)|риск (?:прошел|миновал)|уже дышит нормально',q):return None
+        if resolved_emergency(q):return None
         if not re.search(r'сначала|помощь|ждать|игр|упражнен|что (?:теперь|дальше)',q):return None
         recent=[m for m in (messages or [])[-8:] if m.get('role')=='user']
         for message in reversed(recent):
             text=str(message.get('text',''))
-            if re.search(r'приеха|риск (?:прошел|миновал)|уже дышит нормально',medical_guardrails.norm(text)):return None
+            if resolved_emergency(text):return None
             if emergency_question(text):current=text;break
             if not re.search(r'сначала|помощь|ждать|что (?:теперь|дальше)',medical_guardrails.norm(text)):return None
         else:return None
@@ -298,11 +308,8 @@ def reply(question, profile=None):
     urgent = parent_support.urgent_reply(question)
     if urgent:
         return urgent
-    if re.search(r'батаре[йя]',q) and re.search(r'проглот|съе[лс]|во рту|пропал|не хватает|не могу найти',q):
-        return ('При подозрении, что ребёнок проглотил батарейку, нужна немедленная медицинская помощь — '
-                'даже если он играет и выглядит здоровым. Звоните 112 сейчас, сообщите о батарейке и следуйте '
-                'указаниям диспетчера. Не ждите симптомов и не вызывайте рвоту. Если это не задержит помощь, '
-                'возьмите игрушку или упаковку батарейки с собой. Чат не может исключить проглатывание.')
+    if medical_guardrails.battery_ingestion(q):
+        return medical_guardrails.battery_reply()
     if emergency_question(q):
         if re.search(r'синеет|трудно разбудить|трудно дыш|тяжело дыш',q):
             return scenario_reply(question,profile)
@@ -411,8 +418,10 @@ def reply(question, profile=None):
                 'одна, сначала положите ребёнка безопасно, затем сделайте короткую паузу рядом. '
                 'Повторяющиеся трудности со сном и кормлением обсудите с педиатром. Есть ли сейчас '
                 'рядом отдельное безопасное спальное место для малыша?')
-    if re.search(r'игр|занят|моторик|сенсорн\w*\s+короб',q) and re.search(r'в рот|во рту|бусин|крупа|мелк|\bрис\b',q):
-        if _policy.game_safety_question(q):
+    hazard_text=re.sub(r'без\s+(?:мелк\w*\s+|маленьк\w*\s+)?(?:магнит\w*|батаре\w*)','',q)
+    high_risk=bool(re.search(r'магнит|батарей',hazard_text))
+    if re.search(r'игр|занят|моторик|сенсорн\w*\s+короб',q) and (high_risk or re.search(r'в рот|во рту|бусин|крупа|мелк|\bрис\b',q)):
+        if high_risk or _policy.game_safety_question(q):
             return ('Исключите игры с бусинами, крупой, сухой фасолью, магнитами, батарейками, воздушными шарами и съёмными мелкими деталями. '
                     'Присмотр не делает их безопасными. Выбирайте целые предметы подходящего размера и возрастной маркировки, '
                     'проверяйте их перед игрой и оставайтесь рядом. При подозрении на проглатывание батарейки или магнита нужна немедленная помощь — 112.')
