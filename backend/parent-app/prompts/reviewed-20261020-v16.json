@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261020-v16",
+  "approvedAt": "2026-10-20",
+  "approval": "Owner explicitly requested emergency ambulance priority and official first aid while waiting.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261020-v16.md",
+      "sha256": "bebfb58b5ba4467b810344b1f522a19224a07cc49d7e089f9ff289e4e9e10634"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261013-v10.md",
+      "sha256": "9f864e7d72201619137e52c1e46f28e825b1201e499ba2c675f4897342a29b2f"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261013-v9.md",
+      "sha256": "e15cf84d401e4a7654c9827cf3d435008ce3579801cbf05222357b9ac83ddff4"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261020-v16.md",
+      "sha256": "673b3765863ce9e61501d7d5a124b94f290c55fcb31c5128013dbcb0cc7cf529"
+    }
+  }
+}

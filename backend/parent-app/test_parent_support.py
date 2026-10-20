@@ -165,7 +165,7 @@ class AdultSelfHelpApiTest(unittest.TestCase):
             response, body = self.fixture.call('chat', cookie,
                 question='Покажи мне дыхательную практику.', messageId='risk-followup', revision=saved['revision'])
         self.assertEqual(response['statusCode'], 200, body)
-        self.assertTrue(body['answer'].startswith('Не ждите'))
+        self.assertIn('скорую',body['answer'][:150]);self.assertIn('Не ждите',body['answer'])
         external.assert_not_called()
 
     def test_generated_support_receives_rules_and_preserves_user_choice(self):

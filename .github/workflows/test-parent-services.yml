@@ -16,6 +16,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: node scripts/test-emergency-notice.mjs
       - run: npm run build
       - run: node --test ai-proxy/care.test.mjs ai-proxy/services.test.mjs
       - run: node scripts/test-parent-model.mjs && node scripts/test-preschool.mjs

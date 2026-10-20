@@ -934,7 +934,8 @@ def handle_action(db, action, data, headers, ip):
             # separately instead of dropping history or blocking at the size cap.
             return {'answer':urgent_reply or EMERGENCY_TEXT,'transientAnswer':True,
                     'state':normalize_state(unseal(state_row[0])),
-                    'revision':state_row[1],'quota':ai_quota.public(quota)}, None
+                    'revision':state_row[1],'quota':ai_quota.public(quota),
+                    'evidence':_safety.emergency_protocols.evidence(urgent_reply or EMERGENCY_TEXT)}, None
         if quota['used'] >= quota['base'] and quota['bonus'] == 0 and not safe_reply and not profile_scope_reply and not is_emergency:
             if billing.enabled() and billing.access(db,user[0])['mode'] == 'none':
                 raise AppError(402, 'Для ответов ИИ нужен действующий доступ. История, трекеры и срочная помощь доступны. Откройте «Доступ и оплата».')
@@ -947,7 +948,8 @@ def handle_action(db, action, data, headers, ip):
         care_version = None
         care_stats = None
         if is_emergency:
-            answer = urgent_reply or EMERGENCY_TEXT
+            answer = urgent_reply or _safety.emergency_protocols.finish(EMERGENCY_TEXT,question)
+            answer_evidence = _safety.emergency_protocols.evidence(answer)
         elif safe_reply:
             answer = safe_reply
         elif profile_scope_reply:

@@ -9,11 +9,11 @@ class SafetyTest(unittest.TestCase):
     def test_poisoning_survives_profile_filter(self):
         from datetime import date
         profile={'stage':'child','birthDate':date.today().isoformat()}
-        raw=safety.reply('Проглотил чистящее средство. Нужно ли вызывать рвоту?',profile)
+        raw=safety.urgent_reply('Проглотил чистящее средство. Нужно ли вызывать рвоту?',profile)
         shown=safety._policy.clean(raw,profile)
-        self.assertTrue(shown.startswith('Звоните 112 сейчас'))
+        self.assertIn('112',shown[:150]);self.assertIn('103',shown[:150])
         self.assertIn('Не вызывайте рвоту',shown)
-        self.assertIn('возраст ребёнка',shown)
+        self.assertIn('название вещества',shown)
 
     def test_honey_and_food_position(self):
         profile={'stage':'child','birthDate':'2026-03-12'}

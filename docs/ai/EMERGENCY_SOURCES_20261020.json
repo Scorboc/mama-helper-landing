@@ -1,0 +1,106 @@
+{
+  "reviewedAt": "2026-10-20",
+  "protocolVersion": "first-aid-20261020-v1",
+  "archiveIsPrivate": true,
+  "sources": {
+    "call": {
+      "title": "МЧС России: вызов скорой",
+      "url": "https://mchs.gov.ru/deyatelnost/bezopasnost-grazhdan/kak-pravilno-vyzvat-skoruyu_5",
+      "resolvedUrl": "https://mchs.gov.ru/deyatelnost/bezopasnost-grazhdan/kak-pravilno-vyzvat-skoruyu_5",
+      "retrievedAt": "2026-10-20T07:19:30.873318+00:00",
+      "httpStatus": 200,
+      "sha256": "d2df2b689543e571d2940f4759ff472b527fcdea6ccde94a4602741e27cb1414",
+      "bytes": 103302
+    },
+    "pediatric": {
+      "title": "Resuscitation Council UK: Paediatric Life Support, 2025",
+      "url": "https://www.resus.org.uk/professional-library/2025-resuscitation-guidelines/paediatric-basic-life-support-guidelines",
+      "resolvedUrl": "https://www.resus.org.uk/professional-library/2025-resuscitation-guidelines/paediatric-basic-life-support-guidelines",
+      "retrievedAt": "2026-10-20T07:19:32.567058+00:00",
+      "httpStatus": 200,
+      "sha256": "23d3eb68ed6e208aa5c87dcafea09a3565b75c083f3c779bc2779a84f39fc470",
+      "bytes": 288239
+    },
+    "seizure": {
+      "title": "NHS: помощь при судорожном приступе",
+      "url": "https://www.nhs.uk/symptoms/what-to-do-if-someone-has-a-seizure-fit/",
+      "resolvedUrl": "https://www.nhs.uk/symptoms/what-to-do-if-someone-has-a-seizure-fit/",
+      "retrievedAt": "2026-10-20T07:19:32.453484+00:00",
+      "httpStatus": 200,
+      "sha256": "adcbe3d61e6efccfe0f896dc89ea21270fc3ba317d85926a8eb50b2e7950fbc5",
+      "bytes": 24633
+    },
+    "battery": {
+      "title": "National Capital Poison Center: button battery",
+      "url": "https://www.poison.org/battery",
+      "resolvedUrl": "https://www.poison.org/battery",
+      "retrievedAt": "2026-10-20T07:19:34.415932+00:00",
+      "httpStatus": 200,
+      "sha256": "069d1245d69e35f3629563278c22abfba0d2b9c03dca2a0f90dfa8111475d680",
+      "bytes": 888111
+    },
+    "allergy": {
+      "title": "ASCIA: Acute Management of Anaphylaxis",
+      "url": "https://www.allergy.org.au/hp/anaphylaxis/acute-management-guidelines",
+      "resolvedUrl": "https://www.allergy.org.au/hp/anaphylaxis/acute-management-guidelines",
+      "retrievedAt": "2026-10-20T07:19:32.850765+00:00",
+      "httpStatus": 202,
+      "sha256": "0decdfa096ce455ba3062818faab0a3e9c80511541ffd370024397d4cbc01013",
+      "bytes": 583,
+      "contentArchived": false,
+      "archiveError": "Captcha response, not medical content",
+      "reviewedThrough": "web source reader 2026-10-20"
+    },
+    "bleeding": {
+      "title": "МЧС России: сильное кровотечение",
+      "url": "https://mchs.gov.ru/deyatelnost/bezopasnost-grazhdan/silnoe-krovotechenie_7",
+      "resolvedUrl": "https://mchs.gov.ru/deyatelnost/bezopasnost-grazhdan/silnoe-krovotechenie_7",
+      "retrievedAt": "2026-10-20T07:19:33.004334+00:00",
+      "httpStatus": 200,
+      "sha256": "9b14c5afd489a72808a5554573451fd0a98359d35957e42c32e68c8f0cea9487",
+      "bytes": 114025
+    },
+    "burn": {
+      "title": "University Hospitals Sussex NHS: Burns advice",
+      "url": "https://www.uhsussex.nhs.uk/resources/burns-advice-for-patients-visiting-the-emergency-department/",
+      "resolvedUrl": "https://www.uhsussex.nhs.uk/resources/burns-advice-for-patients-visiting-the-emergency-department/",
+      "retrievedAt": "2026-10-20T07:19:34.916457+00:00",
+      "httpStatus": 200,
+      "sha256": "e47270d368756281672f3ebc933398d8afe9a117aa8c29645a87ddc083a6b94e",
+      "bytes": 117500
+    },
+    "poison": {
+      "title": "NHS: Poisoning",
+      "url": "https://www.nhs.uk/conditions/poisoning/",
+      "resolvedUrl": "https://www.nhs.uk/conditions/poisoning/",
+      "retrievedAt": "2026-10-20T07:19:34.614604+00:00",
+      "httpStatus": 200,
+      "sha256": "63b8814a0a05b9320d2842a5eefc92a4c0b2d97a462042b1d7f84110a7b0b021",
+      "bytes": 39878
+    },
+    "adult": {
+      "title": "NHS: симптомы беременности, требующие помощи",
+      "url": "https://www.nhs.uk/pregnancy/common-symptoms/pregnancy-symptoms-you-need-to-get-help-for/",
+      "resolvedUrl": "https://www.nhs.uk/pregnancy/common-symptoms/pregnancy-symptoms-you-need-to-get-help-for/",
+      "retrievedAt": "2026-10-20T07:19:35.752458+00:00",
+      "httpStatus": 200,
+      "sha256": "fee8d04541d430f6d2eeccad8724fd9e74e66abd3444377357040cc2eee59e19",
+      "bytes": 38882
+    },
+    "law": {
+      "title": "Приказ 220н, текст на сайте МЧС",
+      "url": "https://55.mchs.gov.ru/uploads/resource/2024-11-19/prikaz-ministerstva-zdravoohraneniya-rossiyskoy-federacii-ot-3-maya-2024-g-220n-ob-utverzhdenii-poryadka-okazaniya-pervoy-pomoshchi_1732010070160622133.pdf",
+      "resolvedUrl": "https://55.mchs.gov.ru/uploads/resource/2024-11-19/prikaz-ministerstva-zdravoohraneniya-rossiyskoy-federacii-ot-3-maya-2024-g-220n-ob-utverzhdenii-poryadka-okazaniya-pervoy-pomoshchi_1732010070160622133.pdf",
+      "retrievedAt": "2026-10-20T07:19:38.879364+00:00",
+      "httpStatus": 200,
+      "sha256": "4950c9eb0adc6d12c97938dd59a37bad871eea3c5f4505f60e06f056e7cbbae7",
+      "bytes": 240946
+    },
+    "ru_poison": {
+      "title": "Роспотребнадзор: бытовая химия",
+      "url": "https://41.rospotrebnadzor.ru/node/13216",
+      "archiveError": "URLError",
+      "reviewedThrough": "web source reader 2026-10-20"
+    }
+  }
+}

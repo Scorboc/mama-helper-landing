@@ -9,6 +9,7 @@ These guards supplement the system instructions; they are not clinical triage.
 import re
 import parent_support
 import medical_guardrails
+import emergency_protocols
 from datetime import date
 import importlib.util
 from pathlib import Path
@@ -21,6 +22,10 @@ EMERGENCY_PATTERN = re.compile(
     r'(?:трудно|тяжело)\s+дыш|затруднен\w*\s+дыхан|трудно\s+разбуд|синеет|'
     r'перестал\w*\s+дыш|не\s+может\s+(?:эффективно\s+)?(?:(?:говорить|плакать|кашлять)\s*(?:,|или|и|ни)\s*){0,3}(?:вдохн|дыш|кашля)|не\s+(?:могу|удается)\s+разбуд|'
     r'потерял\w*\s+созн|проглотил\w*[^.!?\n]{0,30}(?:магнит|батарейк)|'
+    r'дыш\w*\s+с трудом|посинел|синие губы|синеют губы|не реагир|не просыпа|втяжени\w*[^.!?\n]{0,25}(?:ребер|межребер)|'
+    r'(?:не хватает воздуха|не могу дышать)|кровь[^.!?\n]{0,35}(?:льется|хлещет|не останавливается)|'
+    r'(?:выпил|выпила|проглотил\w*)[^.!?\n]{0,45}(?:кислот|щелоч|чистящ|таблет|растворител|бензин)|'
+    r'(?:сильн\w*|обширн\w*|глубок\w*)[^.!?\n]{0,25}ожог|(?:обожг|ошпар)\w*[^.!?\n]{0,30}(?:лицо|шею|все тело|грудь)|'
     r'сильн[^.!?\n]*кровотеч|не хочу жить|суицид|'
     r'покончить|убить себя|навредить себе|навредить ребен'
 )
@@ -38,6 +43,8 @@ def emergency_question(question):
         for match in EMERGENCY_PATTERN.finditer(clause):
             if re.search(r'навредить|убить себя|покончить',match.group()) and medical_guardrails.unwanted_thought_without_intent(q):
                 continue
+            if match.group().startswith('не просыпа') and re.search(r'ночью|всю ночь',clause):
+                continue  # Sleeping through the night is not failure to rouse.
             before = clause[:match.start()]
             nearby = before[-45:]
             after = clause[match.end():match.end()+70]
@@ -69,7 +76,7 @@ def resolved_emergency(question):
         r'сейчас\s+(?:он\s+|она\s+|ребенок\s+)?(?:все\s+)?(?:здоров\w*|хорошо|дышит нормально|симптомов нет)',q))
 
 
-def urgent_reply(question, profile=None, messages=None):
+def _urgent_reply(question, profile=None, messages=None):
     """Trusted local urgent route, ahead of profile, quota and generation rules."""
     adult=parent_support.urgent_reply(question)
     if adult:return adult
@@ -94,6 +101,11 @@ def urgent_reply(question, profile=None, messages=None):
                 'Если с вами малыш, сначала положите его в безопасную кроватку. Не ждите ответа чата; следуйте указаниям диспетчера.')
     age=None if _policy.profile_scope_reply(current,profile) else _policy.months(profile)
     return medical_guardrails.emergency_reply(current,age)
+
+def urgent_reply(question, profile=None, messages=None):
+    answer = _urgent_reply(question, profile, messages)
+    return emergency_protocols.finish(answer, question) if answer else None
+
 
 def review(answer, state, care_stats=None):
     """Conservative post-check of known dangerous suggestions, not clinical triage."""
