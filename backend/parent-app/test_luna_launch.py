@@ -13,14 +13,13 @@ def profile(age):
     return dict(childName='Синтетический',role='mom',stage='child',birthDate=date(y,m+1,min(today.day,calendar.monthrange(y,m+1)[1])).isoformat(),week=20,weekDate=today.isoformat(),feeding='unknown',sleep='',health='',healthConfirmed=False,topics=[])
 
 class Boundaries(unittest.TestCase):
-    def test_choking_age_branches_and_procedure(self):
+    def test_choking_call_only_at_every_age(self):
         for age in (0,1,11,12,84):
             answer=safety.urgent_reply('Поперхнулся и не может кашлять или дышать. Что сначала?',profile(age))
-            self.assertIn('112',answer);self.assertIn('5 начальных',answer)
-            self.assertIn('потерял сознание',answer);self.assertLess(len(answer),2500)
-            self.assertIn('предплечье' if age<12 else 'кулак',answer)
+            self.assertIn('112',answer);self.assertIn('103',answer)
+            self.assertIn('недостатку кислорода',answer)
+            self.assertNotIn('надавливаний',answer);self.assertNotIn('вдохов',answer)
         answer=safety.urgent_reply('Ребёнок подруги подавился и не дышит',profile(5))
-        self.assertIn('До года',answer);self.assertIn('С года',answer)
         self.assertNotIn('отдельный профиль',answer)
 
     def test_negation_and_intrusive_thought_control(self):
@@ -32,7 +31,7 @@ class Boundaries(unittest.TestCase):
     def test_allergy_followup_stays_urgent_until_resolved(self):
         history=[dict(role='user',text='После еды опухли губы, трудно дышать.'),dict(role='assistant',text='Позвоните 112.')]
         answer=safety.urgent_reply('Сначала нужны игры или помощь прямо сейчас?',profile(7),history)
-        self.assertIn('не держите столбиком',answer);self.assertIn('112',answer)
+        self.assertIn('перекрыть дыхательные пути',answer);self.assertIn('112',answer)
         self.assertIsNone(safety.urgent_reply('Врач приехал, уже дышит нормально. Какие игры завтра?',profile(7),history))
         history.append(dict(role='user',text='Обсудим теперь настройки уведомлений.'))
         self.assertIsNone(safety.urgent_reply('Предложите игру.',profile(7),history))

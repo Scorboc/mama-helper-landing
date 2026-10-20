@@ -1,0 +1,23 @@
+{
+  "version": "mama-reviewed-20261020-v17",
+  "approvedAt": "2026-10-20",
+  "approval": "Owner explicitly requested ambulance call and explanation only in ALL emergencies; sourced first aid stays in a separate reference section.",
+  "parts": {
+    "chat": {
+      "file": "chat-reviewed-20261020-v17.md",
+      "sha256": "104d3d180952e6cd7de13517b478489ae06d67cb0a21d64c1241ac8e85c0f8ee"
+    },
+    "daily": {
+      "file": "daily-reviewed-20261013-v10.md",
+      "sha256": "9f864e7d72201619137e52c1e46f28e825b1201e499ba2c675f4897342a29b2f"
+    },
+    "notification": {
+      "file": "notification-reviewed-20261013-v9.md",
+      "sha256": "e15cf84d401e4a7654c9827cf3d435008ce3579801cbf05222357b9ac83ddff4"
+    },
+    "reply": {
+      "file": "reply-reviewed-20261020-v17.md",
+      "sha256": "0888b58e4e9ae7725794857c5d001e91f666856ed3e13ea64f9d1742a256e9f9"
+    }
+  }
+}

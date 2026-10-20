@@ -6,7 +6,7 @@ endorsement/certification of this application. See docs/ai/EMERGENCY_PROTOCOLS_2
 import hashlib
 import re
 
-VERSION = 'first-aid-20261020-v1'
+VERSION = 'emergency-call-only-20261020-v2'
 REVIEWED_AT = '2026-10-20'
 CALL = 'Немедленно вызовите скорую помощь — 112 или 103. Включите громкую связь или поручите вызов другому взрослому. Не ждите ответа чата. '
 SOURCES = {
@@ -22,35 +22,58 @@ SOURCES = {
 }
 
 
-def protocol(answer):
-    a = answer.lower().replace('ё', 'е')
-    # Match trusted template markers, not instructions/data supplied by the user.
-    for marker, key in (('между лопатками', 'pediatric'), ('не разжимайте зубы', 'seizure'),
-                        ('проглотил батарейку', 'battery'), ('автоинъектор', 'allergy'),
-                        ('наружном кровотечении', 'bleeding'), ('обожженный участок', 'burn'),
-                        ('название вещества', 'poison'), ('нельзя списывать на стресс', 'adult')):
-        if marker in a:return key
-    return 'pediatric' if 'ребен' in a else 'call'
+REASONS = {
+    'pediatric': 'Нарушение дыхания или сознания может быстро привести к недостатку кислорода и угрожать жизни.',
+    'seizure': 'Судороги могут сопровождаться нарушением дыхания и потерей сознания; без очной оценки нельзя исключить опасное состояние.',
+    'battery': 'Проглоченная батарейка может вызвать тяжёлый внутренний ожог даже без заметных симптомов. Опасно ждать появления симптомов или выхода со стулом.',
+    'allergy': 'Отёк с затруднением дыхания может быстро перекрыть дыхательные пути и угрожать жизни.',
+    'bleeding': 'Сильная кровопотеря может быстро привести к опасному нарушению кровообращения.',
+    'burn': 'Глубокий или обширный ожог может вызвать тяжёлое повреждение тканей; при ожоге лица или шеи возможно опасное нарушение дыхания.',
+    'poison': 'Отравление может повредить внутренние органы и нарушить дыхание; опасные проявления иногда возникают не сразу.',
+    'adult': 'Сильная боль в груди или выраженное затруднение дыхания могут быть признаками угрожающего жизни состояния; списывать их на тревогу опасно.',
+    'harm': 'Есть риск причинения серьёзного вреда себе или ребёнку; откладывать экстренную помощь опасно.',
+    'call': 'Описанные признаки могут означать угрозу жизни или тяжёлый вред здоровью. По переписке нельзя безопасно исключить опасность.',
+}
+SOURCES['harm'] = SOURCES['call']
+CALL = 'Немедленно вызовите скорую помощь — 112 или 103. '
 
 
-def finish(answer, question=''):
-    # Never ask a generative model to paraphrase the reviewed urgent template.
-    if not answer.startswith('Немедленно вызовите скорую'):
-        answer = CALL + answer
+def protocol(text):
+    q = text.lower().replace('ё', 'е')
+    for pattern, key in (
+        (r'батарей|батарейк', 'battery'),
+        (r'судорог|судорож', 'seizure'),
+        (r'кровотеч|кровопотер|кровь.*(?:хлещет|льется|не останавливается)', 'bleeding'),
+        (r'ожог|обожг|ошпар', 'burn'),
+        (r'отрав|чистящ|таблет|растворител|кислот|щелоч|название вещества', 'poison'),
+        (r'отек|опух|автоинъектор', 'allergy'),
+        (r'навред|суицид|не хочу жить|убить|причин.*вред|теряю контроль', 'harm'),
+        (r'боль в груди|давит в груди|нельзя списывать на стресс', 'adult'),
+        (r'дыш|дыхан|созн|подавил|поперх|разбуд|реагир|кислород', 'pediatric'),
+    ):
+        if re.search(pattern,q):return key
+    return 'call'
+
+
+def finish(previous_answer='', question=''):
+    # Discard procedural text, including previously generated/local templates.
+    # No model call, diagnosis, treatment, first-aid steps or link to such steps.
+    key = protocol(question)
+    if key == 'call':key = protocol(previous_answer)
+    answer = CALL + REASONS[key] + ' Не ждите ответа чата или записи к врачу.'
     if re.search(r'источник|официальн|основан|ссылк|норм[аыу]',question,re.I):
-        ids = list(dict.fromkeys(('call', protocol(answer))))
-        answer += '\n\nОснования: ' + '; '.join('['+SOURCES[k][0]+']('+SOURCES[k][1]+')' for k in ids) + '. Адаптация MAMA; источники не сертифицировали приложение.'
+        ids = list(dict.fromkeys(('call', key)))
+        answer += '\n\nОснования: ' + '; '.join('['+SOURCES[k][0]+']('+SOURCES[k][1]+')' for k in ids) + '.'
     return answer
 
 
 def evidence(answer):
-    key = protocol(answer)
+    key = next((k for k,reason in REASONS.items() if reason in answer),'call')
+    ids = list(dict.fromkeys(('call',key)))
     return {
-        'basis': 'Проверенная локальная памятка первой помощи. Версия '+VERSION+', раздел '+key+'. Основания: '+
-                 '; '.join(SOURCES[k][0]+': '+SOURCES[k][1] for k in dict.fromkeys(('call',key))),
-        'sources': [{'title':SOURCES[k][0],'url':SOURCES[k][1]} for k in dict.fromkeys(('call',key))],
+        'basis': 'Фиксированный экстренный ответ: вызов скорой и объяснение опасности. Версия '+VERSION+'.',
+        'sources': [{'title':SOURCES[k][0],'url':SOURCES[k][1]} for k in ids],
         'protocolVersion': VERSION, 'protocolId': key, 'reviewedAt': REVIEWED_AT,
         'answerSha256': hashlib.sha256(answer.encode('utf-8')).hexdigest(),
-        'limitation': 'Это первая помощь до бригады, не диагноз и не назначение лечения. Дата сверки источников — '+REVIEWED_AT+
-                      '; независимая клиническая и юридическая экспертиза приложения не выполнена. Следуйте диспетчеру.',
+        'limitation': 'Не диагноз, не лечение и не инструкция первой помощи. Не гарантирует обнаружение всех опасных состояний.',
     }

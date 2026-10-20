@@ -12,8 +12,8 @@ class SafetyTest(unittest.TestCase):
         raw=safety.urgent_reply('Проглотил чистящее средство. Нужно ли вызывать рвоту?',profile)
         shown=safety._policy.clean(raw,profile)
         self.assertIn('112',shown[:150]);self.assertIn('103',shown[:150])
-        self.assertIn('Не вызывайте рвоту',shown)
-        self.assertIn('название вещества',shown)
+        self.assertIn('Отравление может',shown)
+        self.assertNotIn('рвоту',shown)
 
     def test_honey_and_food_position(self):
         profile={'stage':'child','birthDate':'2026-03-12'}
@@ -57,7 +57,7 @@ class SafetyTest(unittest.TestCase):
         self.assertIn('возраст неизвестен',safety.reply('Игра без игрушек и мелких предметов'))
     def test_suspected_battery_without_symptoms(self):
         for q in ('Пропала батарейка, ребёнок играет.', 'Дочка проглотила батарейку?', 'Не могу найти батарейку от пульта'):
-            self.assertIn('Не ждите симптомов',safety.reply(q))
+            self.assertIn('Опасно ждать появления симптомов',safety.reply(q))
     def test_head_banging_not_left_alone(self):
         for q in ('Сын бьётся головой о кровать','Дочка стучится лбом об пол'):
             answer=safety.reply(q)

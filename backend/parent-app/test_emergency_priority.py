@@ -56,36 +56,34 @@ class EmergencyBoundaries(unittest.TestCase):
                   'Ребёнок раньше не дышал нормально, сейчас здоров.'):
             with self.subTest(q=q):self.assertIsNone(safety.urgent_reply(q,profile(8)))
 
-    def test_specific_actions_and_age_boundaries(self):
-        infant=safety.urgent_reply(CASES[3],profile(11));child=safety.urgent_reply(CASES[3],profile(12))
-        self.assertIn('На живот младенцу не надавливают',infant);self.assertNotIn('кулак между пупком',infant)
-        self.assertIn('кулак между пупком',child);self.assertNotIn('До года:',child)
-        a=safety.urgent_reply(CASES[3],None);self.assertIn('До года:',a);self.assertIn('С года:',a)
-        a=safety.urgent_reply(CASES[4],profile(8));self.assertIn('ничего не кладите в рот',a);self.assertIn('Не удерживайте',a)
-        a=safety.urgent_reply(CASES[5],profile(8));self.assertIn('не вызывайте рвоту',a);self.assertNotIn('30 надавливаний',a)
-        self.assertIn('не держите столбиком',safety.urgent_reply(CASES[7],profile(8)))
-        self.assertIn('не позволяйте ему вставать',safety.urgent_reply(CASES[7],profile(84)))
-        self.assertNotIn('Младенца',safety.urgent_reply(CASES[7],profile(84)))
-        a=safety.urgent_reply(CASES[8],profile(8));self.assertIn('прижмите',a);self.assertIn('не давите',a)
-        a=safety.urgent_reply(CASES[10],profile(8));self.assertIn('20 минут',a);self.assertIn('Не используйте лёд',a)
-        a=safety.urgent_reply(CASES[11],profile(8));self.assertIn('Не вызывайте рвоту',a);self.assertIn('не пытайтесь нейтрализовать',a)
-        a=safety.urgent_reply('Мама без сознания, не дышит.',profile(8));self.assertNotIn('5 начальных',a)
-        a=safety.urgent_reply('Я беременна, сейчас давит в груди и трудно дышать.',profile(-1));self.assertNotIn('ребён',a)
-        for q in (CASES[1],CASES[8],CASES[10],CASES[11]):
-            self.assertNotIn('5 начальных',safety.urgent_reply(q,profile(8)))
+    def test_call_and_reason_without_first_aid_at_any_age(self):
+        forbidden=('надавливан','начальных вдох','кулак','предплеч','поверните','прижмите','20 минут','автоинъектор','ложкой','промыва','нейтрализ','Не вызывайте рвоту')
+        for age in (None,0,1,11,12,13,84,-1):
+            for q in CASES:
+                answer=safety.urgent_reply(q,profile(age))
+                self.assertIn('112',answer);self.assertIn('103',answer)
+                self.assertRegex(answer,'может|могут')
+                for item in forbidden:self.assertNotIn(item,answer)
+        for q in ('Проглотил батарейку.','Выпил чистящее средство.','Сильное кровотечение.'):
+            self.assertIn('опас',safety.urgent_reply(q,profile(8)).lower()) if 'батарей' in q else None
 
     def test_new_danger_overrides_past_and_follows_up(self):
         self.assertIsNotNone(safety.urgent_reply('Вчера судорог не было, но сейчас не дышит.',profile(8)))
         a=safety.urgent_reply('Можно сначала игру?',profile(8),[{'role':'user','text':CASES[4]}])
-        self.assertIn('ничего не кладите в рот',a)
+        self.assertIn('Судороги могут',a)
         a=safety.urgent_reply('Врач приехал, сейчас всё хорошо. Нужна игра.',profile(8),[{'role':'user','text':CASES[4]}])
         self.assertIsNone(a)
+
+    def test_current_harm_risk_has_no_procedures(self):
+        answer=safety.urgent_reply('Сейчас теряю контроль и боюсь, что ударю ребёнка.',profile(8))
+        self.assertIn('112',answer);self.assertIn('риск причинения',answer)
+        for fragment in ('положите','отойдите','позовите','дыхательн'):self.assertNotIn(fragment,answer)
 
     def test_sources_and_immutable_prompt(self):
         for q in CASES:
             a=safety.urgent_reply(q+' Дай официальный источник.',profile(8))
             self.assertIn('https://',a);self.assertLessEqual(len(a),2500)
-        self.assertEqual(prompt_policy.VERSION,'mama-reviewed-20261020-v16')
+        self.assertEqual(prompt_policy.VERSION,'mama-reviewed-20261020-v17')
         for name in ('chat','reply','daily','notification'):self.assertTrue(prompt_policy.approved_part(name))
 
 class EmergencyPipeline(unittest.TestCase):
@@ -113,7 +111,7 @@ class EmergencyPipeline(unittest.TestCase):
         self.assertEqual(response['statusCode'],200,result)
         self.assertIn('112',result['answer']);self.assertIn('103',result['answer'])
         self.assertEqual(result['quota']['used'],200);self.assertEqual(result['quota']['remaining'],0)
-        self.assertIn('ничего не кладите в рот',result['answer']);provider.assert_not_called()
+        self.assertIn('Судороги могут',result['answer']);provider.assert_not_called()
 
     def test_full_history_returns_help_without_rewriting(self):
         history=[{'id':str(i),'role':'user' if i%2==0 else 'assistant','text':'Синтетическая запись '+str(i)} for i in range(120)]

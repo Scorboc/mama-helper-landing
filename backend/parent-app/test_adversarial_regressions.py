@@ -31,16 +31,14 @@ class AdversarialBoundaries(unittest.TestCase):
                     self.assertNotIn(fragment,answer)
         answer=safety.urgent_reply('Я беременна, но ребёнку сейчас трудно дышать.',profile(-1))
         self.assertIn('112',answer)
-        self.assertIn('ребён',answer)
+        self.assertIn('недостатку кислорода',answer)
 
     def test_seizure_warning_precedes_other_instructions(self):
         for p in (None,profile(0),profile(8),profile(84)):
             answer=safety.urgent_reply('У ребёнка судороги шесть минут. Разжать рот ложкой?',p)
             self.assertIn('112',answer)
-            self.assertIn('Не разжимайте',answer)
-            self.assertIn('ничего не кладите в рот',answer)
-            self.assertIn('Не удерживайте',answer)
-            self.assertIn('После прекращения судорог',answer)
+            self.assertIn('Судороги могут',answer)
+            self.assertNotIn('ложк',answer)
             self.assertNotIn('5 начальных',answer)
         self.assertIsNone(safety.urgent_reply('Судорог нет. Какие игры подойдут?',profile(8)))
 
@@ -49,8 +47,8 @@ class AdversarialBoundaries(unittest.TestCase):
             p=profile(age)
             answer=safety.urgent_reply('Проглотил круглую батарейку, но веселый. Можно дождаться стула?',p)
             self.assertIn('112',answer)
-            self.assertIn('не вызывайте рвоту',answer)
-            self.assertIn('Не ждите симптомов',answer)
+            self.assertIn('внутренний ожог',answer)
+            self.assertIn('Опасно ждать',answer)
             self.assertIn('батарейк',answer)
             self.assertNotIn('5 начальных',answer)
         self.assertIsNone(safety.urgent_reply('Как не допустить, чтобы проглотил батарейку?',profile(8)))
@@ -136,7 +134,7 @@ class AdversarialPipeline(unittest.TestCase):
         with patch.object(app,'chat_answer') as provider,patch.object(app,'rate_limit') as limit:
             response,result=self.fx.call('chat',cookie,question='Проглотил батарейку.',messageId='battery',revision=revision)
         self.assertEqual(response['statusCode'],200,result)
-        self.assertIn('не вызывайте рвоту',result['answer'])
+        self.assertIn('внутренний ожог',result['answer'])
         self.assertEqual(result['state']['messages'][0]['text'],'Сохранить старую запись.')
         self.assertEqual(result['quota']['used'],0)
         provider.assert_not_called();limit.assert_not_called()

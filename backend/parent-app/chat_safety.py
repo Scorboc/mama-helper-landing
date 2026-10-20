@@ -82,6 +82,9 @@ def _urgent_reply(question, profile=None, messages=None):
     if adult:return adult
     harm=followup_reply(question,messages)
     if harm:return harm
+    q=medical_guardrails.norm(question)
+    if re.search(r'теряю контроль|сейчас[^.!?\n]{0,50}(?:ударю|убью)',q) and not medical_guardrails.unwanted_thought_without_intent(q) and not re.search(r'вчера|раньше|в прошлом',q):
+        return emergency_protocols.finish('',question)
     current=question
     if not emergency_question(current):
         q=medical_guardrails.norm(question)

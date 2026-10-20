@@ -1,7 +1,19 @@
 import { useRef } from "react";
+import { firstAidReviewedAt, firstAidSources, type FirstAidTopic } from "@/lib/first-aid-sources";
 import { AlertTriangle, HeartPulse, Phone, ShieldCheck } from "lucide-react";
 
-// Content basis: docs/first-aid/CONTENT_REVIEW_20261018.md.
+// Content basis: docs/first-aid/CONTENT_REVIEW_20261020.md.
+function Sources({topic}:{topic:FirstAidTopic}) {
+  return <section className="first-aid-sources" aria-label="Источники памятки">
+    <h3>Официальные документы и источники</h3>
+    <ul>{firstAidSources[topic].map(source=><li key={source.url}>
+      <a href={source.url} target="_blank" rel="noopener noreferrer">{source.title}</a>
+      <p className="muted">{source.scope}</p>
+    </li>)}</ul>
+    <p className="muted">Ссылки сверены {firstAidReviewedAt}. Учебная адаптация: организации не проверяли приложение. Материалы NHS и RCUK не являются российскими нормативными актами.</p>
+  </section>;
+}
+
 export default function FirstAid() {
   const cprCard = useRef<HTMLDetailsElement>(null);
   function openCpr() {
@@ -56,6 +68,7 @@ export default function FirstAid() {
           <h3>Без сознания, но дышит нормально</h3>
           <p>Если травма не подозревается, осторожно поверните ребёнка на бок, сохраняя дыхательные пути открытыми. Оставайтесь рядом, непрерывно следите за дыханием и ждите скорую.</p>
           <p className="first-aid-dont"><strong>После падения или удара:</strong> при подозрении на травму шеи или спины не поворачивайте ребёнка без необходимости. Если дыхательные пути нельзя сохранить открытыми или началась рвота, поверните на бок, по возможности с помощником, удерживая голову и шею на одной линии с туловищем. Свободное дыхание важнее неподвижности. Следуйте указаниям диспетчера.</p>
+          <Sources topic="cpr" />
         </details>
 
         <details className="tile first-aid-card">
@@ -81,6 +94,7 @@ export default function FirstAid() {
           <p><strong>Дыхание освободилось, появился сильный кашель или громкий плач — прекратите удары и толчки.</strong> Удаляйте изо рта только хорошо видимый предмет, который легко достать.</p>
           <p className="first-aid-dont"><strong>Потерял сознание:</strong> осторожно положите на спину на твёрдую поверхность. Начните СЛР с 5 начальных вдохов, затем 30:2, следуя указаниям диспетчера. <a href="#first-aid-cpr" onClick={openCpr}>Открыть шаги СЛР</a>.</p>
           <p className="muted">После толчков на живот или грудную клетку ребёнку нужна медицинская оценка, даже если предмет вышел. При сохраняющихся кашле, затруднённом дыхании или глотании также нужна медицинская помощь.</p>
+          <Sources topic="choking" />
         </details>
 
         <details className="tile first-aid-card">
@@ -91,6 +105,7 @@ export default function FirstAid() {
             <li>Давите непрерывно, не приподнимая ткань для проверки. Если она пропиталась, добавьте материал сверху и продолжайте давление.</li>
             <li>Когда кровь остановилась, закрепите давящую повязку. Следите за сознанием и дыханием, сохраняйте ребёнка в тепле до приезда помощи.</li>
           </ol>
+          <p className="first-aid-dont"><strong>Если в ране предмет или выступает кость:</strong> не извлекайте и не давите на них; сообщите диспетчеру и выполняйте его указания.</p>
           <h3>Если кровь из руки или ноги не останавливается</h3>
           <p>При угрожающем жизни кровотечении, которое не удалось остановить прямым давлением, используйте готовый кровоостанавливающий жгут-турникет по его инструкции и указаниям диспетчера.</p>
           <ol style={{ listStyleType: "decimal" }}>
@@ -99,6 +114,7 @@ export default function FirstAid() {
             <li>Запишите точное время наложения и передайте его бригаде. <strong>Не ослабляйте и не снимайте турникет самостоятельно.</strong></li>
           </ol>
           <p className="muted">Турникет — только для руки или ноги. Если подходящего средства нет или вы не умеете им пользоваться, продолжайте сильное прямое давление и выполняйте указания диспетчера. Не теряйте время на поиски.</p>
+          <Sources topic="bleeding" />
         </details>
 
         <details className="tile first-aid-card">
@@ -112,6 +128,7 @@ export default function FirstAid() {
           </ol>
           <p><strong>Детский ожог нужно обсудить с медицинским специалистом, даже если он кажется небольшим.</strong> Врач определит, нужен ли осмотр.</p>
           <p className="first-aid-dont"><strong>Не нужно:</strong> наносить масло, сметану, кремы или мази, вскрывать пузыри, приклеивать пластырь к ожогу и отрывать прилипшую одежду.</p>
+          <Sources topic="burns" />
         </details>
       </div>
     </div>
