@@ -13,7 +13,7 @@ import { careTime } from "@/lib/care-time";
 type Listing = { records: CareRecord[]; summary?: CareSummary; permission: string };
 type Write = { action: "care-put"; record: CareRecord } | { action: "care-delete"; id: string };
 
-export default function ChatQuickCare({ state, onTrackers, onProfile, profileBusy = false }: { state: ParentState; onTrackers: () => void; onProfile?: () => void; profileBusy?: boolean }) {
+export default function ChatQuickCare({ state, onTrackers, onProfile, profileBusy = false, inline = false }: { state: ParentState; onTrackers: () => void; onProfile?: () => void; profileBusy?: boolean; inline?: boolean }) {
   const childId = state.activeChildId || "primary";
   const scope = useRef(new RequestScope());
   scope.current.select(childId);
@@ -24,6 +24,7 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
   const pendingRef = useRef<Write | null>(null);
   const [listing, setListing] = useState<Listing>();
   const [open, setOpen] = useState<"sleep" | "feeding" | "note" | "manual-sleep" | "manual-feeding" | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [editing, setEditing] = useState<CareRecord | null>(null);
   const [deleting, setDeleting] = useState<CareRecord | null>(null);
   const recentSummary = useRef<HTMLElement>(null);
@@ -65,6 +66,7 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
     setSaveError("");
     setListing(undefined);
     setOpen(null);
+    setMoreOpen(false);
     setEditing(null);
     setDeleting(null);
     setError("");
@@ -140,11 +142,12 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
   }
   const record = (kind: CareRecord["kind"], extra: Partial<CareRecord> = {}): CareRecord => ({ id: randomId(), kind, at: new Date().toISOString(), note: "", ...extra });
 
-  return <section className="chat-quick-care" aria-label="Быстрые отметки" aria-busy={busy || (!listing && !error)}>
+  return <section className={`chat-quick-care${inline ? " chat-quick-care--inline" : ""}`} aria-label="Быстрые отметки" aria-busy={busy || (!listing && !error)}>
     <div className="chat-quick-care__head">
+      {inline && <span className="chat-quick-care__label">Быстрые отметки</span>}
       {onProfile && <Button className="quick-care-profile" type="button" variant="ghost" disabled={busy || profileBusy} onClick={onProfile} aria-haspopup="dialog" aria-label={`Выбрать ребёнка: ${contextLabel(state.profile)}`}><span>{contextLabel(state.profile)}</span><ChevronDown size={16} aria-hidden="true" className="shrink-0" /></Button>}
-      <strong>{currentSleep ? "Спит · " + minutes(currentSleep) + " мин." : feedingTimer ? "Кормление · " + minutes(feedingTimer) + " мин." : "Отметить сейчас"}</strong>
-      <Button type="button" variant="ghost" onClick={onTrackers}>Графики</Button>
+      <strong>{currentSleep ? "Спит · " + minutes(currentSleep) + " мин." : feedingTimer ? "Кормление · " + minutes(feedingTimer) + " мин." : inline ? "" : "Отметить сейчас"}</strong>
+      {!inline && <Button type="button" variant="ghost" onClick={onTrackers}>Графики</Button>}
     </div>
     {!listing && !error && <p role="status">Загружаем дневник…</p>}
     {status && <p role="status">{status}</p>}
@@ -156,8 +159,11 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
     <div className="chat-quick-care__actions">
       {currentSleep ? <Button type="button" variant="outline" disabled={disabled} onClick={() => void put({ ...currentSleep, end: new Date().toISOString() })}>Проснулся</Button> : <Button type="button" variant="outline" aria-expanded={open === "sleep"} disabled={disabled} onClick={() => chooseOpen(open === "sleep" ? null : "sleep")}>Сон</Button>}
       {feedingTimer ? <Button type="button" variant="outline" disabled={disabled} onClick={() => void put({ ...feedingTimer, end: new Date().toISOString() })}>Закончить кормление</Button> : <Button type="button" variant="outline" aria-expanded={open === "feeding"} disabled={disabled} onClick={() => chooseOpen(open === "feeding" ? null : "feeding")}>Кормление</Button>}
-      <Button type="button" variant="outline" disabled={disabled || !!currentSleep} onClick={() => void put(record("wake", { wakeType: "morning" }))}>Утренний подъём</Button>
-      <Button type="button" variant="outline" aria-expanded={open === "note"} disabled={disabled} onClick={() => chooseOpen(open === "note" ? null : "note")}>Заметка</Button>
+      {inline && <Button type="button" variant="outline" aria-expanded={moreOpen} aria-controls="quick-care-more" onClick={() => { setMoreOpen(!moreOpen); setOpen(null); setEditing(null); setDeleting(null); }}>Ещё</Button>}
+      {(!inline || moreOpen) && <>
+        <Button type="button" variant="outline" disabled={disabled || !!currentSleep} onClick={() => void put(record("wake", { wakeType: "morning" }))}>Утренний подъём</Button>
+        <Button type="button" variant="outline" aria-expanded={open === "note"} disabled={disabled} onClick={() => chooseOpen(open === "note" ? null : "note")}>Заметка</Button>
+      </>}
     </div>
     {open === "sleep" && <div className="chat-quick-care__sheet" role="group" aria-label="Выберите вид сна">
       <Button type="button" disabled={disabled} onClick={() => void put(record("sleep", { sleepType: "day" }))}>Дневной сон</Button>
@@ -174,6 +180,8 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
       <Textarea id="quick-care-note" autoFocus value={note} maxLength={500} disabled={busy || !!pending} onChange={(e) => setNote(e.target.value)} />
       <Button type="submit" disabled={disabled || !note.trim()}>Сохранить заметку</Button>
     </form>}
+    <div id={inline ? "quick-care-more" : undefined} hidden={inline && !moreOpen} className="chat-quick-care__more">
+    {inline && <Button type="button" variant="ghost" onClick={onTrackers}>Графики и весь дневник</Button>}
     <div className="chat-quick-care__past">
       <p>Если не отметили сразу</p>
       <div className="chat-quick-care__manual-options">
@@ -204,5 +212,6 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
       <summary>Записи за 7 дней · {listing.summary.records}</summary>
       <p>Эпизодов сна: {listing.summary.sleep.sleepRecords}. Отметок кормлений: {listing.summary.feeding.records}. ИИ может учитывать эти наблюдения активного профиля. Полнота дневника неизвестна — по числу записей нельзя оценить норму сна или питания.</p>
     </details>}
+    </div>
   </section>;
 }

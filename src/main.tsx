@@ -8,5 +8,6 @@ import './ux-refinements.css'
 import './room-experience.css'
 import './room-olive.css'
 import './shared-room-theme.css'
+import './room-structure.css'
 
 createRoot(document.getElementById("root")!).render(<App />);

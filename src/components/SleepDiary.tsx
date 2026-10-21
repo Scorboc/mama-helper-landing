@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from "./ui/dialog";
 import { randomId } from "@/lib/id";
+import type { CSSProperties } from "react";
 import "./sleep-diary.css";
 export type SleepRecord = {
   id: string;
@@ -73,6 +74,7 @@ export default function SleepDiary({
     ...sleeps.filter((r) => r.end).map((r) => Date.parse(r.end!)),
     latestWake ? Date.parse(latestWake.at) : 0,
   );
+  const recentWake = lastEnd > 0 && now - lastEnd < 24 * 60 * 60 * 1000;
   const time = (v: string) =>
     new Date(v).toLocaleTimeString("ru-RU", {
       hour: "2-digit",
@@ -111,6 +113,8 @@ export default function SleepDiary({
     }
     return Math.round(total / 60000);
   };
+  const dailyMinutes = days.map((day) => minutes(day.start, day.end));
+  const maxDailyMinutes = Math.max(1, ...dailyMinutes);
   async function put(record: SleepRecord) {
     return mutate("care-put", { record });
   }
@@ -177,22 +181,26 @@ export default function SleepDiary({
         <h3>
           {current
             ? "Сейчас спит"
-            : lastEnd
+            : recentWake
               ? "После последнего пробуждения"
-              : "Начнём с первого наблюдения"}
+              : lastEnd
+                ? "Нет свежих записей сна"
+                : "Начнём с первого наблюдения"}
         </h3>
-        <strong className="sleep-clock">
+        <strong className={`sleep-clock${current || recentWake ? "" : " sleep-clock--unavailable"}`}>
           {current
             ? duration((now - Date.parse(current.at)) / 60000)
-            : lastEnd
+            : recentWake
               ? duration((now - lastEnd) / 60000)
               : "—"}
         </strong>
         <p>
           {current
             ? `Уснул в ${time(current.at)}`
-            : lastEnd
+            : recentWake
               ? "Если пропустили сон, добавьте его — счётчик опирается на записи."
+              : lastEnd
+                ? "По записям нельзя определить время бодрствования. Сон можно добавить позже."
               : "Отметьте пробуждение или начало сна."}
         </p>
         <div className="sleep-actions">
@@ -239,98 +247,75 @@ export default function SleepDiary({
             </>
           )}
         </div>
-        {
-          <div className="sleep-actions">
-            <Button
-              variant="outline"
-              disabled={busy || !editable}
-              onClick={() => void wake("morning")}
-            >
-              Утренний подъём
-            </Button>
-            <Button
-              variant="outline"
-              disabled={busy || !editable}
-              onClick={() => void wake("night")}
-            >
-              Ночное пробуждение
-            </Button>
-          </div>
-        }
-        <Button
-          variant="ghost"
-          disabled={busy || !editable}
-          onClick={() => edit()}
-        >
-          Добавить прошедший сон
+        <Button className="sleep-add-past" variant="ghost" disabled={busy || !editable} onClick={() => edit()}>
+          Внести запись позже
         </Button>
-        <p className="muted">
-          Таймер сохраняется после закрытия сайта. Ночное пробуждение завершает
-          текущий эпизод: следующий сон отметьте снова.
-        </p>
       </div>
       <div className="sleep-section">
-        <h3>История сна</h3>
-        <label>
-          Период{" "}
-          <select
-            aria-label="Период дневника сна"
-            value={period}
-            onChange={(e) => setPeriod(Number(e.target.value))}
-          >
-            {[7, 14, 30].map((n) => (
-              <option key={n} value={n}>
-                {n} дней
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="muted">
-          Время устройства: {Intl.DateTimeFormat().resolvedOptions().timeZone}.
-          Зелёный — дневной, янтарный — ночной, серый — сон без отметки.
-          Пустые участки — нет записей.
-        </p>
-        <div className="sleep-scale">
-          <span>00</span>
-          <span>06</span>
-          <span>12</span>
-          <span>18</span>
-          <span>24</span>
-        </div>
-        {days.map((d) => (
-          <div className="sleep-day" key={d.start}>
-            <span>
-              {new Date(d.start).toLocaleDateString("ru-RU", {
-                day: "numeric",
-                month: "numeric",
-              })}
-            </span>
-            <div
-              className="sleep-lane"
-              role="img"
-              aria-label={`${new Date(d.start).toLocaleDateString("ru-RU")}: ${duration(minutes(d.start, d.end))}`}
+        <div className="sleep-chart-heading">
+          <div><h3>Сон за {period} дней</h3><p className="sleep-chart-caption">Ваши записи, не оценка нормы</p></div>
+          <label>
+            <span className="sr-only">Период дневника сна</span>
+            <select
+              aria-label="Период дневника сна"
+              value={period}
+              onChange={(e) => setPeriod(Number(e.target.value))}
             >
-              {spans(d.start, d.end).map((x) => (
-                <span
-                  key={x.r.id}
-                  className={`sleep-span ${x.r.sleepType || "unknown"}`}
-                  title={`${name(x.r)} ${time(x.r.at)}–${x.r.end ? time(x.r.end) : "сейчас"}`}
-                  style={{
-                    left: `${((x.a - d.start) / (d.end - d.start)) * 100}%`,
-                    width: `${((x.b - x.a) / (d.end - d.start)) * 100}%`,
-                  }}
-                />
+              {[7, 14, 30].map((n) => (
+                <option key={n} value={n}>{n} дней</option>
               ))}
+            </select>
+          </label>
+        </div>
+        {dailyMinutes.some(Boolean) ? <div className="sleep-week-chart-scroll">
+          <ol className="sleep-week-chart" style={{ "--sleep-days": days.length, minWidth: `${days.length * 40}px` } as CSSProperties} aria-label="Суммарный сон по дням">
+            {days.map((day, index) => {
+              const date = new Date(day.start).toLocaleDateString("ru-RU", { day: "numeric", month: "numeric" });
+              return <li key={day.start}>
+                <span className="sr-only">{date}: {duration(dailyMinutes[index])}</span>
+                <div className="sleep-week-chart__column" aria-hidden="true">
+                  <span className="sleep-week-chart__bar" style={{ height: `${dailyMinutes[index] ? Math.max(6, dailyMinutes[index] / maxDailyMinutes * 100) : 0}%` }} />
+                </div>
+                <small aria-hidden="true">{date}</small>
+              </li>;
+            })}
+          </ol>
+        </div> : <p className="sleep-chart-empty">За выбранный период нет записей сна. График появится после первой отметки.</p>}
+        <details className="sleep-chart-legend">
+          <summary>Время сна по дням</summary>
+          <div className="sleep-scale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+          {days.map((d) => (
+            <div className="sleep-day" key={d.start}>
+              <span>{new Date(d.start).toLocaleDateString("ru-RU", { day: "numeric", month: "numeric" })}</span>
+              <div className="sleep-lane" role="img" aria-label={`${new Date(d.start).toLocaleDateString("ru-RU")}: ${duration(minutes(d.start, d.end))}`}>
+                {spans(d.start, d.end).map((x) => (
+                  <span key={x.r.id} className={`sleep-span ${x.r.sleepType || "unknown"}`}
+                    title={`${name(x.r)} ${time(x.r.at)}–${x.r.end ? time(x.r.end) : "сейчас"}`}
+                    style={{ left: `${((x.a - d.start) / (d.end - d.start)) * 100}%`, width: `${((x.b - x.a) / (d.end - d.start)) * 100}%` }} />
+                ))}
+              </div>
+              <small>{duration(minutes(d.start, d.end))}</small>
             </div>
-            <small>{duration(minutes(d.start, d.end))}</small>
-          </div>
-        ))}
+          ))}
+        </details>
+        <details className="sleep-chart-legend">
+          <summary>Как читать график</summary>
+          <p className="muted">Время устройства: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Зелёный — дневной, янтарный — ночной, серый — сон без отметки. Пустые участки — нет записей.</p>
+        </details>
         <p>
           ИИ в чате получает записи активного ребёнка за последнюю неделю и
           рассчитанную сводку. Неполный дневник не позволяет определить точный
           режим или причину трудностей.
         </p>
       </div>
+      <details className="sleep-section sleep-secondary-actions">
+        <summary>Другие отметки</summary>
+        <div className="sleep-actions">
+          <Button variant="outline" disabled={busy || !editable} onClick={() => void wake("morning")}>Утренний подъём</Button>
+          <Button variant="outline" disabled={busy || !editable} onClick={() => void wake("night")}>Ночное пробуждение</Button>
+        </div>
+        <p className="muted">Таймер сохраняется после закрытия сайта. Ночное пробуждение завершает текущий эпизод: следующий сон отметьте снова.</p>
+      </details>
       <details className="sleep-section">
         <summary>Записи и исправления · {recent.length}</summary>
         {recent.map((r) => (

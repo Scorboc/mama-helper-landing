@@ -2,7 +2,7 @@ import SimpleMyDay from "@/components/SimpleMyDay";
 import RoomChatWelcome, { RoomChatFeed } from "@/components/RoomChatWelcome";
 import RoomChatMenu from "@/components/RoomChatMenu";
 import RoomNavigation, { type RoomSection } from "@/components/RoomNavigation";
-import RoomChatTools, { RoomChatShortcut, type RoomChatPanel } from "@/components/RoomChatTools";
+import RoomChatTools, { type RoomChatPanel } from "@/components/RoomChatTools";
 import { Compass } from "lucide-react";
 import { isRoomLocation, rememberRoom } from "@/lib/room-experience";
 import { ApiError } from "@/lib/parent-api";
@@ -1055,7 +1055,7 @@ export default function ParentWorkspace({
               <MemoryReview state={state} save={save} busy={busy} pendingOnly />
               </RoomChatFeed>
             </section>
-              {roomScene && <RoomChatShortcut onOpen={() => setRoomPanel("quick")} />}
+              {roomScene && <ChatQuickCare inline key={state.activeChildId || "primary"} state={state} onTrackers={() => setTab("trackers")} profileBusy={busy || chatBusy} />}
               <div ref={composer} className="chat-composer" role="region" aria-label="Написать вопрос">
                 {error && <p id="chat-request-error" role="alert" className="form-error chat-request-error">{error}</p>}
                 <VoiceInput

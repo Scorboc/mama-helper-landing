@@ -520,7 +520,7 @@ export default function CareTools({
             {status}
           </p>
         )}
-        <label className="form-field">
+        {(access.some((a) => a.guestId && !a.isOwner) || !!target) && <label className="form-field">
           Чьи записи
           <select aria-label="Чьи записи" value={target} onChange={(e) => setTarget(e.target.value)}>
             <option value="">Мой активный ребёнок</option>
@@ -532,7 +532,7 @@ export default function CareTools({
                 </option>
               ))}
           </select>
-        </label>
+        </label>}
         {shared &&
           listing?.daily.map((item) => (
             <article key={item.id} className="border-b py-3">

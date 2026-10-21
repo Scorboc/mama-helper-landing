@@ -23,7 +23,7 @@ export default function RoomChatMenu({ profile, disabled, signedIn = true, onPro
   }
   const name = profile?.childName || (profile?.stage === "pregnancy" ? "Ожидание малыша" : "Профиль ребёнка");
   return <><div className="room-chat-topbar">
-    <Link className="room-chat-intro" to="/?intro=1">Знакомство</Link>
+    <Link className="room-chat-intro" to="/" aria-label="MAMA · на главную">MAMA</Link>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button type="button" className="room-chat-notch" aria-label="Открыть меню помощника">
@@ -56,7 +56,9 @@ export default function RoomChatMenu({ profile, disabled, signedIn = true, onPro
   </div>
     {signedIn && <button type="button" className="room-chat-context" disabled={disabled}
       aria-label={`Выбрать ребёнка: ${contextLabel(profile)}`} onClick={onProfile}>
-      <UserRound size={16} aria-hidden="true" /><span>{contextLabel(profile)}</span><ChevronDown size={14} aria-hidden="true" />
+      <UserRound size={20} aria-hidden="true" />
+      <span className="room-chat-context-copy"><small>Сейчас выбран</small><strong>{contextLabel(profile)}</strong></span>
+      <span className="room-chat-context-change">Сменить</span><ChevronDown size={16} aria-hidden="true" />
     </button>}
   </>;
 }

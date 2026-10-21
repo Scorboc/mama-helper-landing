@@ -1,3 +1,33 @@
+# MAMA Helper · chat and records refinement · 2026-10-21
+
+final result: passed for local layout and navigation; live AI and record mutation were not exercised
+
+## Approved target
+
+- The user approved the proposed hierarchy and glass treatment while explicitly keeping the current olive, cream and gold palette. The local app retains its existing room background and all five primary tabs.
+- Source comparisons: `../outputs/ux-implementation-2026-10-21/qa-chat.png` and `../outputs/ux-implementation-2026-10-21/qa-records.png`. The left images are structural mockups with illustrative content; the right images are actual local renders with a synthetic test profile. Differences in palette, background, record count and answer text are intentional.
+
+## Five fidelity surfaces
+
+- Typography: text-bearing cards use opaque olive surfaces, cream body text and gold accents. Assistant authorship and the active child are visually explicit. At 320px, controls remain reachable; longer bottom-tab labels are compact.
+- Layout: active child sits immediately below the top row. Chat keeps quick care actions above the composer. Records show the primary sleep actions, later entry and sleep chart before secondary details. Seven tracker sections remain in a fixed, horizontally scrollable single row above the five-tab navigation.
+- Colors: no new palette was introduced. Existing olive, cream and gold values are reused in `src/room-structure.css`.
+- Assets: the existing room image and logo are retained; no stock assets or generated medical data were added.
+- Copy: empty sleep history now says that no fresh records are available. The chart shows an honest empty state until records exist. Urgent help remains visible in the header and bottom route.
+
+## Interaction and verification
+
+- Browser checks at 390×844 and 320×640: open chat and records, switcher dialog, quick sleep and More controls, record navigation, and urgent-help visibility. Existing profile and care records were not changed during the check.
+- The quick care actions call the existing care flow. Manual entry, edit and delete remain available. The chart totals the actual stored sleep intervals and leaves the old timeline accessible in a disclosure. The populated chart branch is code reviewed and built, but its values were not checked against a live populated fixture.
+- TypeScript and production build pass. Changed-file ESLint exits with no errors; one existing Fast Refresh warning remains in `CareTools.tsx:67`.
+- No backend, prompt, accounts, profile or conversation data files were edited. This visual refinement does not substitute for the separate end-to-end AI and record-mutation suite.
+
+## Remaining acceptance
+
+- Confirm touch targets, browser keyboard behavior and horizontal tracker scrolling on a physical phone before a production release.
+
+---
+
 # MAMA helper · olive room chat · 2026-10-18
 
 final result: passed
