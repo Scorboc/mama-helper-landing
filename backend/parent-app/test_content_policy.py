@@ -41,6 +41,18 @@ class ContentPolicyTest(unittest.TestCase):
         answer=policy.render_game_answer('Много ходьбы и лазания.',profile,'Что делать вместо лечебного массажа по календарю?')
         self.assertNotIn('Много ходьбы',answer);self.assertIn('без требования ходить',answer)
 
+    def test_singular_game_question_uses_reviewed_catalogue(self):
+        today=date.today()
+        for age,question in ((3,'Какая простая игра подойдёт ребёнку трёх месяцев?'),
+                             (12,'Какая безопасная игра поможет годовалым детям тренировать движение?')):
+            year,month=divmod(today.year*12+today.month-1-age,12)
+            profile={'stage':'child','birthDate':date(year,month+1,1).isoformat()}
+            answer=policy.render_game_answer('В переданных данных нет каталога.',profile,question,
+                                               [{'role':'user','text':question}])
+            self.assertNotIn('нет каталога',answer)
+            self.assertTrue(any('«'+game['title']+'»' in answer
+                                for game in policy.catalog.candidates(age)),age)
+
     def test_chat_rejects_another_child_or_mismatched_age(self):
         profile={'stage':'child','birthDate':'2023-09-21','childName':'Яша'}
         self.assertIsNotNone(policy.profile_scope_reply('А если ребёнку 6 месяцев?',profile))

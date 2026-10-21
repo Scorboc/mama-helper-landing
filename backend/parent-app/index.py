@@ -23,6 +23,7 @@ import care_summary
 import chat_context
 import ai_budget
 import ai_quota
+import chat_routing
 import account_email
 import billing
 import legal
@@ -268,6 +269,10 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
         auth_header = 'Bearer ' + api_key
         model = (os.environ.get('PROXYAPI_DAILY_MODEL', 'z-ai/glm-5.3-flash') if system_prompt
                  else os.environ.get('PROXYAPI_CHAT_MODEL', 'z-ai/glm-5.3-flash'))
+        tiered = os.environ.get('APP_CHAT_TIERED_ENABLED', '1' if os.environ.get('APP_LOCAL') == '1' else '0') == '1'
+        if not system_prompt and tiered:
+            model = chat_routing.choose(question, None, model,
+                                        os.environ.get('PROXYAPI_COMPLEX_MODEL', 'openai/gpt-6.1-sol'))
     elif yandex_api_key and yandex_folder_id:
         request_url = YANDEX_CHAT_API_URL
         auth_header = 'Api-Key ' + yandex_api_key
@@ -288,8 +293,8 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
             raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
         auth_header = 'Bearer ' + auth_token
         model = choose_chat_model(question)
-    output_limit=max(max_tokens, 900 if system_prompt and model == 'z-ai/glm-5.3-flash' else 3000 if system_prompt else 4800) if provider == 'proxyapi' else max_tokens
-    luna=provider=='proxyapi' and model=='openai/gpt-6-luna'
+    output_limit=max(max_tokens, 900 if system_prompt and model == 'z-ai/glm-5.3-flash' else 3000 if system_prompt else 3200 if model == 'openai/gpt-6.1-sol' else 4800) if provider == 'proxyapi' else max_tokens
+    openai_reasoning=provider=='proxyapi' and model in ('openai/gpt-6-luna','openai/gpt-6.1-sol')
     payload = json.dumps({
         'model': model,
         'messages': [
@@ -298,10 +303,10 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
             *([] if system_prompt else [{'role': 'system', 'content': prompt_policy.reply_check(question)}]),
             {'role': 'user', 'content': question},
         ],
-        ('max_completion_tokens' if luna else 'max_tokens'): output_limit,
-        **({'reasoning_effort': 'low' if model in ('z-ai/glm-5.3-flash','z-ai/glm-5.3','openai/gpt-6-luna') else 'minimal'} if provider == 'proxyapi' else {}),
+        ('max_completion_tokens' if openai_reasoning else 'max_tokens'): output_limit,
+        **({'reasoning_effort': 'medium' if model == 'openai/gpt-6.1-sol' else 'low' if model in ('z-ai/glm-5.3-flash','z-ai/glm-5.3','openai/gpt-6-luna') else 'minimal'} if provider == 'proxyapi' else {}),
         **({'response_format': {'type':'json_object'}} if provider == 'proxyapi' and system_prompt else {}),
-        **({} if luna else {'temperature':0.2}),
+        **({} if openai_reasoning else {'temperature':0.2}),
     }, ensure_ascii=False).encode('utf-8')
     request = urllib.request.Request(request_url, data=payload, method='POST', headers={
         'Content-Type': 'application/json',
@@ -971,7 +976,7 @@ def handle_action(db, action, data, headers, ip):
                 answer_evidence={'basis':f"Активный профиль: {(state.get('profile') or {}).get('childName') or 'Ребёнок'}. Текущий разговор и подтверждённые заметки профиля. Дневник за {care_stats['periodDays']} дней, с {care_stats['periodStart']}: {care_stats['records']} отметок в {care_stats['recordedDays']} днях. В подробном контексте {context_meta['rawRecordsIncluded']} последних записей; сводка использует весь период. Полнота дневника неизвестна.",'checkedAt':datetime.now(timezone.utc).isoformat(),'sources':[],'limitation':'AI может ошибаться; это не медицинское заключение.','context':context_meta}
                 if context_meta['conversationContextReduced'] or context_meta['medicalNotesContextReduced']:
                     answer_evidence['limitation']+=' Часть прежней переписки или заметок не вошла в контекст; значимые текущие обстоятельства нужно уточнять.'
-                with ai_budget.scope(user[0], 'chat:'+message_id):
+                with ai_budget.scope(user[0], 'chat:'+message_id), chat_routing.history_context(state.get('messages',[])[:-1]):
                     answer = chat_answer(question,context_text)
                 if care_tools.current_version(runtime,db,user[0],state.get('activeChildId','primary'))!=care_version:
                     raise AppError(409,'Дневник изменился во время подготовки ответа. Повторите вопрос, чтобы учесть новые отметки.')

@@ -150,7 +150,7 @@ def render_game_answer(answer,profile,question,messages=None):
     if re.search(r'магнит|батарей|бусин|воздушн\w* шар|мелк\w* детал|безопасн\w* игров\w* мест|мест\w* для игр',q):
         return answer  # Preserve the actual safety question and its warning.
     named_game=any(game_named(g['title'],answer) for g in catalog.candidates(months(profile))) if months(profile) is not None else False
-    explicit=bool(re.search(r'предлож|придум|подбер|выбер|игровой способ|во что|чем занять|что можно (?:сделать|делать)|(?:нужна|хочу|хочется).*игр|какие.*игр|новая игра|да(?:й|вай).*игр|игр\w*\s+вместо|вместо лечебного массажа',q))
+    explicit=bool(re.search(r'предлож|придум|подбер|выбер|игровой способ|во что|чем занять|что можно (?:сделать|делать)|(?:нужна|хочу|хочется).*игр|как(?:ая|ие|ой)[^.!?\n]{0,80}игр|новая игра|да(?:й|вай).*игр|игр\w*\s+вместо|вместо лечебного массажа',q))
     previous=[str(m.get('text','')) for m in (messages or [])[-30:] if m.get('role')=='user' and m.get('text')!=question]
     followup=bool(re.search(r'надоел|не нрав|не понрав|не подход|не подош|недоступн|друг\w*|механик|материал|без игруш|нет игруш',q)) and any(game_request(text) for text in previous)
     # A named game in an answer does not make a behavioural question a game request.

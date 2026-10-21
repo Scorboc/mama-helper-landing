@@ -25,6 +25,7 @@ PRICE_SOURCE = 'https://proxyapi.ru/models/browse'
 DEFAULT_RATES = {
     'z-ai/glm-5.3-flash': {'inputPerMillion':'16.84','outputPerMillion':'58.95','checkedAt':'2026-10-17','source':PRICE_SOURCE},
     'openai/gpt-6-luna': {'inputPerMillion':'30','outputPerMillion':'150','checkedAt':'2026-10-17','source':PRICE_SOURCE},
+    'openai/gpt-6.1-sol': {'inputPerMillion':'420','outputPerMillion':'2100','checkedAt':'2026-10-21','source':'https://www.proxyapi.ru/models/openai/gpt-6-1-sol'},
     'anthropic/claude-haiku-5-5': {'inputPerMillion':'30','outputPerMillion':'150','checkedAt':'2026-10-17','source':PRICE_SOURCE},
 }
 
