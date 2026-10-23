@@ -10,7 +10,7 @@ type Role = "checking" | "member" | "guest";
 export default function Index() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  // "����������" opens the child walk on purpose; a plain visit goes to chat or the guest welcome.
+  // "Знакомство" opens the child walk on purpose; a plain visit goes to chat or the guest welcome.
   const introduction = params.get("intro") === "1";
   const [role, setRole] = useState<Role>("checking");
   const sessionResult = useRef<Promise<Role> | null>(null);
@@ -40,7 +40,7 @@ export default function Index() {
 
   // The public tour does not need an account: keep the first swipe while the
   // session request is pending, instead of replacing the scroll track later.
-  if (role === "checking" && !introduction) return <main className="room-entry-loading"><p role="status">��������� ����� ��������</p><Link to="/first-aid">������� ������ � 112</Link></main>;
+  if (role === "checking" && !introduction) return <main className="room-entry-loading"><p role="status">Открываем Мамин помощник…</p><Link to="/first-aid">Срочная помощь · 112</Link></main>;
   if (introduction) return <RoomIntroduction returning={role === "member"} onComplete={async (moving = false, startAt = 0) => {
     const request = sessionResult.current;
     let waitTimer = 0;
@@ -59,5 +59,5 @@ export default function Index() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }} />;
   if (role === "guest") return <RoomGuestEntry loginPath={accountForRoom("login")} />;
-  return <main className="room-entry-loading"><p role="status">��������� ���</p></main>;
+  return <main className="room-entry-loading"><p role="status">Открываем чат…</p></main>;
 }

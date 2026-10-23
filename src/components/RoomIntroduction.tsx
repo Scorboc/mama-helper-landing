@@ -227,29 +227,29 @@ export default function RoomIntroduction({ onComplete, returning }: { onComplete
   }, [canScrub, failed, video]);
 
   const current = canScrub && !failed  ? roomCues.find(cue => time >= cue.start && time < cue.end) : undefined;
-  return <main data-room-phase="scrub" data-room-time={time.toFixed(3)} ref={section} className={`room-intro ${canScrub && !failed ? "room-intro-scroll room-intro-shared" : ""}`} aria-label="���������� � ������� ����������">
+  return <main data-room-phase="scrub" data-room-time={time.toFixed(3)} ref={section} className={`room-intro ${canScrub && !failed ? "room-intro-scroll room-intro-shared" : ""}`} aria-label="Знакомство с Маминым помощником">
     <div className="room-stage">
       {(!canScrub || failed) && <div className="room-ambient" aria-hidden="true" />}
       <header className="room-intro-header">
-        <button className="room-control" onClick={finish}>{returning ? "� ����" : "����������"}<ArrowRight size={17} /></button>
+        <button className="room-control" onClick={finish}>{returning ? "К чату" : "Пропустить"}<ArrowRight size={17} /></button>
       </header>
-      {(!canScrub || failed) && <div className="room-film"><img className="room-still" src={`${import.meta.env.BASE_URL}media/room/start-v12.webp`} alt="����� �� ����� � �������: ������ �����, ����� ������ � ������ ������� �������" /></div>}
+      {(!canScrub || failed) && <div className="room-film"><img className="room-still" src={`${import.meta.env.BASE_URL}media/room/start-v12.webp`} alt="Малыш со спины в комнате: кубики слева, книга справа и низкая кровать впереди" /></div>}
       {!failed && canScrub && roomCues.map(cue => <div key={cue.id} data-cue={cue.id} className={`room-cue-layer ${current?.id === cue.id ? "is-active" : ""}`} aria-hidden={current?.id !== cue.id}>
           <aside className={`room-cue room-cue-${cue.side}`} style={{ top: `max(${cue.top}%, 92px)` }}>
             <h2>{cue.title}</h2><p>{cue.text}</p>
           </aside>
         </div>)}
       {(failed || !canScrub) && <section className="room-start-card">
-        <span className="room-eyebrow">����������</span>
-        <h1>��������� ����.<br />������ ������ ����.</h1>
-        <p>{failed ? "����� �� �����������. ����� ����� ������� ������." : "�������� ���������� ��������. �������� ����� �������� � ��������� �� ����������."}</p>
-        {!failed && <button className="room-primary" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); setAllowMotion(true); }}><ArrowDown size={18} />�������� ��������</button>}
-        <button className={failed ? "room-primary" : "room-text-button"} onClick={finish}>{returning ? "������� ���" : "������� �� �����"}<ArrowRight size={17} /></button>
+        <span className="room-eyebrow">ЗНАКОМСТВО</span>
+        <h1>Маленькие шаги.<br />Забота каждый день.</h1>
+        <p>{failed ? "Видео не загрузилось. Можно сразу перейти дальше." : "Включено уменьшение движения. Прогулку можно включить и управлять ею прокруткой."}</p>
+        {!failed && <button className="room-primary" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); setAllowMotion(true); }}><ArrowDown size={18} />Включить прогулку</button>}
+        <button className={failed ? "room-primary" : "room-text-button"} onClick={finish}>{returning ? "Открыть чат" : "Перейти ко входу"}<ArrowRight size={17} /></button>
       </section>}
       <footer className="room-intro-footer">
-        {!failed && canScrub && <p className="room-scroll-hint"><ArrowDown size={18} aria-hidden="true" />{time < .5 ? "�������� ����, ����� ����� ������" : "�������� ������ � ����� ��� �� ����"}</p>}
-        <div className="room-controls-row"><Link className="room-control" to="/first-aid">������� ������ � 112</Link></div>
-        <div className="room-progress" role="progressbar" aria-label="����������" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ transform: `scaleX(${progress})` }} /></div>
+        {!failed && canScrub && <p className="room-scroll-hint"><ArrowDown size={18} aria-hidden="true" />{time < .5 ? "Листайте вниз, чтобы малыш пополз" : "Листайте дальше — малыш идёт за вами"}</p>}
+        <div className="room-controls-row"><Link className="room-control" to="/first-aid">Срочная помощь · 112</Link></div>
+        <div className="room-progress" role="progressbar" aria-label="Знакомство" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ transform: `scaleX(${progress})` }} /></div>
         <p className="sr-only" role="status">{current ? `${current.title}. ${current.text}` : ""}</p>
       </footer>
     </div>

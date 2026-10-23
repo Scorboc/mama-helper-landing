@@ -37,6 +37,6 @@ for(const base of ['/','/mama-helper-landing/']) {
   });
   test('accessible still fallback resolves inside '+base,()=>{
     const still=render('RoomIntroduction.tsx',base,true).find(n=>n.type==='img');
-    assert.equal(still.props.src,base+'media/room/start-v12.webp');assert.ok(still.props.alt.includes('�����'));
+    assert.equal(still.props.src,base+'media/room/start-v12.webp');assert.ok(still.props.alt.includes('Малыш'));
   });
 }

@@ -137,16 +137,16 @@ export default function ParentWorkspace({
     "first-aid",
   ];
   const sectionTitles: Record<string, string> = {
-    home: "�������",
-    chat: "���",
-    trackers: "������",
-    favorites: "���������",
-    more: "�������",
-    profile: "������� ������",
-    settings: "���������",
-    advisor: "��������",
-    card: "���������� � ������",
-    "first-aid": "������ ������",
+    home: "Сегодня",
+    chat: "Чат",
+    trackers: "Записи",
+    favorites: "Избранное",
+    more: "Профиль",
+    profile: "Профиль ребёнка",
+    settings: "Настройки",
+    advisor: "Советник",
+    card: "Наблюдения и память",
+    "first-aid": "Первая помощь",
   };
   const [chatRecovery, setChatRecovery] = useState(false);
   const draftKey = `${user?.id || "pending"}:${state.activeChildId || "primary"}:${state.conversationId || "legacy-active"}`;
@@ -379,7 +379,7 @@ export default function ParentWorkspace({
     if (
       await save(
         next,
-        adding ? "��������� ������� ������" : "������� ����������",
+        adding ? "Заполните профиль ребёнка" : "Профиль переключён",
       )
     ) {
       setProfileDraft(
@@ -394,7 +394,7 @@ export default function ParentWorkspace({
     }
     return false;
   }
-  async function save(next: ParentState, success = "���������") {
+  async function save(next: ParentState, success = "Сохранено") {
     if (lock.current) return false;
     lock.current = true;
     setBusy(true);
@@ -473,12 +473,12 @@ export default function ParentWorkspace({
       writeChatDraft(draftKey, "");
       setNotice(
         result.sleepContext?.records
-          ? `����� ����������� � �������� ���: ${result.sleepContext.childName}, ��������� ${result.sleepContext.days} ���� (${ruCount(result.sleepContext.records,"������","�������","��������")}).`
-          : result.transientAnswer ? "������� ���������. ������� ������ �������� ����; ������� ��������� ���������." : "��������� ���������",
+          ? `Ответ подготовлен с записями сна: ${result.sleepContext.childName}, последние ${result.sleepContext.days} дней (${ruCount(result.sleepContext.records,"эпизод","эпизода","эпизодов")}).`
+          : result.transientAnswer ? "История заполнена. Срочная помощь показана ниже; прежняя переписка сохранена." : "Переписка сохранена",
       );
     } catch (e) {
       const detail = (e as Error).message;
-      const needsRecovery = (e instanceof ApiError && e.status === 429) || /������.*(����|������)|history.*(long|full)/i.test(detail);
+      const needsRecovery = (e instanceof ApiError && e.status === 429) || /истори.*(длин|заполн)|history.*(long|full)/i.test(detail);
       setChatRecovery(needsRecovery);
       setPartial("");
       setDraft((current) => {
@@ -488,7 +488,7 @@ export default function ParentWorkspace({
         return next;
       });
       setError(
-        needsRecovery ? detail : "����� �� �������. ����� �������� �� ������ � � ���� ����� � ����� ��������� ��������. " +
+        needsRecovery ? detail : "Ответ не получен. Текст оставлен на экране и в поле ввода — можно отправить повторно. " +
           detail,
       );
     } finally {
@@ -504,7 +504,7 @@ export default function ParentWorkspace({
       ? { ...state.profile, childName: profileDraft.childName?.trim() }
       : profileDraft;
     if (p.stage === "child" && !p.childName?.trim()) {
-      setError("������� ��� ������ ��� �������� ���. ������� �� �����.");
+      setError("Укажите имя ребёнка или домашнее имя. Фамилия не нужна.");
       return;
     }
     if (
@@ -512,18 +512,18 @@ export default function ParentWorkspace({
       (!p.birthDate || p.birthDate > today() || ageValue(p) > 84)
     ) {
       setError(
-        "�������������� ���� �� �������� �� 84 ������ ������� ������������. ��������� ���� ��������.",
+        "Поддерживаются дети от рождения до 84 полных месяцев включительно. Проверьте дату рождения.",
       );
       return;
     }
     if (p.health && !p.healthConfirmed) {
-      setError("���������� ������ �����������, ������������� ������������.");
+      setError("Добавляйте только особенности, подтверждённые специалистом.");
       return;
     }
     if (
       !state.profile &&
       !await confirmAction(
-        "��������� ��������. ������� ������ ����������� ���� ���: ����� ���������� ����� �������� ������ ���. ���� ��������, ����, ��������� � ������ ���� �������� �������������� ������. ����������?",
+        "Проверьте сведения. Профиль ребёнка заполняется один раз: после сохранения можно изменить только имя. Дату рождения, этап, кормление и другие поля изменить самостоятельно нельзя. Продолжить?",
       )
     )
       return;
@@ -567,14 +567,14 @@ export default function ParentWorkspace({
       !("Notification" in window)
     ) {
       setError(
-        "���� ������� �� ������������ push. �� iPhone ���� ����� �������� �� ����� ������. ����������� ������ �������� �������� ������.",
+        "Этот браузер не поддерживает push. На iPhone сайт нужно добавить на экран «Домой». Напоминания внутри кабинета доступны всегда.",
       );
       return;
     }
     setPushBusy(true);
     setError("");
     setNotice(
-      "��������� ����������� � ������� ��������. ���� ������ �� ��������, ��������� ��������� ���������� �����.",
+      "Разрешите уведомления в запросе браузера. Если запрос не появился, проверьте настройки разрешений сайта.",
     );
     const timeout = async <T,>(promise: Promise<T>): Promise<T> => {
       let timer: ReturnType<typeof setTimeout>;
@@ -586,7 +586,7 @@ export default function ParentWorkspace({
               () =>
                 reject(
                   new Error(
-                    "������� �� �������� ����������� �����������. �������� ���� � Chrome, Edge ��� Safari � ��������� ����������� � ���������� �����.",
+                    "Браузер не завершил подключение уведомлений. Откройте сайт в Chrome, Edge или Safari и разрешите уведомления в настройках сайта.",
                   ),
                 ),
               20000,
@@ -602,14 +602,14 @@ export default function ParentWorkspace({
       const permission = await timeout(Notification.requestPermission());
       if (permission !== "granted") {
         setError(
-          "����������� �� ���������. �������� ��� ����� � ���������� ��������.",
+          "Уведомления не разрешены. Изменить это можно в настройках браузера.",
         );
         return;
       }
       const { pushKey } = await api<{ pushKey: string }>("config");
       if (!pushKey) {
         setError(
-          "�������� ��� �� ������� ������� �����������. �������� ������ �������� ��������.",
+          "Владелец ещё не включил фоновые уведомления. Карточки внутри кабинета работают.",
         );
         return;
       }
@@ -637,8 +637,8 @@ export default function ParentWorkspace({
       const message = (e as Error).message || "";
       setError(
         /push service|registration failed/i.test(message)
-          ? "������� �� ���� ������������ � ������� �����������. ��������� �������� � ���������� ��� ���."
-          : message || "�� ������� �������� �����������. ���������� ��� ���.",
+          ? "Браузер не смог подключиться к сервису уведомлений. Проверьте интернет и попробуйте ещё раз."
+          : message || "Не удалось включить уведомления. Попробуйте ещё раз.",
       );
     } finally {
       setPushBusy(false);
@@ -663,7 +663,7 @@ export default function ParentWorkspace({
   if (loading)
     return (
       <main className="account-page">
-        <p role="status">��������� ��� �������</p>
+        <p role="status">Открываем ваш кабинет…</p>
       </main>
     );
   if (!user)
@@ -671,10 +671,10 @@ export default function ParentWorkspace({
       <main className="account-page">
         <div className="tile account-card">
           <Fox className="h-20 w-20 mx-auto" />
-          <h1>{error ? "�� ������� ������� �������" : "��� ������ �������"}</h1>
+          <h1>{error ? "Не удалось открыть кабинет" : "Ваш личный кабинет"}</h1>
           <p>
-            �������, ����� �������, ��� � ��������� ����������� �����
-            �����������.
+            Войдите, чтобы профиль, чат и настройки сохранялись между
+            посещениями.
           </p>
           {error && (
             <p role="alert" className="form-error mt-4">
@@ -682,7 +682,7 @@ export default function ParentWorkspace({
             </p>
           )}
           <div className="flex flex-wrap gap-3 mt-6">
-            {error && <Button onClick={() => setSessionAttempt(value => value + 1)}>��������� ��������</Button>}
+            {error && <Button onClick={() => setSessionAttempt(value => value + 1)}>Повторить загрузку</Button>}
             <Button asChild>
               <Link
                 to={
@@ -690,11 +690,11 @@ export default function ParentWorkspace({
                   encodeURIComponent(location.pathname + location.search)
                 }
               >
-                ����������� � ����
+                Регистрация и вход
               </Link>
             </Button>
           </div>
-          <Link className="standalone-link" to="/first-aid">������� ������ � 112</Link>
+          <Link className="standalone-link" to="/first-aid">Срочная помощь · 112</Link>
         </div>
       </main>
     );
@@ -719,9 +719,9 @@ export default function ParentWorkspace({
                 busy={busy || chatBusy}
               />
               {roomScene && <div className="room-account-tools">
-                <Link to="/">�� �������</Link>
-                <a href={`${import.meta.env.BASE_URL}mamin-pomoshchnik-instruction.pdf`} target="_blank" rel="noreferrer">���������� � ������� PDF</a>
-                <span>�������������� �������� ��� ���������</span>
+                <Link to="/">На главную</Link>
+                <a href={`${import.meta.env.BASE_URL}mamin-pomoshchnik-instruction.pdf`} target="_blank" rel="noreferrer">Инструкция — скачать PDF</a>
+                <span>Информационный помощник для родителей</span>
               </div>}
   </>;
   return (
@@ -729,21 +729,21 @@ export default function ParentWorkspace({
       style={{ "--room-composer-height": `${composerHeight}px` } as CSSProperties}
       className={`parent-workspace ${tab === "trackers" ? "with-tracker-dock" : ""} ${tab === "chat" ? "chat-workspace" : ""}`}
     >
-      <a className="skip-link" href="#main-content">� ��������� �����������</a>
+      <a className="skip-link" href="#main-content">К основному содержимому</a>
       {!roomScene && <header className="cabinet-header">
         <div className="brand-theme">
           <Link to="/" className="flex items-center gap-2">
             <img src="/logo-mark.png?v=3" alt="" width={48} height={48} className="site-logo h-12" />
-            <strong>����� ��������</strong>
+            <strong>Мамин помощник</strong>
           </Link>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/billing" aria-label="������ � ������" className="rounded-full border px-3 py-2 text-xs text-primary">{billing?.mode === "paid" ? "��������" : "������"}</Link>
+          <Link to="/billing" aria-label="Доступ и оплата" className="rounded-full border px-3 py-2 text-xs text-primary">{billing?.mode === "paid" ? "Подписка" : "Доступ"}</Link>
           <Button
             variant="ghost"
             onClick={() => void logout()}
             disabled={busy}
-            aria-label="�����"
+            aria-label="Выйти"
           >
             <LogOut size={18} />
           </Button>
@@ -757,25 +757,25 @@ export default function ParentWorkspace({
         />}
         <QuickConveniences key={"quick-" + (state.activeChildId || "primary")} state={state} showLatest={tab === "home" || tab === "chat"} onRecords={() => setTab("trackers")} />
         <PushMilestoneMark key={"mark-" + (state.activeChildId || "primary")} state={state} search={location.search} />
-        {!roomScene && <Link className="standalone-link" to="/first-aid">������� ������ � 112</Link>}
-        {roomScene ? <h1 className={tab === "chat" ? "sr-only" : "room-section-title"}>{sectionTitles[tab] || "��� �������"}</h1> : <div className="cabinet-greeting">
+        {!roomScene && <Link className="standalone-link" to="/first-aid">Срочная помощь · 112</Link>}
+        {roomScene ? <h1 className={tab === "chat" ? "sr-only" : "room-section-title"}>{sectionTitles[tab] || "Ваш кабинет"}</h1> : <div className="cabinet-greeting">
           <div>
             <span className="cap">
               {state.profile?.role === "dad"
-                ? "����, �� ���� �����"
-                : "������ � ������ ���������� � ������ � ���"}
+                ? "Папа, вы тоже важны"
+                : "Забота о малыше начинается с заботы о вас"}
             </span>
-            <h1>{sectionTitles[tab] || "��� �������"}</h1>
+            <h1>{sectionTitles[tab] || "Ваш кабинет"}</h1>
             {tab !== "chat" && <p className="muted mt-2">{contextLabel(state.profile)}</p>}
           </div>
-          {tab === "chat" ? <Link className="room-replay" to="/?intro=1"><Compass size={17} />����������</Link> : <HeartCloud className="h-24 w-24 hidden sm:block" />}
+          {tab === "chat" ? <Link className="room-replay" to="/?intro=1"><Compass size={17} />Знакомство</Link> : <HeartCloud className="h-24 w-24 hidden sm:block" />}
         </div>}
         {!roomScene && <div className={tab === "chat" ? "chat-daily-actions" : "hidden"}>
           <ChatQuickCare key={state.activeChildId || "primary"} state={state} onTrackers={() => setTab("trackers")} onProfile={() => setChildPickerOpen(true)} profileBusy={busy || chatBusy} />
         </div>}
         {!roomScene && (tab !== "chat" || state.profile?.stage !== "child") && <Button
           className="child-picker"
-          aria-label={`������� ������: ${contextLabel(state.profile)}`}
+          aria-label={`Выбрать ребёнка: ${contextLabel(state.profile)}`}
           variant="outline"
           disabled={busy || chatBusy}
           onClick={() => setChildPickerOpen(true)}
@@ -784,12 +784,12 @@ export default function ParentWorkspace({
             <UserRound size={20} />
           </span>
           <span>
-            <small>{tab === "chat" && state.profile ? contextLabel(state.profile).split(" � ").slice(1).join(" � ") : "������ ������"}</small>
+            <small>{tab === "chat" && state.profile ? contextLabel(state.profile).split(" · ").slice(1).join(" · ") : "Сейчас выбран"}</small>
             <strong>
               {state.profile?.childName ||
                 (state.profile?.stage === "pregnancy"
-                  ? "�������� ������"
-                  : "������� ������")}
+                  ? "Ожидание малыша"
+                  : "Профиль ребёнка")}
             </strong>
           </span>
           <ChevronDown size={18} />
@@ -801,9 +801,9 @@ export default function ParentWorkspace({
             if (notch) { event.preventDefault(); notch.focus(); }
           }}>
             <DialogHeader>
-              <DialogTitle>���� ����</DialogTitle>
+              <DialogTitle>Ваши дети</DialogTitle>
               <DialogDescription>
-                ��������, ��� ���� �������� �������, ��� � ������.
+                Выберите, для кого показать занятия, чат и записи.
               </DialogDescription>
             </DialogHeader>
             <div className="ios-list">
@@ -820,8 +820,8 @@ export default function ParentWorkspace({
                   <span>
                     {child.data.profile?.childName ||
                       (child.data.profile?.stage === "pregnancy"
-                        ? "�������� ������"
-                        : `������ ${index + 1}`)}
+                        ? "Ожидание малыша"
+                        : `Ребёнок ${index + 1}`)}
                   </span>
                   {child.id === (state.activeChildId || "primary") && (
                     <Check size={20} />
@@ -841,22 +841,22 @@ export default function ParentWorkspace({
                   setChildPickerOpen(false);
               }}
             >
-              �������� ������
+              Добавить ребёнка
             </Button>
           </DialogContent>
         </Dialog>
         {tab !== "chat" && !!birthday?.children.length && (
           <section className="tile birthday-card" role="status">
-            <h2>� ���� ��������!</h2>
+            <h2>С днём рождения!</h2>
             <p>
-              {birthday.children.map((c) => c.name).join(", ")} � �����������
-              ���� �����! ��������� ������ ������� ������� ���� � ����������
-              ��������� ����������� ��������.
+              {birthday.children.map((c) => c.name).join(", ")} — поздравляем
+              вашу семью! Вспомните вместе любимое событие года и придумайте
+              маленькую праздничную традицию.
             </p>
             {birthday.giftPerChild > 0 && (
               <p>
-                �������: �� 5 �������������� AI-������� �� ������� ����������.
-                ���������� ������� ��������:{" "}
+                Подарок: по 5 дополнительных AI-ответов за каждого именинника.
+                Подарочных ответов осталось:{" "}
                 {quota?.bonusRemaining ?? birthday.giftRemaining}.
               </p>
             )}
@@ -882,7 +882,7 @@ export default function ParentWorkspace({
                 onClick={() => location.state?.cabinetSection ? navigate(-1) : setTab(detailParents.current[tab] || "more")}
               >
                 <ArrowLeft size={17} />
-                �����
+                Назад
               </Button>
             )}
             <RoomNavigation active={(profileTabs.includes(tab) ? "more" : tab) as RoomSection}
@@ -926,22 +926,22 @@ export default function ParentWorkspace({
               />
             ) : (
               <Button onClick={() => setTab("profile")}>
-                ��������� �������
+                Заполнить профиль
               </Button>
             )}
           </TabsContent>
           <TabsContent value="more">
             <section className="tile">
-              <h2 className={roomScene ? "sr-only" : undefined}>�������</h2>
-              <p className="muted">����, ��������� � �������� ���������</p>
-              <Link className="standalone-link" to="/guide">�������� ���������� � ���������� ��������</Link>
+              <h2 className={roomScene ? "sr-only" : undefined}>Профиль</h2>
+              <p className="muted">Дети, настройки и полезные материалы</p>
+              <Link className="standalone-link" to="/guide">Короткие инструкции и инструмент дневника</Link>
               <div className="workspace-more ios-list">
                 {[
-                  ["profile", "������� �����"],
-                  ["advisor", "��������"],
-                  ["card", "���������� � ������"],
-                  ["first-aid", "������ ������"],
-                  ["settings", "��������� � �����������"],
+                  ["profile", "Профили детей"],
+                  ["advisor", "Советник"],
+                  ["card", "Наблюдения и память"],
+                  ["first-aid", "Первая помощь"],
+                  ["settings", "Настройки и уведомления"],
                 ].map(([id, label]) => (
                   <Button key={id} variant="ghost" onClick={() => setTab(id)}>
                     <span>{label}</span>
@@ -951,7 +951,7 @@ export default function ParentWorkspace({
               </div>
             </section>
             <details className="tile mt-4">
-              <summary>��� ������������ ������</summary>
+              <summary>Как пользоваться сайтом</summary>
               <GuideWelcome key={user.id} />
             </details>
           </TabsContent>
@@ -980,7 +980,7 @@ export default function ParentWorkspace({
                 />
               )}
             <section className="tile chat-card" style={{ paddingBottom: composerHeight + 24 }}>
-              <h2 className="sr-only">��� � ����������</h2>
+              <h2 className="sr-only">Чат с помощником</h2>
               <RoomChatFeed enabled={roomScene} empty={!state.messages.length} scrollRef={mountChatLog}>
               {!roomScene && chatSettings}
               {roomScene && state.profile?.stage === "child" && guidanceTopic &&
@@ -990,19 +990,19 @@ export default function ParentWorkspace({
                 className="chat-log"
                 ref={roomScene ? undefined : mountChatLog}
                 role="log"
-                aria-label="���������"
+                aria-label="Переписка"
                 aria-live="polite"
                 tabIndex={0}
               >
                 {roomScene && <RoomChatWelcome hasProfile={!!state.profile} compact={state.messages.length > 0} />}
                 {!state.messages.length && !roomScene && (
                   <div className="bubble assistant">
-                    <span>����� ��������</span>
+                    <span>Мамин помощник</span>
                     <p>
-                      ������ �������� ���, ���������, ����, ����, ������� ���,
-                      ���������� � ����� � ��, ��� �� ���� ���� ����������. ����
-                      � ���� ���� ����� ���������. ��� ������� �� ��������
-                      ��������� �������. �������� � ���������� � � �����.
+                      Помогу обсудить сон, кормление, игры, уход, детский сад,
+                      подготовку к школе и то, как вы сами себя чувствуете. Маме
+                      и папе тоже нужна поддержка. Для советов по возрасту
+                      заполните профиль. Диагнозы и назначения — к врачу.
                     </p>
                   </div>
                 )}
@@ -1017,13 +1017,13 @@ export default function ParentWorkspace({
                         : undefined
                     }
                   >
-                    <span className={roomScene ? "room-message-author" : undefined}>{m.role === "user" ? "��" : "����� ��������"}</span>
+                    <span className={roomScene ? "room-message-author" : undefined}>{m.role === "user" ? "Вы" : "Мамин помощник"}</span>
                     <p>{m.role === "assistant" ? <ChatMessageText text={m.text} /> : m.text}</p>
                     <AskDoctor key={(state.activeChildId || "primary") + m.id} childId={state.activeChildId || "primary"} text={m.role === "user" ? m.text : [...state.messages.slice(0,messageIndex)].reverse().find(message => message.role === "user")?.text || ""} disabled={busy || chatBusy} />
                     {m.role === "assistant" && messageIndex === state.messages.length - 1 && state.profile?.stage === "child" && state.messages[messageIndex - 1]?.role === "user" && detectMilestones(state.messages[messageIndex - 1].text).map(skill => <MilestoneMark key={(state.activeChildId || "primary") + m.id + skill} state={state} skill={skill} />)}
-                    {m.role === "assistant" && m.careVersion && careVersion && m.careVersion !== careVersion && <p className="text-sm muted" role="note">������� ������� ����� ����� ������.</p>}
+                    {m.role === "assistant" && m.careVersion && careVersion && m.careVersion !== careVersion && <p className="text-sm muted" role="note">Дневник обновлён после этого ответа.</p>}
                     {m.role === "assistant" && (roomScene ? <details className="room-answer-actions">
-                      <summary><Ellipsis size={18} /><span>�������� � �������</span><ChevronDown size={14} /></summary>
+                      <summary><Ellipsis size={18} /><span>Действия с ответом</span><ChevronDown size={14} /></summary>
                       <div>                        <EvidencePassport message={m} />
                         <ReadAnswer text={m.text} />
                         <FavoriteButton
@@ -1046,15 +1046,15 @@ export default function ParentWorkspace({
 </>)}
                   </div>
                 ))}
-                {urgentAnswer && <section className="bubble assistant" role="alert"><strong>������� ������</strong><p><ChatMessageText text={urgentAnswer} /></p><a href="tel:112">��������� 112</a></section>}
+                {urgentAnswer && <section className="bubble assistant" role="alert"><strong>Срочная помощь</strong><p><ChatMessageText text={urgentAnswer} /></p><a href="tel:112">Позвонить 112</a></section>}
                 {chatBusy && (
                   <div
                     className="bubble assistant"
                     ref={responseStart}
                     style={{ minHeight: answerMinHeight || undefined }}
                   >
-                    <span>����� �������� � ����� �����������</span>
-                    <p>{partial || "������� ����� � ������ ������ ��������"}</p>
+                    <span>Мамин помощник · ответ формируется</span>
+                    <p>{partial || "Готовим ответ с учётом вашего профиля…"}</p>
                   </div>
                 )}
               </div>
@@ -1065,24 +1065,24 @@ export default function ParentWorkspace({
                   disabled={busy}
                   onClick={() => void send(retryRequest.question)}
                 >
-                  ��������� ��������
+                  Повторить отправку
                 </Button>
               )}
               <MemoryReview state={state} save={save} busy={busy} pendingOnly />
               </RoomChatFeed>
             </section>
               {roomScene && <ChatQuickCare inline key={state.activeChildId || "primary"} state={state} onTrackers={() => setTab("trackers")} profileBusy={busy || chatBusy} />}
-              <div ref={composer} className="chat-composer" role="region" aria-label="�������� ������">
-                {error && <p id="chat-request-error" role="alert" className="form-error chat-request-error">{error}{chatRecovery && <span className="chat-recovery-actions"><Link to="/data-rights">�������� ���������</Link><Button type="button" variant="outline" disabled={busy || chatBusy || conversationList(state).length >= 21} onClick={async () => {
-                  const next = openConversation(state, { title: "����� ���" });
+              <div ref={composer} className="chat-composer" role="region" aria-label="Написать вопрос">
+                {error && <p id="chat-request-error" role="alert" className="form-error chat-request-error">{error}{chatRecovery && <span className="chat-recovery-actions"><Link to="/data-rights">Написать владельцу</Link><Button type="button" variant="outline" disabled={busy || chatBusy || conversationList(state).length >= 21} onClick={async () => {
+                  const next = openConversation(state, { title: "Новый чат" });
                   if (next === state) return;
                   const nextKey = `${user?.id || "pending"}:${next.activeChildId || "primary"}:${next.conversationId}`;
                   messageDrafts.current[nextKey] = draft;
                   writeChatDraft(nextKey, draft);
-                  if (await save(next, "����� ��� ������. �������� ��������.")) {
+                  if (await save(next, "Новый чат открыт. Черновик сохранён.")) {
                     setRetryRequest(null); setPartial(""); setUrgentAnswer(""); setChatRecovery(false);
                   }
-                }}>����� ���</Button></span>}</p>}
+                }}>Новый чат</Button></span>}</p>}
                 <VoiceInput
                   disabled={busy || chatBusy}
                   onText={(text) =>
@@ -1119,19 +1119,19 @@ export default function ParentWorkspace({
                         void send(draft);
                       }
                     }}
-                    placeholder="��� ������"
-                    aria-label="��� ������"
+                    placeholder="Ваш вопрос…"
+                    aria-label="Ваш вопрос"
                     aria-describedby={error ? "chat-request-error" : undefined}
                   />
                   <Button
                     type="submit"
                     disabled={busy || chatBusy || !draft.trim()}
-                    aria-label="���������"
+                    aria-label="Отправить"
                   >
                     {roomScene ? <ArrowUp size={22} /> : <Send size={20} />}
                   </Button>
                 </form>
-                <Link className="chat-emergency-link" to="/first-aid">������� ������ � 112</Link>
+                <Link className="chat-emergency-link" to="/first-aid">Срочная помощь · 112</Link>
               </div>
           </TabsContent>
           <TabsContent value="advisor">
@@ -1140,27 +1140,27 @@ export default function ParentWorkspace({
             )}
             <div className="section-title">
               <div>
-                <h2>������ � � ��� �����</h2>
+                <h2>Важное — в своё время</h2>
                 <p className="muted">
-                  �������� ����������� � ����������� �������
+                  Карточки открываются к подходящему периоду
                 </p>
               </div>
               <Rattle className="h-16 w-16" />
             </div>
             <p className="mb-5">
-              �������� ������������� �������� �������� ������ ��� �����
-              ������������.
+              Карточки соответствуют текущему возрасту ребёнка или сроку
+              беременности.
             </p>
             {!state.profile && (
               <Button onClick={() => setTab("profile")}>
-                ������� ������� ��� ����
+                Указать возраст или срок
               </Button>
             )}
             <div className="guide-grid">
               {due.map((m) => (
                 <article key={m.id} className="tile bg-cream">
                   <span className="cap">
-                    {m.age} {m.stage === "child" ? "���." : "���."}
+                    {m.age} {m.stage === "child" ? "мес." : "нед."}
                   </span>
                   <h3>{m.title}</h3>
                   <p>{m.text}</p>
@@ -1170,17 +1170,17 @@ export default function ParentWorkspace({
                       disabled={busy}
                       onClick={() => void markEvent(m.id, "later")}
                     >
-                      ��������{" "}
+                      Отложить{" "}
                       {state.preferences.repeat === "week"
-                        ? "�� ������"
-                        : "�� ����"}
+                        ? "на неделю"
+                        : "на день"}
                     </Button>
                     <Button
                       variant="ghost"
                       disabled={busy}
                       onClick={() => void markEvent(m.id, "hidden")}
                     >
-                      ������
+                      Скрыть
                     </Button>
                   </div>
                 </article>
@@ -1188,13 +1188,13 @@ export default function ParentWorkspace({
             </div>
             {state.profile && due.length === 0 && (
               <div className="tile my-5">
-                <h3>����� �������� ���</h3>
-                <p>����� ���� �������� � ���������� ���������� �������.</p>
+                <h3>Новых карточек нет</h3>
+                <p>Новая тема появится в подходящем возрастном периоде.</p>
               </div>
             )}
             {Object.keys(state.events).length > 0 && (
               <>
-                <h3 className="mt-8 mb-3">���������� � �������</h3>
+                <h3 className="mt-8 mb-3">Отложенное и скрытое</h3>
                 {Object.entries(state.events).map(([id, v]) => {
                   const m = milestones.find((item) => item.id === id);
                   return (
@@ -1203,8 +1203,8 @@ export default function ParentWorkspace({
                         {m?.title ?? id}
                         <small>
                           {v.status === "hidden"
-                            ? "������"
-                            : `�� ${new Date(v.until).toLocaleDateString("ru-RU")}`}
+                            ? "Скрыто"
+                            : `До ${new Date(v.until).toLocaleDateString("ru-RU")}`}
                         </small>
                       </span>
                     </div>
@@ -1215,17 +1215,17 @@ export default function ParentWorkspace({
           </TabsContent>
           <TabsContent value="card">
             <section className="tile">
-              <h2>����� ����������</h2>
+              <h2>Карта наблюдений</h2>
               <p className="muted">
-                ������ �������, ������� �� ������ ���������. ��� �� �����������
-                ����� ������� � �� �������� AI. ������ ������ ��� �������
-                ������� ����� ��������.
+                Только заметки, которые вы решили сохранить. Это не медицинская
+                карта клиники и не диагнозы AI. Старые записи без отметки
+                требуют вашей проверки.
               </p>
               <MemoryReview state={state} save={save} busy={busy} />
               {!state.medicalCard.length && !state.pendingMemory?.length && (
                 <p className="my-4">
-                  ���������� � ���� � ������� � �������� ��������� �������.
-                  ����� ����������� � ����� ���������.
+                  Расскажите в чате о событии — помощник предложит заметку.
+                  Перед сохранением её можно исправить.
                 </p>
               )}
             </section>
@@ -1236,25 +1236,25 @@ export default function ParentWorkspace({
             className="workspace-pane data-[state=inactive]:hidden"
           >
             <section className="tile profile-panel">
-              <h2>������� ������</h2>
+              <h2>Профиль ребёнка</h2>
               <p className="muted">
-                � ������� ������ ���� �������, ������ � ����� ����������.
+                У каждого ребёнка свои диалоги, советы и карта наблюдений.
               </p>
               <form onSubmit={submitProfile} className="mt-6 space-y-5">
                 <p role="note" className="rounded-xl border p-4 text-sm">
                   {state.profile
-                    ? "������� ��� ��������. ����� �������� ������ ��� ������."
-                    : "��������� ������� ����� ���� ���. ����������� ��������� ��������: ����� ���������� ����� �������� ������ ��� ������."}{" "}
-                  ���� ��������, ����, ���������, �������� � ��� � ��������
-                  �����������. ������� �������������� �������������. ��� �������
-                  ������ ������ ����� �������� ��������� �������. ��� ������ �
-                  ������ �������� <Link to="/data-rights">������� � ����������</Link> � �������� ���������� ������ � �������.
+                    ? "Профиль уже заполнен. Можно изменить только имя ребёнка."
+                    : "Заполнить профиль можно один раз. Внимательно проверьте сведения: после сохранения можно изменить только имя ребёнка."}{" "}
+                  Дата рождения, этап, кормление, сведения о сне и здоровье
+                  фиксируются. Возраст рассчитывается автоматически. Для другого
+                  своего ребёнка можно добавить отдельный профиль. При ошибке в
+                  данных откройте <Link to="/data-rights">«Данные и обращения»</Link> и выберите «Исправить ошибку в данных».
                 </p>
                 <label className="form-field">
-                  ��� ������ ��� �������� ���
+                  Имя ребёнка или домашнее имя
                   {profileDraft.stage === "pregnancy"
-                    ? " � �������������"
-                    : " � �����������"}
+                    ? " · необязательно"
+                    : " · обязательно"}
                   <Input
                     required={profileDraft.stage === "child"}
                     maxLength={60}
@@ -1265,7 +1265,7 @@ export default function ParentWorkspace({
                         childName: e.target.value,
                       })
                     }
-                    placeholder="��������, ����. ������� �� �����."
+                    placeholder="Например, Миша. Фамилия не нужна."
                   />
                 </label>
                 <fieldset
@@ -1274,7 +1274,7 @@ export default function ParentWorkspace({
                 >
                   <div className="form-grid">
                     <label className="form-field">
-                      ��� ��
+                      Кто вы
                       <Select
                         value={profileDraft.role}
                         onValueChange={(v) =>
@@ -1284,17 +1284,17 @@ export default function ParentWorkspace({
                           })
                         }
                       >
-                        <SelectTrigger aria-label="��� ��">
+                        <SelectTrigger aria-label="Кто вы">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="mom">����</SelectItem>
-                          <SelectItem value="dad">����</SelectItem>
+                          <SelectItem value="mom">Мама</SelectItem>
+                          <SelectItem value="dad">Папа</SelectItem>
                         </SelectContent>
                       </Select>
                     </label>
                     <label className="form-field">
-                      ��� ����
+                      Ваш этап
                       <Select
                         value={profileDraft.stage}
                         onValueChange={(v) =>
@@ -1304,14 +1304,14 @@ export default function ParentWorkspace({
                           })
                         }
                       >
-                        <SelectTrigger aria-label="����">
+                        <SelectTrigger aria-label="Этап">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="pregnancy">
-                            ������� ������
+                            Ожидаем малыша
                           </SelectItem>
-                          <SelectItem value="child">������ �������</SelectItem>
+                          <SelectItem value="child">Ребёнок родился</SelectItem>
                         </SelectContent>
                       </Select>
                     </label>
@@ -1319,7 +1319,7 @@ export default function ParentWorkspace({
                   {profileDraft.stage === "child" ? (
                     <>
                       <label htmlFor="profile-birth-date" className="form-field">
-                        ���� �������� ������
+                        Дата рождения ребёнка
                         <Input
                           id="profile-birth-date"
                           type="date"
@@ -1335,7 +1335,7 @@ export default function ParentWorkspace({
                         />
                       </label>
                       <label className="form-field">
-                        ��� ������ � �������������
+                        Пол ребёнка · необязательно
                         <Select
                           value={profileDraft.childSex || "unknown"}
                           onValueChange={(v) =>
@@ -1345,15 +1345,15 @@ export default function ParentWorkspace({
                             })
                           }
                         >
-                          <SelectTrigger aria-label="���">
+                          <SelectTrigger aria-label="Пол">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="unknown">
-                              �� ���������
+                              Не указывать
                             </SelectItem>
-                            <SelectItem value="female">�������</SelectItem>
-                            <SelectItem value="male">�������</SelectItem>
+                            <SelectItem value="female">Девочка</SelectItem>
+                            <SelectItem value="male">Мальчик</SelectItem>
                           </SelectContent>
                         </Select>
                       </label>
@@ -1361,7 +1361,7 @@ export default function ParentWorkspace({
                   ) : (
                     <div className="form-grid">
                       <label htmlFor="profile-pregnancy-week" className="form-field">
-                        ������ ������
+                        Полных недель
                         <Input
                           id="profile-pregnancy-week"
                           type="number"
@@ -1378,7 +1378,7 @@ export default function ParentWorkspace({
                         />
                       </label>
                       <label htmlFor="profile-pregnancy-week-date" className="form-field">
-                        �� ����� ���� ������ ����
+                        На какую дату указан срок
                         <Input
                           id="profile-pregnancy-week-date"
                           type="date"
@@ -1396,11 +1396,11 @@ export default function ParentWorkspace({
                     </div>
                   )}
                   <p className="muted text-sm">
-                    ������� � ���� ����������� �������������. ����� ��������
-                    �������� ��������� ������� ������ � ����� ��������.
+                    Возраст и срок обновляются автоматически. После рождения
+                    добавьте отдельный профиль ребёнка с датой рождения.
                   </p>
                   <label className="form-field">
-                    ��������� � �������������
+                    Кормление · необязательно
                     <Select
                       value={profileDraft.feeding}
                       onValueChange={(v) =>
@@ -1410,16 +1410,16 @@ export default function ParentWorkspace({
                         })
                       }
                     >
-                      <SelectTrigger aria-label="���������">
+                      <SelectTrigger aria-label="Кормление">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {[
-                          ["unknown", "�� ���������"],
-                          ["breast", "�������"],
-                          ["formula", "�����"],
-                          ["mixed", "���������"],
-                          ["solids", "� ���������"],
+                          ["unknown", "Не указывать"],
+                          ["breast", "Грудное"],
+                          ["formula", "Смесь"],
+                          ["mixed", "Смешанное"],
+                          ["solids", "С прикормом"],
                         ].map(([v, t]) => (
                           <SelectItem key={v} value={v}>
                             {t}
@@ -1429,7 +1429,7 @@ export default function ParentWorkspace({
                     </Select>
                   </label>
                   <label className="form-field">
-                    ��� ��������� � ��� � �������������
+                    Что учитывать о сне · необязательно
                     <Textarea
                       maxLength={300}
                       value={profileDraft.sleep}
@@ -1439,11 +1439,11 @@ export default function ParentWorkspace({
                           sleep: e.target.value,
                         })
                       }
-                      placeholder="������, ��� ������ ����������"
+                      placeholder="Кратко, без личных документов"
                     />
                   </label>
                   <label className="form-field">
-                    ������������� ����������� �������� � �������������
+                    Подтверждённые особенности здоровья · необязательно
                     <Textarea
                       maxLength={500}
                       value={profileDraft.health}
@@ -1453,7 +1453,7 @@ export default function ParentWorkspace({
                           health: e.target.value,
                         })
                       }
-                      placeholder="������ ��������, ������������� ������������"
+                      placeholder="Только сведения, подтверждённые специалистом"
                     />
                   </label>
                   <div className="flex items-start gap-3">
@@ -1468,21 +1468,21 @@ export default function ParentWorkspace({
                       }
                     />
                     <label htmlFor="health-confirm" className="text-sm">
-                      �� ���� ���������, ��������� ����������� ������������
-                      ������������. �������� �� ��������� �������.
+                      По моим сведениям, указанные особенности подтверждены
+                      специалистом. Помощник не назначает лечение.
                     </label>
                   </div>
                   <p className="muted text-sm">
-                    �������� ��������� ��� ����, ��������� � ������� �
-                    �������������.
+                    Помощник учитывает все темы, связанные с ребёнком и
+                    родительством.
                   </p>
                 </fieldset>
                 <Button type="submit" disabled={busy}>
                   {busy
-                    ? "���������"
+                    ? "Сохраняем…"
                     : state.profile
-                      ? "��������� ���"
-                      : "��������� ������� ���� ���"}
+                      ? "Сохранить имя"
+                      : "Сохранить профиль один раз"}
                 </Button>
               </form>
             </section>
@@ -1490,18 +1490,18 @@ export default function ParentWorkspace({
           <TabsContent value="settings">
             <div className="home-grid">
               <section className="tile">
-                <h2>�����������</h2>
+                <h2>Напоминания</h2>
                 <p className="muted mt-3">
-                  ����� � ��������� �� ��������, ������������ � ���� ��������
-                  ��� ������� �������. �� ������ ���� ����������� � ���� �� ���
-                  �����. ���������� ��������� ��������� ��� ������� ������;
-                  ���������� ���� �� �����������. ������ � �������� �� ��������
-                  ����� ��������� ��������.
+                  Утром — подсказка по возрасту, поздравление в день рождения
+                  или готовые занятия. Не больше двух уведомлений в день на всю
+                  семью. Возрастная подсказка открывает чат нужного ребёнка;
+                  одинаковые темы не повторяются. Повтор о занятиях не приходит
+                  после просмотра подборки.
                 </p>
                 <label className="form-field mt-4">
-                  ������� ����
+                  Часовой пояс
                   <select
-                    aria-label="������� ����"
+                    aria-label="Часовой пояс"
                     value={state.preferences.timezone || "Europe/Moscow"}
                     disabled={busy}
                     onChange={(e) =>
@@ -1534,9 +1534,9 @@ export default function ParentWorkspace({
                   </select>
                 </label>
                 <label className="form-field mt-4">
-                  �������� �����������
+                  Утреннее уведомление
                   <select
-                    aria-label="�������� �����������"
+                    aria-label="Утреннее уведомление"
                     value={state.preferences.morningHour ?? 9}
                     disabled={busy}
                     onChange={(e) =>
@@ -1570,8 +1570,8 @@ export default function ParentWorkspace({
                       })
                     }
                   />
-                  ��� ���� ����������� ����� 6 �����, ���� �������� ��
-                  �����������
+                  Ещё одно напоминание через 6 часов, если подборка не
+                  просмотрена
                 </label>
                 <div className="mt-6">
                   <Button
@@ -1580,50 +1580,50 @@ export default function ParentWorkspace({
                     onClick={() => void pushToggle(!state.preferences.push)}
                   >
                     {state.preferences.push
-                      ? "��������� push"
-                      : "�������� push"}
+                      ? "Отключить push"
+                      : "Включить push"}
                   </Button>
                   <p className="muted text-sm mt-3">
-                    � ����������� � �������� ��������� ��� �����, ���� ��������
-                    � �������� � ��������. ������ ������� ��������� ������ �����.
-                    ������ ����� �� ������ ���������� ����� � ���������� ��������.
+                    В уведомлении — короткая подсказка без имени, даты рождения
+                    и сведений о здоровье. Нужный профиль откроется внутри сайта.
+                    Скрыть текст на экране блокировки можно в настройках телефона.
                   </p>
                 </div>
               </section>
               <section className="tile">
-                <h2>������� � ������</h2>
+                <h2>Аккаунт и данные</h2>
                 <AnswerFeedback />
                 <p className="break-all">{user?.email}</p>
                 {/^test-account-/.test(user.id) && (
                   <div className="rounded-xl bg-cream p-4 my-3">
-                    <strong>����� �������</strong>
+                    <strong>Общий аккаунт</strong>
                     <p>
-                      ����������� ������ ����������� ��������: ������ ���������
-                      � ���� ������� ����� �� �� ������. ��� ������ ���������
-                      �������� ����������� ������� � ��������� �������.
+                      Используйте только вымышленные сведения: другие участники
+                      с этим логином видят те же данные. Для личной переписки
+                      создайте собственный аккаунт с отдельным паролем.
                     </p>
                     <Button asChild variant="outline">
-                      <Link to="/account">������� ������ �������</Link>
+                      <Link to="/account">Создать личный аккаунт</Link>
                     </Button>
                   </div>
                 )}
                 <p>
-                  �������, ��������� � ����� ���������� ����������� � ���������
-                  ���� �������. � ���� � ���� ���������
-                  ��������.
+                  Профиль, переписка и карта наблюдений сохраняются в серверной
+                  базе проекта. У мамы и папы отдельные
+                  аккаунты.
                 </p>
                 <Link to="/privacy" className="standalone-link">
-                  ��������� ������������ ������
+                  Обработка персональных данных
                 </Link>
-                <div className="mt-4 flex flex-wrap gap-3"><Button asChild variant="outline"><Link to="/billing">������ � ������</Link></Button><Button asChild variant="outline"><Link to="/data-rights">������ � ���������</Link></Button></div>
+                <div className="mt-4 flex flex-wrap gap-3"><Button asChild variant="outline"><Link to="/billing">Доступ и оплата</Link></Button><Button asChild variant="outline"><Link to="/data-rights">Данные и обращения</Link></Button></div>
                 <div className="mt-6">
                   <Button asChild variant="outline" className="mb-3">
-                    <Link to="/account?mode=security">������ � ������������</Link>
+                    <Link to="/account?mode=security">Пароль и безопасность</Link>
                   </Button>
                 </div>
                 <div className="mt-3">
                   <Button variant="outline" onClick={() => setDeleteOpen(true)}>
-                    ������� ������� � ������
+                    Удалить аккаунт и данные
                   </Button>
                 </div>
               </section>
@@ -1636,16 +1636,16 @@ export default function ParentWorkspace({
         {!(roomScene && tab === "chat") && <div className="cabinet-foot">
           <Link to="/">
             <ArrowLeft size={16} />
-            �� �������
+            На главную
           </Link>
           <a
             href={`${import.meta.env.BASE_URL}mamin-pomoshchnik-instruction.pdf`}
             target="_blank"
             rel="noreferrer"
           >
-            ���������� � ������� PDF
+            Инструкция — скачать PDF
           </a>
-          <span>�������������� �������� ��� ���������</span>
+          <span>Информационный помощник для родителей</span>
         </div>}
       </main>
       <Dialog
@@ -1657,10 +1657,10 @@ export default function ParentWorkspace({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>������� �������?</DialogTitle>
+            <DialogTitle>Удалить аккаунт?</DialogTitle>
             <DialogDescription>
-              �������, ��������� � �������� �� ����������� ����� ������� ��
-              ������� ����. ��� �������� ������ ��������.
+              Профиль, переписка и подписки на уведомления будут удалены из
+              рабочей базы. Это действие нельзя отменить.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -1683,7 +1683,7 @@ export default function ParentWorkspace({
             }}
           >
             <label className="form-field">
-              ����������� �������
+              Подтвердите паролем
               <Input
                 type="password"
                 required
@@ -1694,14 +1694,14 @@ export default function ParentWorkspace({
             </label>
             <div className="flex gap-3 mt-5">
               <Button type="submit" variant="destructive" disabled={busy}>
-                ������� ��������
+                Удалить навсегда
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setDeleteOpen(false)}
               >
-                ������
+                Отмена
               </Button>
             </div>
           </form>
