@@ -33,25 +33,5 @@ export default function RoomSurface({ children }: { children: ReactNode }) {
     check();
     return () => { disposed = true; window.clearTimeout(fallback); observer.disconnect(); cancelAnimationFrame(frame); window.clearTimeout(timeout); };
   }, [enabled, location.pathname]);
-  useEffect(() => {
-    if (!enabled) return;
-    const viewport = window.visualViewport;
-    const sync = () => {
-      const node = surface.current;
-      if (!node) return;
-      node.style.setProperty("--room-viewport-height", `${viewport?.height ?? window.innerHeight}px`);
-      node.style.setProperty("--room-viewport-top", `${viewport?.offsetTop ?? 0}px`);
-      node.dataset.keyboard = viewport && viewport.scale === 1 && window.innerHeight - viewport.height > 120 ? "open" : "closed";
-    };
-    sync();
-    viewport?.addEventListener("resize", sync);
-    viewport?.addEventListener("scroll", sync);
-    window.addEventListener("resize", sync);
-    return () => {
-      viewport?.removeEventListener("resize", sync);
-      viewport?.removeEventListener("scroll", sync);
-      window.removeEventListener("resize", sync);
-    };
-  }, [enabled]);
   return enabled ? <div className="room-surface" data-room-ready={readyPath === location.pathname} ref={surface}>{children}</div> : <>{children}</>;
 }

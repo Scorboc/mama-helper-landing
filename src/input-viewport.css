@@ -1,0 +1,38 @@
+/* VisualViewport also covers Safari's keyboard, which does not resize 100dvh.
+   Keep portal dialogs inside the visible area; preserve ordinary page scrolling. */
+body [data-input-dialog="centered"], body .sleep-print-sheet[role="dialog"] {
+  top: calc(var(--input-viewport-top, 0px) + var(--input-viewport-height, 100dvh) / 2) !important;
+  bottom: auto !important;
+  max-height: max(80px, calc(var(--input-viewport-height, 100dvh) - 24px)) !important;
+  overflow-y: auto;
+  transform: translate(-50%, -50%) !important;
+  scroll-padding-block: 12px;
+}
+body .sleep-print-sheet[role="dialog"] { left: 50% !important; margin: 0; }
+@media (pointer: coarse), (max-width: 640px) {
+  input:not([type=checkbox]):not([type=radio]), textarea, select { font-size: max(16px, 1em) !important; }
+}
+html[data-input-keyboard="open"], html[data-input-keyboard="open"] body {
+  height: auto !important; overflow-y: auto !important; overscroll-behavior-y: auto;
+  scroll-padding-block: 12px;
+}
+html[data-input-keyboard="open"] body { padding-bottom: calc(var(--input-keyboard-overlap, 0px) + 20px); }
+html[data-input-keyboard="open"] .room-surface:has(> .parent-workspace.chat-workspace) {
+  position: relative; inset: auto; top: auto; height: auto; min-height: var(--input-viewport-height); overflow: visible;
+}
+html[data-input-keyboard="open"] .room-surface > .parent-workspace.chat-workspace {
+  height: auto; min-height: var(--input-viewport-height); overflow: visible;
+}
+html[data-input-keyboard="open"] .room-surface .parent-workspace.chat-workspace .cabinet-main {
+  flex: initial; overflow: visible; padding-bottom: 16px !important;
+}
+html[data-input-keyboard="open"] .room-surface .parent-workspace.chat-workspace .room-chat-scroll {
+  flex: none; height: min(180px, calc(var(--input-viewport-height) * .35));
+  min-height: 60px; max-height: none; overflow-y: auto;
+}
+/* The quick-note form must not be clipped by its second, nested scroll box. */
+html[data-input-keyboard="open"] .room-surface .chat-workspace :is(.workspace-pane[data-state="active"], .chat-quick-care--inline) {
+  max-height: none !important; overflow: visible !important;
+}
+html[data-input-keyboard="open"] :is(.room-navigation, .tracker-dock, .typing-hands, .room-chat-shortcuts) { display: none !important; }
+html[data-input-keyboard="open"] .account-page { min-height: var(--input-viewport-height); }

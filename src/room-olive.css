@@ -393,8 +393,6 @@ body:has(.room-surface) [role="dialog"] :is(button, a, input, textarea, summary)
   .room-surface .room-chat-welcome { padding-top: 8px; }
   .room-surface .room-chat-welcome h2 { font-size: 28px; margin-bottom: 4px; }
   .room-surface .room-chat-welcome p { margin-bottom: 8px !important; }}
-.room-surface[data-keyboard="open"]:has(> .chat-workspace) { top: var(--room-viewport-top, 0px); height: var(--room-viewport-height, 100dvh); }
-.room-surface[data-keyboard="open"] .room-chat-shortcuts { display: none; }
 @media (prefers-reduced-transparency: reduce) {
   .room-surface .chat-workspace .bubble { background: #2b3b2a !important; }
   .room-surface .chat-workspace .chat-composer::before { background: #253723; }}
