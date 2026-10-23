@@ -95,9 +95,21 @@ export default function RoomIntroduction({ onComplete, returning }: { onComplete
       playPending = true;
       if (!nativeRequestedAt) nativeRequestedAt = performance.now();
       try {
-        void Promise.resolve(node!.play()).catch(() => { if (!disposed) playBlocked = true; })
+        void Promise.resolve(node!.play()).catch((error: unknown) => { if (!disposed && !(error instanceof DOMException && error.name === "AbortError")) playBlocked = true; })
           .finally(() => { playPending = false; if (disposed && phaseRef.current !== "outro") node!.pause(); });
       } catch { playPending = false; playBlocked = true; }
+    }
+    function wakeDecoder() {
+      // Mobile data/energy policies can ignore preload. A real user gesture
+      // must be able to start loading and retry playback that a RAF could not.
+      if (playBlocked || node!.readyState < 2) {
+        playBlocked = false;
+        nativeRequestedAt = 0;
+        playForward();
+        // Priming the decoder must never turn a tap into automatic movement.
+        if (motion.target <= node!.currentTime + frameLength / 2) node!.pause();
+        schedule();
+      }
     }
     function tick(now: number) {
       frame = 0;
@@ -143,6 +155,7 @@ export default function RoomIntroduction({ onComplete, returning }: { onComplete
     }
     function wheel(event: WheelEvent) {
       if (event.ctrlKey) return;
+      wakeDecoder();
       const now = performance.now();
       if (now - wheelAt > 150) motion.begin();
       const elapsed = Math.max(16, now - wheelAt);
@@ -159,6 +172,7 @@ export default function RoomIntroduction({ onComplete, returning }: { onComplete
       if (event.touches.length !== 1 || (event.target as HTMLElement)?.closest("a, button")) return;
       motion.begin(); releaseUntil = 0; touchSpeed = 0;
       touchY = event.touches[0].clientY; touchAt = performance.now();
+      wakeDecoder();
       track!.dataset.roomInput = "touch";
       track!.dataset.roomTouches = String(Number(track!.dataset.roomTouches || 0) + 1);
     }
@@ -173,6 +187,7 @@ export default function RoomIntroduction({ onComplete, returning }: { onComplete
       if (touchY !== null) {
         const now = performance.now();
         motion.release(now - touchAt < 100 ? touchSpeed : 0, now);
+        wakeDecoder();
         releaseUntil = now + 650; schedule();
       }
       touchY = null;
@@ -181,6 +196,7 @@ export default function RoomIntroduction({ onComplete, returning }: { onComplete
     function key(event: KeyboardEvent) {
       if ((event.target as HTMLElement)?.closest("a, button, input, textarea, select, [contenteditable=true]")) return;
       if (["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "].includes(event.key)) {
+        wakeDecoder();
         motion.begin(); track!.dataset.roomInput = "keyboard";
       }
     }
@@ -211,29 +227,29 @@ export default function RoomIntroduction({ onComplete, returning }: { onComplete
   }, [canScrub, failed, video]);
 
   const current = canScrub && !failed  ? roomCues.find(cue => time >= cue.start && time < cue.end) : undefined;
-  return <main data-room-phase="scrub" data-room-time={time.toFixed(3)} ref={section} className={`room-intro ${canScrub && !failed ? "room-intro-scroll room-intro-shared" : ""}`} aria-label="Знакомство с Маминым помощником">
+  return <main data-room-phase="scrub" data-room-time={time.toFixed(3)} ref={section} className={`room-intro ${canScrub && !failed ? "room-intro-scroll room-intro-shared" : ""}`} aria-label="���������� � ������� ����������">
     <div className="room-stage">
       {(!canScrub || failed) && <div className="room-ambient" aria-hidden="true" />}
       <header className="room-intro-header">
-        <button className="room-control" onClick={finish}>{returning ? "К чату" : "Пропустить"}<ArrowRight size={17} /></button>
+        <button className="room-control" onClick={finish}>{returning ? "� ����" : "����������"}<ArrowRight size={17} /></button>
       </header>
-      {(!canScrub || failed) && <div className="room-film"><img className="room-still" src={`${import.meta.env.BASE_URL}media/room/start-v12.webp`} alt="Малыш со спины в комнате: кубики слева, книга справа и низкая кровать впереди" /></div>}
+      {(!canScrub || failed) && <div className="room-film"><img className="room-still" src={`${import.meta.env.BASE_URL}media/room/start-v12.webp`} alt="����� �� ����� � �������: ������ �����, ����� ������ � ������ ������� �������" /></div>}
       {!failed && canScrub && roomCues.map(cue => <div key={cue.id} data-cue={cue.id} className={`room-cue-layer ${current?.id === cue.id ? "is-active" : ""}`} aria-hidden={current?.id !== cue.id}>
           <aside className={`room-cue room-cue-${cue.side}`} style={{ top: `max(${cue.top}%, 92px)` }}>
             <h2>{cue.title}</h2><p>{cue.text}</p>
           </aside>
         </div>)}
       {(failed || !canScrub) && <section className="room-start-card">
-        <span className="room-eyebrow">ЗНАКОМСТВО</span>
-        <h1>Маленькие шаги.<br />Забота каждый день.</h1>
-        <p>{failed ? "Видео не загрузилось. Можно сразу перейти дальше." : "Включено уменьшение движения. Прогулку можно включить и управлять ею прокруткой."}</p>
-        {!failed && <button className="room-primary" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); setAllowMotion(true); }}><ArrowDown size={18} />Включить прогулку</button>}
-        <button className={failed ? "room-primary" : "room-text-button"} onClick={finish}>{returning ? "Открыть чат" : "Перейти ко входу"}<ArrowRight size={17} /></button>
+        <span className="room-eyebrow">����������</span>
+        <h1>��������� ����.<br />������ ������ ����.</h1>
+        <p>{failed ? "����� �� �����������. ����� ����� ������� ������." : "�������� ���������� ��������. �������� ����� �������� � ��������� �� ����������."}</p>
+        {!failed && <button className="room-primary" onClick={() => { window.scrollTo({ top: 0, behavior: "instant" }); setAllowMotion(true); }}><ArrowDown size={18} />�������� ��������</button>}
+        <button className={failed ? "room-primary" : "room-text-button"} onClick={finish}>{returning ? "������� ���" : "������� �� �����"}<ArrowRight size={17} /></button>
       </section>}
       <footer className="room-intro-footer">
-        {!failed && canScrub && <p className="room-scroll-hint"><ArrowDown size={18} aria-hidden="true" />{time < .5 ? "Листайте вниз, чтобы малыш пополз" : "Листайте дальше — малыш идёт за вами"}</p>}
-        <div className="room-controls-row"><Link className="room-control" to="/first-aid">Срочная помощь · 112</Link></div>
-        <div className="room-progress" role="progressbar" aria-label="Знакомство" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ transform: `scaleX(${progress})` }} /></div>
+        {!failed && canScrub && <p className="room-scroll-hint"><ArrowDown size={18} aria-hidden="true" />{time < .5 ? "�������� ����, ����� ����� ������" : "�������� ������ � ����� ��� �� ����"}</p>}
+        <div className="room-controls-row"><Link className="room-control" to="/first-aid">������� ������ � 112</Link></div>
+        <div className="room-progress" role="progressbar" aria-label="����������" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}><span style={{ transform: `scaleX(${progress})` }} /></div>
         <p className="sr-only" role="status">{current ? `${current.title}. ${current.text}` : ""}</p>
       </footer>
     </div>

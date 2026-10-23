@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import RoomIntroduction from "@/components/RoomIntroduction";
 import RoomGuestEntry from "@/components/RoomGuestEntry";
@@ -10,9 +10,11 @@ type Role = "checking" | "member" | "guest";
 export default function Index() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  // "Знакомство" opens the child walk on purpose; a plain visit goes to chat or the guest welcome.
+  // "����������" opens the child walk on purpose; a plain visit goes to chat or the guest welcome.
   const introduction = params.get("intro") === "1";
   const [role, setRole] = useState<Role>("checking");
+  const sessionResult = useRef<Promise<Role> | null>(null);
+  const activeSession = useRef(false);
   useEffect(() => {
     // Warm the next routes while the session is checked.
     void import("./ParentWorkspace").catch(() => {});
@@ -20,8 +22,12 @@ export default function Index() {
   }, []);
   useEffect(() => {
     let active = true;
+    activeSession.current = true;
     const timeout = window.setTimeout(() => { if (active) setRole("guest"); }, 2500);
-    api<Session>("session").then(() => {
+    const result = api<Session>("session").then(() => "member" as const, () => "guest" as const);
+    sessionResult.current = result;
+    result.then(nextRole => {
+      if (nextRole === "guest") { if (active) setRole("guest"); return; }
       if (!active) return;
       if (introduction) { setRole("member"); return; }
       rememberRoom();
@@ -29,13 +35,21 @@ export default function Index() {
     }).catch(() => {
       if (active) setRole("guest");
     }).finally(() => window.clearTimeout(timeout));
-    return () => { active = false; window.clearTimeout(timeout); };
+    return () => { active = false; activeSession.current = false; window.clearTimeout(timeout); };
   }, [introduction, navigate]);
 
-  if (role === "checking") return <main className="room-entry-loading"><p role="status">Открываем Мамин помощник…</p><Link to="/first-aid">Срочная помощь · 112</Link></main>;
-  if (introduction) return <RoomIntroduction returning={role === "member"} onComplete={(moving = false, startAt = 0) => {
+  // The public tour does not need an account: keep the first swipe while the
+  // session request is pending, instead of replacing the scroll track later.
+  if (role === "checking" && !introduction) return <main className="room-entry-loading"><p role="status">��������� ����� ��������</p><Link to="/first-aid">������� ������ � 112</Link></main>;
+  if (introduction) return <RoomIntroduction returning={role === "member"} onComplete={async (moving = false, startAt = 0) => {
+    const request = sessionResult.current;
+    let waitTimer = 0;
+    const fallback = new Promise<Role>(resolve => { waitTimer = window.setTimeout(() => resolve("guest"), 2500); });
+    const finalRole = await Promise.race([request ?? Promise.resolve(role), fallback]);
+    window.clearTimeout(waitTimer);
+    if (!activeSession.current || sessionResult.current !== request) return;
     window.dispatchEvent(new CustomEvent("mama:room-exit", { detail: { moving, startAt } }));
-    if (role === "member") {
+    if (finalRole === "member") {
       rememberRoom();
       navigate(ROOM_CHAT, { replace: true });
     } else {
@@ -45,5 +59,5 @@ export default function Index() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }} />;
   if (role === "guest") return <RoomGuestEntry loginPath={accountForRoom("login")} />;
-  return <main className="room-entry-loading"><p role="status">Открываем чат…</p></main>;
+  return <main className="room-entry-loading"><p role="status">��������� ���</p></main>;
 }

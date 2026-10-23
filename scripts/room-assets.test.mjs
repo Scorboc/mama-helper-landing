@@ -21,7 +21,7 @@ function render(file, base, reduced=false) {
     name.endsWith('room-handoff')?{startCamera(){}}:
     name.endsWith('room-motion')?{RoomMotion:class{},ROOM_MAX_SPEED:2}:(()=>{throw new Error(name)})();
   const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022}}).outputText;
-  vm.runInNewContext(code,{module,exports:module.exports,require,window:{matchMedia:()=>({matches:reduced})}});
+  vm.runInNewContext(code,{module,exports:module.exports,require,URLSearchParams,window:{matchMedia:()=>({matches:reduced})}});
   const tree=module.exports.default({returning:false,onComplete(){}}), nodes=[];
   function walk(n){if(!n||typeof n!=='object')return;if(Array.isArray(n)){n.forEach(walk);return;}nodes.push(n);walk(n.props?.children);}
   walk(tree);return nodes;
@@ -32,10 +32,11 @@ for(const base of ['/','/mama-helper-landing/']) {
     assert.equal(video.props.src,base+'media/room/journey-v13-seek.mp4');
     assert.equal(video.props.poster,base+'media/room/start-v12.webp');
     assert.equal(video.props.muted,true);assert.equal(video.props.playsInline,true);
+    assert.equal(video.props.preload,'auto','cold intro must load without a prior prepare event');
     for(const img of nodes.filter(n=>n.type==='img'))assert.ok(img.props.src.startsWith(base+'media/room/'));
   });
   test('accessible still fallback resolves inside '+base,()=>{
     const still=render('RoomIntroduction.tsx',base,true).find(n=>n.type==='img');
-    assert.equal(still.props.src,base+'media/room/start-v12.webp');assert.ok(still.props.alt.includes('Малыш'));
+    assert.equal(still.props.src,base+'media/room/start-v12.webp');assert.ok(still.props.alt.includes('�����'));
   });
 }

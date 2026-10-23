@@ -279,7 +279,7 @@ body:has(.room-surface > .chat-workspace) { height: 100%; overflow: hidden; over
 .room-answer-actions > summary svg:last-child { margin-left: auto; }
 .room-answer-actions > div { padding-top: 6px; font-size: 12px; }
 .room-answer-actions button { min-height: 44px; white-space: normal; }
-.room-surface .room-chat-welcome { padding: 16px 0 20px; text-shadow: 0 2px 12px #17231699; }
+.room-surface .room-chat-welcome { padding: 20px 22px; overflow-wrap: anywhere; text-shadow: 0 2px 12px #17231699; }
 .room-surface .room-chat-welcome h2 { font-family: "Lora Room", Georgia, serif; font-style: italic; font-size: 37px; font-weight: 400; line-height: 1.2; letter-spacing: -.03em; margin: 0 0 10px; color: #ffe8b5; }
 .room-surface .room-chat-welcome p { margin: 0 0 12px !important; font-size: 15px; line-height: 1.45 !important; }
 .room-surface .room-chat-welcome .room-welcome-topics { font-size: 13px; max-width: 300px; color: #f0e6cf; }

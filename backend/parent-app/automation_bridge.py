@@ -130,17 +130,17 @@ def aggregates():
 def report(weekly=False):
     summary=aggregates();ideas=[]
     errors=sum(r['calls'] for r in summary['ai'] if r['status']!='ok')
-    if errors:ideas.append({'priority':'P1','observation':f'{errors} вызовов ИИ с ошибкой за период.',
-        'prompt':'Проверь технические причины ошибок ИИ по обезличенным кодам. Не выводи содержимое диалогов. Сохрани данные и функции. Подготовь исправление локально и тест возврата лимита при ошибке. Не публикуй автоматически.'})
-    if any(r['averageMs'] and r['averageMs']>15000 for r in summary['ai']):ideas.append({'priority':'P2','observation':'Среднее время ответа одной группы выше 15 секунд.',
-        'prompt':'Исследуй задержку ответа: ожидание провайдера, очередь, размер контекста. Уменьшай расходы без потери активного профиля и свежего дневника. Измерь p50/p95 на синтетических сценариях. Не меняй лимиты и модель без расчёта.'})
-    if summary['feedbackCounts'].get('unsafe',0):ideas.append({'priority':'P0','observation':'Есть оценки небезопасного ответа; это сигнал для проверки, а не доказательство ошибки.',
-        'prompt':'Локально проверь отмеченные ответы с разрешённым доступом. Различай проверенную ошибку и гипотезу. Сверь медицинские основания с официальными рекомендациями, подготовь правило и синтетический регрессионный тест. Не отправляй медицинские сведения внешним инструментам.'})
+    if errors:ideas.append({'priority':'P1','observation':f'{errors} ������� �� � ������� �� ������.',
+        'prompt':'������� ����������� ������� ������ �� �� ������������ �����. �� ������ ���������� ��������. ������� ������ � �������. ��������� ����������� �������� � ���� �������� ������ ��� ������. �� �������� �������������.'})
+    if any(r['averageMs'] and r['averageMs']>15000 for r in summary['ai']):ideas.append({'priority':'P2','observation':'������� ����� ������ ����� ������ ���� 15 ������.',
+        'prompt':'�������� �������� ������: �������� ����������, �������, ������ ���������. �������� ������� ��� ������ ��������� ������� � ������� ��������. ������ p50/p95 �� ������������� ���������. �� ����� ������ � ������ ��� �������.'})
+    if summary['feedbackCounts'].get('unsafe',0):ideas.append({'priority':'P0','observation':'���� ������ ������������� ������; ��� ������ ��� ��������, � �� �������������� ������.',
+        'prompt':'�������� ������� ���������� ������ � ����������� ��������. �������� ����������� ������ � ��������. ����� ����������� ��������� � ������������ ��������������, ��������� ������� � ������������� ������������� ����. �� ��������� ����������� �������� ������� ������������.'})
     try:
         import marketing_control
         marketing_digest=marketing_control.summary(ROOT)
     except Exception:
-        marketing_digest='Контроль продвижения временно недоступен; основной отчёт сохранён.'
+        marketing_digest='�������� ����������� �������� ����������; �������� ����� ��������.'
     result={'ok':True,'generatedAt':dt.datetime.now(dt.timezone.utc).isoformat(),'method':'deterministic-aggregate-rules-not-ai',
             'summary':summary,'proposals':ideas,'marketingControl':marketing_digest,
             'humanApprovalRequired':True,'externalMessagesSent':False}
@@ -148,9 +148,9 @@ def report(weekly=False):
     name=('weekly' if weekly else 'daily')+'-'+stamp
     reports=ROOT/'reports';reports.mkdir(exist_ok=True)
     write_json(reports/(name+'.json'),result)
-    text=['# Отчёт MAMA',result['generatedAt'],'','Метод: агрегированные технические показатели; ИИ не вызывался.','']
-    text += [f"## {p['priority']}: {p['observation']}\n\nПромпт администратору:\n{p['prompt']}\n" for p in ideas]
-    text += ['','Подключения: Telegram, оплаты, Instagram и налоги требуют настройки владельца.','Исходные переписки и данные детей не экспортировались.']
+    text=['# ����� MAMA',result['generatedAt'],'','�����: �������������� ����������� ����������; �� �� ���������.','']
+    text += [f"## {p['priority']}: {p['observation']}\n\n������ ��������������:\n{p['prompt']}\n" for p in ideas]
+    text += ['','�����������: Telegram, ������, Instagram � ������ ������� ��������� ���������.','�������� ��������� � ������ ����� �� ����������������.']
     (reports/(name+'.md')).write_text('\n'.join(text),encoding='utf-8')
     return {'ok':True,'report':name,'proposals':len(ideas),'method':result['method'],'externalMessagesSent':False}
 
@@ -262,6 +262,21 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError,TypeError):self.send(400,{'error':'invalid-request','job':name})
         except Exception:self.send(503,{'error':'job-failed','job':name})
 
+def startup_maintenance():
+    """Catch up once on bridge startup even when n8n missed the night schedule.
+
+    The existing backstop owns locking/throttling. Never dispatch queued alerts
+    or start any paid/publication job from this path.
+    """
+    try:
+        result=backup_maintenance()
+    except Exception:
+        result={'state':'error','error':'startup-backup-maintenance-failed'}
+    write_json(ROOT/'startup-maintenance.json',result)
+    return result
+
+
 if __name__=='__main__':
     reliability.recover_journal(ROOT)
+    startup_maintenance()
     ThreadingHTTPServer(('127.0.0.1',PORT),Handler).serve_forever()

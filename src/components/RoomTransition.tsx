@@ -97,12 +97,14 @@ export default function RoomTransition() {
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [revealing, complete]);
-  const walking = prepared && location.pathname === "/" && new URLSearchParams(location.search).get("intro") === "1";
+  // Route state also prepares cold entry; a lazy route can miss an earlier
+  // prepare event. The same video stays mounted through the final camera shot.
+  const walking = location.pathname === "/" && new URLSearchParams(location.search).get("intro") === "1";
   return <div className={phase === "idle" ? (walking ? "room-journey-active" : "room-outro-preload") : `room-handoff ${phase}`} data-room-reveal={revealing} data-room-playback={playback} aria-hidden="true">
     <div className="room-ambient" />
     <div className="room-film">
       <img className="room-still" src={`${import.meta.env.BASE_URL}media/room/${walking ? "start-v12.webp" : "rest-v12.webp"}`} alt="" />
-      <video data-room-journey ref={video} src={`${import.meta.env.BASE_URL}media/room/journey-v13-seek.mp4`} poster={`${import.meta.env.BASE_URL}media/room/start-v12.webp`} muted playsInline preload={prepared ? "auto" : "none"} disablePictureInPicture />
+      <video data-room-journey ref={video} src={`${import.meta.env.BASE_URL}media/room/journey-v13-seek.mp4`} poster={`${import.meta.env.BASE_URL}media/room/start-v12.webp`} muted playsInline preload={prepared || walking ? "auto" : "none"} disablePictureInPicture />
     </div>
   </div>;
 }

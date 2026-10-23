@@ -18,6 +18,16 @@ class AutomationTest(unittest.TestCase):
         for name in ['publish','delete','transfer','../backup','shell']:
             with self.assertRaises(ValueError):self.app.run(name)
 
+    def test_startup_runs_existing_backstop_without_external_dispatch(self):
+        import telegram_outbox
+        with patch.object(self.app,'backup_maintenance',return_value={'state':'fresh'}) as backstop, patch.object(telegram_outbox,'dispatch') as dispatch:
+            self.assertEqual(self.app.startup_maintenance(),{'state':'fresh'})
+            backstop.assert_called_once_with()
+            dispatch.assert_not_called()
+        with patch.object(self.app,'backup_maintenance',side_effect=RuntimeError('CANARY_PII_SECRET_9941')):
+            self.assertEqual(self.app.startup_maintenance()['state'],'error')
+        self.assertNotIn('CANARY_PII', (self.root/'startup-maintenance.json').read_text())
+
     def maintenance(self,age=25,restore=None,now=1800000000):
         stamp=self.app.dt.datetime.fromtimestamp(now-age*3600,self.app.dt.timezone.utc).strftime('%Y%m%d-%H%M%S')+'-synthetic'
         self.app.write_json(self.root/'backup-status.json',{'ok':True,'createdAt':stamp})

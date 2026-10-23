@@ -38,6 +38,12 @@ html[data-input-keyboard="open"] :is(.room-navigation, .tracker-dock, .typing-ha
 html[data-input-keyboard="open"] .account-page { min-height: var(--input-viewport-height); }
 
 /* Navigation belongs to the screen, not to the long page beneath it. */
+.room-surface .room-chat-scroll--empty {
+  /* Avoid a rubber-band bounce of the greeting; retain real overflow scrolling
+     for large text, short screens and the on-screen keyboard. */
+  overscroll-behavior: none;
+  scroll-behavior: auto;
+}
 .room-storage-notice {
   grid-column: 1 / -1; margin: 0; padding: 4px 8px;
   background: #243023; color: #f8e8bd; font-size: 11px; line-height: 1.4; text-align: center;
