@@ -101,8 +101,8 @@ export default function RoomTransition() {
   return <div className={phase === "idle" ? (walking ? "room-journey-active" : "room-outro-preload") : `room-handoff ${phase}`} data-room-reveal={revealing} data-room-playback={playback} aria-hidden="true">
     <div className="room-ambient" />
     <div className="room-film">
-      <img className="room-still" src={walking ? "/media/room/start-v12.webp" : "/media/room/rest-v12.webp"} alt="" />
-      <video data-room-journey ref={video} src="/media/room/journey-v13-seek.mp4" poster="/media/room/start-v12.webp" muted playsInline preload={prepared ? "auto" : "none"} disablePictureInPicture />
+      <img className="room-still" src={`${import.meta.env.BASE_URL}media/room/${walking ? "start-v12.webp" : "rest-v12.webp"}`} alt="" />
+      <video data-room-journey ref={video} src={`${import.meta.env.BASE_URL}media/room/journey-v13-seek.mp4`} poster={`${import.meta.env.BASE_URL}media/room/start-v12.webp`} muted playsInline preload={prepared ? "auto" : "none"} disablePictureInPicture />
     </div>
   </div>;
 }

@@ -217,7 +217,7 @@ export default function RoomIntroduction({ onComplete, returning }: { onComplete
       <header className="room-intro-header">
         <button className="room-control" onClick={finish}>{returning ? "К чату" : "Пропустить"}<ArrowRight size={17} /></button>
       </header>
-      {(!canScrub || failed) && <div className="room-film"><img className="room-still" src="/media/room/start-v12.webp" alt="Малыш со спины в комнате: кубики слева, книга справа и низкая кровать впереди" /></div>}
+      {(!canScrub || failed) && <div className="room-film"><img className="room-still" src={`${import.meta.env.BASE_URL}media/room/start-v12.webp`} alt="Малыш со спины в комнате: кубики слева, книга справа и низкая кровать впереди" /></div>}
       {!failed && canScrub && roomCues.map(cue => <div key={cue.id} data-cue={cue.id} className={`room-cue-layer ${current?.id === cue.id ? "is-active" : ""}`} aria-hidden={current?.id !== cue.id}>
           <aside className={`room-cue room-cue-${cue.side}`} style={{ top: `max(${cue.top}%, 92px)` }}>
             <h2>{cue.title}</h2><p>{cue.text}</p>

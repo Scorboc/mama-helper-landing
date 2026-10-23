@@ -91,7 +91,11 @@
 .care-journal>summary:focus-visible{outline:2px solid var(--ui-accent);outline-offset:-4px;}
 .care-journal-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 28px 24px;border-bottom:1px solid var(--ui-border);}
 .care-journal-nav button{font-size:15px;}
-.care-journal-body{display:grid;gap:18px;padding:28px;min-width:0;}
+.care-journal-body{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;padding:28px;min-width:0;}
+.care-journal-body>*{min-width:0;max-width:100%;}
+.care-journal-body label{overflow-wrap:anywhere;}
+.care-journal-body label>span{min-width:0;}
+.care-journal-body input[type=checkbox]{flex-shrink:0;}
 .parent-workspace .care-journal-body>p{margin:0;line-height:1.65;color:var(--ui-muted);max-width:72ch;}
 .care-journal-body>button{justify-self:start;}
 .care-journal-body .form-field{gap:9px;font-size:14px;font-weight:600;}

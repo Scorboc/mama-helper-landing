@@ -190,3 +190,26 @@ html:is([data-room-transition="holding"], [data-room-transition="revealing"]) .r
 }
 html[data-room-camera="moving"] .room-guest { background: transparent; }
 html[data-room-camera="moving"] .room-guest-bg { visibility: hidden; }
+
+/* A push opens above the chat feed. On phones its text/date can exceed the
+   viewport: let the page scroll until the card is closed, preserving the
+   existing bottom padding for the fixed composer and navigation. */
+@media (max-width:640px), (max-height:500px) {
+  html:has(.room-surface > .chat-workspace .cabinet-main > .milestone-mark),
+  body:has(.room-surface > .chat-workspace .cabinet-main > .milestone-mark) {height:auto;overflow-y:auto;}
+  .room-surface:has(.cabinet-main > .milestone-mark) {position:relative;inset:auto;height:auto;min-height:100dvh;overflow:visible;}
+  .room-surface .chat-workspace:has(.cabinet-main > .milestone-mark) {height:auto;min-height:100dvh;overflow:visible;}
+  .room-surface .chat-workspace .cabinet-main:has(> .milestone-mark) {flex:initial;overflow:visible;}
+  .room-surface .chat-workspace .cabinet-main:has(> .milestone-mark) .room-chat-scroll {flex:none;max-height:50dvh;overflow-y:auto;}
+}
+
+/* A fixed-height chat leaves only a line of history on a rotated phone.
+   Keep the history bounded, but let the page reach the composer and dock. */
+@media (max-height:500px) {
+  html:has(.room-surface > .parent-workspace.chat-workspace),
+  body:has(.room-surface > .parent-workspace.chat-workspace) {height:auto;overflow-y:auto;}
+  .room-surface:has(> .parent-workspace.chat-workspace) {position:relative;inset:auto;height:auto;min-height:100dvh;overflow:visible;}
+  .room-surface > .parent-workspace.chat-workspace {height:auto;min-height:100dvh;overflow:visible;}
+  .room-surface .parent-workspace.chat-workspace .cabinet-main {flex:initial;overflow:visible;padding-bottom:calc(var(--room-nav-height,60px) + 16px)!important;}
+  .room-surface .parent-workspace.chat-workspace .room-chat-scroll {flex:none;height:50dvh;min-height:140px;max-height:50dvh;overflow-y:auto;}
+}
