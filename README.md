@@ -1,5 +1,5 @@
 # MAMA public demonstration
 
-Source commit: 179300cee7a2a06317245d9b8899992399d12e50
+Source commit: ae9b29be67531fee82fa29c61799ece9c7d6b7f8
 
-Demo records exist only in browser memory. Real accounts, AI and payments are not connected.
+Verified mobile layout and introduction media. Demo records live in browser memory; real accounts, AI and payments are not connected. Physical mobile device testing remains separate.
