@@ -8,7 +8,8 @@ const {ageValue,dueMilestones,stateWithProfile,emptyState,defaultProfile,demoAns
 const born=day=>({...defaultProfile(),stage:'child',birthDate:day});
 assert.equal(ageValue(born('2026-01-31'),new Date('2026-02-28T12:00:00Z')),1);
 assert.equal(ageValue(born('2024-02-29'),new Date('2025-02-28T12:00:00Z')),12);
-assert.equal(ageValue({...defaultProfile(),week:20,weekDate:'2026-09-01'},new Date('2026-09-08T00:00:00Z')),21);
+assert.equal(defaultProfile().stage,'child');
+assert.equal(ageValue({...defaultProfile(),stage:'pregnancy',week:20,weekDate:'2026-09-01'},new Date('2026-09-08T00:00:00Z')),21);
 let state={...emptyState(),profile:born('2026-03-06')};
 assert.ok(dueMilestones(state,new Date('2026-09-06T12:00:00Z')).some(x=>x.id==='child-6'));
 state.events={'child-6':{status:'later',until:Date.parse('2026-10-07T00:00:00Z')}};
