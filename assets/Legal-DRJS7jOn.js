@@ -1,0 +1,1 @@
+import{n as e,t}from"./Legal-J6EF45o_.js";export{e as LegalLinks,t as default};

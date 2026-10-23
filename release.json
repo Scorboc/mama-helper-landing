@@ -1,15 +1,11 @@
 {
-  "sourceCommit": "ae9b29be67531fee82fa29c61799ece9c7d6b7f8",
-  "previousPagesCommit": "1f26f12db8e3f023d5873167b0939490d447d508",
-  "mode": "explicit-browser-memory-demo",
+  "sourceCommit": "d7ebd52c7b22b71688019f8b12cff777f2f54d0b",
+  "previousPagesCommit": "ac6f4c6f8d84514808ac6c82fdac6b33a09a1be6",
+  "mode": "browser-memory",
   "builtAt": "2026-10-23",
   "realBackendDeployed": false,
-  "mobileEmulation": [
-    "320x568",
-    "390x844",
-    "430x932",
-    "390x420",
-    "844x390"
-  ],
-  "physicalMobileTested": false
+  "physicalMobileTested": false,
+  "frontendTests": 83,
+  "interfaceRelease": "phone-pinned-controls",
+  "localBetaFrontendUsesSameSource": true
 }

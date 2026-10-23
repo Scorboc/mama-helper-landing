@@ -6,7 +6,7 @@
     const iso = offset => new Date(now() - offset).toISOString();
     const birth = new Date(now()); birth.setUTCDate(15); birth.setUTCMonth(birth.getUTCMonth() - 6);
     let revision = 1;
-    let state = { activeChildId:'primary', profile:{ childName:'Демо-малыш',childSex:'unknown',role:'mom',stage:'child',
+    let state = { activeChildId:'primary', profile:{ childName:'Малыш',childSex:'unknown',role:'mom',stage:'child',
       birthDate:birth.toISOString().slice(0,10),week:20,weekDate:iso(0).slice(0,10),feeding:'mixed',sleep:'',health:'',healthConfirmed:false,topics:[] },
       saved:[],completed:[],events:{},preferences:{repeat:'never',push:false,timezone:'Europe/Moscow'},messages:[],medicalCard:[],
       care:{tasks:[],diary:[],appointments:[],checked:[],followups:true,achievements:[]} };
@@ -24,7 +24,7 @@
     function dispatch(data) {
       if (!data || typeof data !== 'object' || Array.isArray(data)) return fail('Проверьте запрос.');
       const cid = data.childId || state.activeChildId || 'primary';
-      if (data.ownerId && data.ownerId !== 'public-visual-preview') return fail('В демо нет доступа к чужой семье.',403);
+      if (data.ownerId && data.ownerId !== 'public-visual-preview') return fail('Нет доступа к этому профилю.',403);
       const child = cid === (state.activeChildId || 'primary') ? state : (state.children || []).find(c => c.id === cid)?.data;
       if (['care-list','care-put','care-delete','doctor-question-put','doctor-question-delete','age-guidance'].includes(data.action) && !child?.profile) return fail('Профиль не найден.',404);
       const list = records.get(cid) || [], qs = questions.get(cid) || [];
@@ -34,7 +34,7 @@
         case 'health': return ok({ok:true,storage:'demo'});
         case 'save':
           if (!data.state || typeof data.state !== 'object' || Array.isArray(data.state)) return fail('Проверьте тестовый профиль.');
-          if (data.revision !== revision) return fail('Демо изменилось. Обновите страницу.',409);
+          if (data.revision !== revision) return fail('Данные изменились. Обновите страницу.',409);
           state = clone(data.state); revision++; return ok({state,revision});
         case 'care-list': return ok({profile:child.profile,contextVersion:'demo-'+revision,records:list,doctorQuestions:qs,
           daily:[],achievements:child.care?.achievements || [],appointments:child.care?.appointments || [],permission:'owner',authors:{},publicDemo:true});
@@ -73,14 +73,14 @@
           }
           const items=months===null || p.health ? [] : Object.values(hints).filter(h=>h.minMonths<=months && months<h.maxMonths);
           const chosen=data.milestoneSkill ? items.find(h=>h.milestoneSkill===data.milestoneSkill) : items.find(h=>h.id===data.topic);
-          return ok({childId:cid,childName:p.childName,months,items,selected:chosen || null,note:'Демонстрация. Возраст не задаёт срок освоения навыка.'});
+          return ok({childId:cid,childName:p.childName,months,items,selected:chosen || null,note:'Возраст не задаёт срок освоения навыка.'});
         }
         case 'daily-plan': return ok({plan:null});
         case 'family-list': return ok({items:[]});
         case 'service': return ok({items:[],blocks:[]});
         case 'suggestion-list': return ok({phase:'collecting',week:'demo',canSubmit:false,remainingSubmissions:0,submissionCount:0,items:[],myVote:null,winners:[]});
-        case 'chat': return fail('Это демонстрация интерфейса. Серверный ИИ здесь не подключён. Не вводите личные или медицинские сведения.',409);
-        default: return fail('Это демонстрация: действие требует настоящего сервера и здесь не выполняется.',409);
+        case 'chat': return fail('Чат пока недоступен: сервер помощника не подключён. Не вводите личные или медицинские сведения.',409);
+        default: return fail('Действие пока недоступно: требуется подключение к серверу.',409);
       }
     }
     return {dispatch};
