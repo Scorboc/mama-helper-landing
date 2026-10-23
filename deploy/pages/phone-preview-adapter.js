@@ -8,7 +8,7 @@
   const target=new URL(location.href).searchParams.get('__route');
   if (target?.startsWith('/') && !target.startsWith('//')) history.replaceState(null,'',base.replace(/\/$/,'')+target);
   window.fetch=async (input,options={})=>{
-    const url=new URL(typeof input==='string' ? input : input.url,location.href);
+    const url=new URL(input instanceof URL ? input.href : typeof input==='string' ? input : input.url,location.href);
     if (url.origin!==location.origin) return realFetch(input,options);
     if (url.pathname==='/app-config.json' || url.pathname===base+'app-config.json') return response({apiUrl:base+'__preview-api',publicDemo:true});
     if (url.pathname!==base+'__preview-api') return realFetch(input,options);

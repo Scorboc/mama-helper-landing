@@ -22,7 +22,7 @@ const Footer = () => (
             { href: '#how', label: 'Как это работает' },
             { href: '/account', label: 'Регистрация' },
             { href: '/guide', label: 'Полезные материалы' },
-            { href: '/mamin-pomoshchnik-instruction.pdf', label: 'Инструкция PDF' },
+            { href: `${import.meta.env.BASE_URL}mamin-pomoshchnik-instruction.pdf`, label: 'Инструкция PDF' },
           ].map((l) => (
             <a key={l.href} href={l.href} className="transition-colors hover:text-foreground">
               {l.label}

@@ -43,7 +43,7 @@
           if (!r || !/^[a-zA-Z0-9-]{1,100}$/.test(r.id || '') || !['sleep','wake','feeding','food','achievement','mood'].includes(r.kind)
               || !Number.isFinite(Date.parse(r.at)) || Date.parse(r.at)>now() || typeof (r.note || '') !== 'string' || (r.note || '').length>500) return fail('Проверьте тестовую запись.');
           if (qs.some(q=>q.id===r.id)) return fail('Идентификатор уже используется.',409);
-          if (r.skill && (!labels[r.skill] || r.kind!=='achievement')) return fail('Неизвестный навык.');
+          if (r.skill && (!Object.hasOwn(labels,r.skill) || r.kind!=='achievement')) return fail('Неизвестный навык.');
           if (r.skill) {
             const previous=list.find(x=>x.kind==='achievement' && x.skill===r.skill);
             if (previous) return ok({record:previous,alreadyMarked:true});

@@ -720,7 +720,7 @@ export default function ParentWorkspace({
               />
               {roomScene && <div className="room-account-tools">
                 <Link to="/">На главную</Link>
-                <a href="/mamin-pomoshchnik-instruction.pdf" target="_blank" rel="noreferrer">Инструкция — скачать PDF</a>
+                <a href={`${import.meta.env.BASE_URL}mamin-pomoshchnik-instruction.pdf`} target="_blank" rel="noreferrer">Инструкция — скачать PDF</a>
                 <span>Информационный помощник для родителей</span>
               </div>}
   </>;
@@ -1639,7 +1639,7 @@ export default function ParentWorkspace({
             На главную
           </Link>
           <a
-            href="/mamin-pomoshchnik-instruction.pdf"
+            href={`${import.meta.env.BASE_URL}mamin-pomoshchnik-instruction.pdf`}
             target="_blank"
             rel="noreferrer"
           >

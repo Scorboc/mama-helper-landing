@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {BookOpen, X} from 'lucide-react';
 import './guide-welcome.css';
 
-const guide='/mamin-pomoshchnik-instruction.pdf?v=20260921-guidance';
+const guide=`${import.meta.env.BASE_URL}mamin-pomoshchnik-instruction.pdf?v=20260921-guidance`;
 
 function LittleGuide(){
  return <div className="guide-baby-stage" aria-hidden="true">
