@@ -1,3 +1,4 @@
+import { confirmAction } from "@/lib/confirm-action";
 import { useState } from "react";
 import { conversationList, openConversation } from "@/lib/conversations";
 import { Button } from "@/components/ui/button";
@@ -290,8 +291,8 @@ export function ConversationControls({
                   variant="ghost"
                   disabled={locked}
                   aria-label={`Удалить диалог ${t.title}`}
-                  onClick={() => {
-                    if (window.confirm(`Удалить диалог «${t.title}»?`))
+                  onClick={async () => {
+                    if (await confirmAction(`Удалить диалог «${t.title}»?`))
                       void save(
                         {
                           ...state,

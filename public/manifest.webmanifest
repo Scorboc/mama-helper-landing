@@ -15,5 +15,40 @@
       "sizes": "512x512",
       "purpose": "any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Начать сон",
+      "url": "/cabinet?quick=sleep",
+      "icons": [
+        {
+          "src": "/logo-mark.png?v=3",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Кормление",
+      "url": "/cabinet?quick=feed",
+      "icons": [
+        {
+          "src": "/logo-mark.png?v=3",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Записать",
+      "url": "/cabinet?quick=note",
+      "icons": [
+        {
+          "src": "/logo-mark.png?v=3",
+          "sizes": "512x512",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

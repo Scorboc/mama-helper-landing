@@ -1,4 +1,4 @@
-"""Parent app cloud handler. Chat replies via Cheap AI (household topics only). See DEPLOYMENT.md before publishing."""
+"""Parent app cloud handler. Chat requires an explicitly configured AI provider. See DEPLOYMENT.md before publishing."""
 import base64
 import importlib.util
 from types import SimpleNamespace
@@ -23,6 +23,7 @@ import care_summary
 import chat_context
 import ai_budget
 import ai_quota
+import closed_beta
 import chat_routing
 import account_email
 import billing
@@ -48,9 +49,6 @@ COOKIE = 'mh_session'
 TOPICS = {'pregnancy', 'feeding', 'sleep', 'care', 'play', 'movement', 'wellbeing', 'dad', 'communication'}
 
 DEFAULT_CHAT_API_URL = 'https://cheapai.io/v1/chat/completions'
-YANDEX_CHAT_API_URL = 'https://ai.api.cloud.yandex.net/v1/chat/completions'
-_YANDEX_IAM_TOKEN = None
-_YANDEX_IAM_EXPIRES = 0
 CHAT_API_URL = os.environ.get('CHEAPAI_API_URL', DEFAULT_CHAT_API_URL)
 # CheapAI uses OpenAI-compatible model ids. Keep it configurable so the model can
 # be changed in server secrets without publishing a new frontend build.
@@ -252,15 +250,20 @@ def with_chat_deadline(call):
         signal.signal(signal.SIGALRM, previous)
 
 
+def chat_configured():
+    provider = os.environ.get('AI_PROVIDER', '').strip().lower()
+    if provider == 'proxyapi':
+        return CHAT_LIVE_ENABLED and bool(os.environ.get('PROXYAPI_API_KEY', '').strip())
+    return False
+
+
 def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
     if not CHAT_LIVE_ENABLED:
         raise AppError(503, 'ИИ отключён в локальной версии. Для настоящих ответов нужно подключить ключ провайдера.')
     provider = os.environ.get('AI_PROVIDER', '').strip().lower()
-    if provider not in ('', 'proxyapi'):
-        raise AppError(503, 'Неизвестный провайдер AI. Проверьте конфигурацию сервера.')
-    yandex_api_key = os.environ.get('YANDEX_API_KEY')
-    yandex_folder_id = os.environ.get('YANDEX_FOLDER_ID')
-    using_yandex = provider != 'proxyapi' and bool(yandex_folder_id and (yandex_api_key or os.environ.get('YANDEX_USE_METADATA_IAM') == '1'))
+    if provider != 'proxyapi':
+        print('CHAT_DIAG status=503 code=provider-not-configured')
+        raise AppError(503, 'Чат временно недоступен: сервис ещё не настроен владельцем.')
     if provider == 'proxyapi':
         api_key = os.environ.get('PROXYAPI_API_KEY', '').strip()
         if not api_key:
@@ -273,26 +276,6 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
         if not system_prompt and tiered:
             model = chat_routing.choose(question, None, model,
                                         os.environ.get('PROXYAPI_COMPLEX_MODEL', 'openai/gpt-6.1-sol'))
-    elif yandex_api_key and yandex_folder_id:
-        request_url = YANDEX_CHAT_API_URL
-        auth_header = 'Api-Key ' + yandex_api_key
-        model_name = os.environ.get('YANDEX_MODEL', 'yandexgpt/latest')
-        model = model_name if model_name.startswith('gpt://') else f'gpt://{yandex_folder_id}/{model_name}'
-    elif yandex_folder_id and os.environ.get('YANDEX_USE_METADATA_IAM') == '1':
-        request_url = YANDEX_CHAT_API_URL
-        auth_header = 'Bearer ' + yandex_metadata_iam_token()
-        model_name = os.environ.get('YANDEX_MODEL', 'yandexgpt/latest')
-        model = model_name if model_name.startswith('gpt://') else f'gpt://{yandex_folder_id}/{model_name}'
-    else:
-        direct_api_key = os.environ.get('CHEAPAI_API_KEY') or os.environ.get('CHEAP_AI_API_KEY')
-        proxy_token = os.environ.get('CHEAPAI_PROXY_TOKEN')
-        using_proxy = CHAT_API_URL != DEFAULT_CHAT_API_URL and bool(proxy_token)
-        request_url = CHAT_API_URL if using_proxy else DEFAULT_CHAT_API_URL
-        auth_token = proxy_token if using_proxy else direct_api_key
-        if not auth_token:
-            raise AppError(503, 'Владелец ещё не подключил ключ чат-помощника.')
-        auth_header = 'Bearer ' + auth_token
-        model = choose_chat_model(question)
     output_limit=max(max_tokens, 900 if system_prompt and model == 'z-ai/glm-5.3-flash' else 3000 if system_prompt else 3200 if model == 'openai/gpt-6.1-sol' else 4800) if provider == 'proxyapi' else max_tokens
     openai_reasoning=provider=='proxyapi' and model in ('openai/gpt-6-luna','openai/gpt-6.1-sol')
     payload = json.dumps({
@@ -312,7 +295,6 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Authorization': auth_header,
-        **({'OpenAI-Project': yandex_folder_id} if using_yandex else {}),
         'x-data-logging-enabled': 'false',
         'User-Agent': 'MamaHelper/0.1',
         'Connection': 'close',
@@ -350,29 +332,6 @@ def chat_answer(question, context_text, system_prompt=None, max_tokens=450):
             ops.ai_call('daily' if system_prompt else 'chat',model,outcome,time.monotonic()-started,usage,system_prompt or CHAT_SYSTEM_PROMPT)
 
     return with_chat_deadline(call_provider)
-
-
-def yandex_metadata_iam_token():
-    """Fetch short-lived IAM credentials for the narrowly scoped VM service account."""
-    global _YANDEX_IAM_TOKEN, _YANDEX_IAM_EXPIRES
-    if _YANDEX_IAM_TOKEN and _YANDEX_IAM_EXPIRES > time.time() + 60:
-        return _YANDEX_IAM_TOKEN
-    request = urllib.request.Request(
-        'http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token',
-        headers={'Metadata-Flavor': 'Google'},
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=3) as response:
-            payload = json.loads(response.read().decode())
-        token = payload.get('access_token')
-        expires_in = int(payload.get('expires_in', 0))
-        if not isinstance(token, str) or not token or expires_in < 120:
-            raise ValueError('invalid metadata token response')
-    except Exception as exc:
-        raise AppError(503, 'Не удалось подключить AI-сервис Yandex Cloud.') from exc
-    _YANDEX_IAM_TOKEN = token
-    _YANDEX_IAM_EXPIRES = time.time() + expires_in
-    return token
 
 
 class AppError(Exception):
@@ -790,6 +749,8 @@ def handle_action(db, action, data, headers, ip):
         row = (db.query('SELECT id,email,password_hash,recovery_hash FROM mh_users WHERE email=?', (email,)).fetchone()
                if action == 'register' else locked_credentials(db, email=email))
         if action == 'register':
+            if closed_beta.enabled():
+                closed_beta.consume_invite(email_runtime, db, data.get('invite'))
             legal.require_public_ready(SimpleNamespace(**globals()))
             if billing.enabled():
                 if data.get('adult') is not True or data.get('termsAccepted') is not True or data.get('termsVersion') != legal.TERMS_VERSION:
@@ -810,6 +771,7 @@ def handle_action(db, action, data, headers, ip):
                 db.query('INSERT INTO mh_email_status VALUES(?,1,0)', (uid,))
                 account_email.issue(email_runtime, db, (uid,email,saved_password,digest(recovery)), 'verify')
             token = new_session(db, uid)
+            ops.actor.set(uid)
             return {**payload(db,(uid,email)), 'recoveryCode':recovery}, cookie(token)
         if action == 'recover':
             code = data.get('recoveryCode','')
@@ -846,14 +808,17 @@ def handle_action(db, action, data, headers, ip):
         return {'ok':True},None
     if action == 'materials':
         return {'items':ops.materials(payload(db,user)['state'].get('profile'))},None
-    if action in ('care-list','care-put','care-import','care-delete','family-list','family-invite','family-accept','family-revoke'):
-        if action in ('care-put','care-import'):
+    if action in ('doctor-question-put','doctor-question-delete','care-list','care-put','care-import','care-delete','family-list','family-invite','family-accept','family-revoke'):
+        if action in ('care-put','care-import','doctor-question-put'):
             legal.require_health_authorization(email_runtime,db,user[0])
         import sys
         spec=importlib.util.spec_from_file_location('care_tools',Path(__file__).with_name('care_tools.py'))
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         runtime=SimpleNamespace(AppError=AppError,unseal=unseal,seal=seal)
-        rate_limit(db,'care:'+user[0],120,900)
+        if action in ('care-list','family-list'):
+            rate_limit(db,'care-read:'+user[0],600,900)
+        else:
+            rate_limit(db,'care:'+user[0],120,900)
         return module.action(runtime,db,user[0],{**data,'action':action}),None
     if action == 'feedback':
         return save_feedback(db,user,data),None
@@ -863,7 +828,7 @@ def handle_action(db, action, data, headers, ip):
         runtime=SimpleNamespace(AppError=AppError,unseal=unseal,seal=seal,ops=ops)
         rate_limit(db,'suggestions:'+user[0],60,900)
         return module.action(runtime,db,user[0],{**data,'action':action}),None
-    if action in ('daily-plan','daily-feedback','daily-seen','age-guidance'):
+    if action in ('daily-plan','daily-create','daily-feedback','daily-seen','age-guidance'):
         daily, runtime=daily_runtime()
         state=payload(db,user)['state']
         rate_limit(db,'daily:'+user[0],120,900)
@@ -942,6 +907,8 @@ def handle_action(db, action, data, headers, ip):
                     'revision':state_row[1],'quota':ai_quota.public(quota),
                     'evidence':_safety.emergency_protocols.evidence(urgent_reply or EMERGENCY_TEXT)}, None
         if quota['used'] >= quota['base'] and quota['bonus'] == 0 and not safe_reply and not profile_scope_reply and not is_emergency:
+            if closed_beta.enabled():
+                raise AppError(429, closed_beta.LIMIT_MESSAGE)
             if billing.enabled() and billing.access(db,user[0])['mode'] == 'none':
                 raise AppError(402, 'Для ответов ИИ нужен действующий доступ. История, трекеры и срочная помощь доступны. Откройте «Доступ и оплата».')
             raise AppError(429, 'Лимит ответов на этот период исчерпан. История, трекеры и срочная помощь доступны.' if billing.enabled() or paid else f"Тестовый лимит исчерпан: использовано {quota['used']} из {quota['base']} AI-ответов. История, трекеры и срочная помощь доступны.")
@@ -1109,13 +1076,7 @@ def handler(event, context=None):
                 'billing': billing.public_config(),
                 'legal': legal.public(),
                 'pushKey': os.environ.get('VAPID_PUBLIC_KEY',''),
-                'chatConfigured': CHAT_LIVE_ENABLED and (bool(os.environ.get('PROXYAPI_API_KEY', '').strip())
-                    if os.environ.get('AI_PROVIDER', '').strip().lower() == 'proxyapi' else bool(
-                    (os.environ.get('YANDEX_FOLDER_ID') and (os.environ.get('YANDEX_API_KEY') or os.environ.get('YANDEX_USE_METADATA_IAM') == '1'))
-                    or (CHAT_API_URL != DEFAULT_CHAT_API_URL and os.environ.get('CHEAPAI_PROXY_TOKEN'))
-                    or os.environ.get('CHEAPAI_API_KEY')
-                    or os.environ.get('CHEAP_AI_API_KEY')
-                )),
+                'chatConfigured': chat_configured(),
             })
         if data.get('action') == 'health':
             cipher()
@@ -1127,7 +1088,7 @@ def handler(event, context=None):
         ip = str(event.get('requestContext',{}).get('identity',{}).get('sourceIp','unknown'))
         result, set_cookie = handle_action(db,data.get('action'),data,headers,ip)
         db.conn.commit()
-        ops.event(data.get('action'),ops.actor.get())
+        ops.event(data.get('action'),ops.actor.get(), utm=data.get('utm'))
         if set_cookie:
             response_headers['Set-Cookie'] = set_cookie
         return respond(200,result)

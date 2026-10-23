@@ -38,6 +38,46 @@ class ProxyTests(unittest.TestCase):
             self.assertEqual(json.loads(req.data)['reasoning_effort'],'low')
             return json.loads(req.data)['model'], answer
 
+    def test_empty_provider_fails_closed_even_with_legacy_credentials(self):
+        for provider in ('', '   '):
+            with self.subTest(provider=provider), patch.dict(os.environ, {
+                'AI_PROVIDER': provider, 'CHEAPAI_API_KEY': 'synthetic',
+                'YANDEX_FOLDER_ID': 'synthetic', 'YANDEX_API_KEY': 'synthetic',
+                'PROXYAPI_API_KEY': 'synthetic'}, clear=True), \
+                 patch.object(app, 'CHAT_LIVE_ENABLED', True), \
+                 patch.object(app.urllib.request, 'urlopen') as opened:
+                with self.assertRaises(app.AppError) as error:
+                    app.chat_answer('Synthetic', 'Synthetic')
+                self.assertEqual(error.exception.status, 503)
+                self.assertEqual(error.exception.message, 'Чат временно недоступен: сервис ещё не настроен владельцем.')
+                self.assertFalse(app.chat_configured())
+                opened.assert_not_called()
+
+    def test_absent_provider_fails_closed(self):
+        with patch.dict(os.environ, {}, clear=True), \
+             patch.object(app, 'CHAT_LIVE_ENABLED', True), \
+             patch.object(app.urllib.request, 'urlopen') as opened:
+            with self.assertRaises(app.AppError) as error:
+                app.chat_answer('Synthetic', 'Synthetic')
+            self.assertEqual(error.exception.message, 'Чат временно недоступен: сервис ещё не настроен владельцем.')
+            opened.assert_not_called()
+
+    def test_removed_yandex_provider_fails_closed_with_legacy_credentials(self):
+        with patch.dict(os.environ, {
+            'AI_PROVIDER': 'yandex', 'YANDEX_API_KEY': 'synthetic-old-key',
+            'YANDEX_FOLDER_ID': 'synthetic-folder', 'YANDEX_USE_METADATA_IAM': '1',
+            'YANDEX_MODEL': 'synthetic-old-model', 'PROXYAPI_API_KEY': 'synthetic',
+        }, clear=True), patch.object(app, 'CHAT_LIVE_ENABLED', True), \
+             patch.object(app.urllib.request, 'urlopen') as opened, \
+             patch('builtins.print') as diagnostic:
+            self.assertFalse(app.chat_configured())
+            with self.assertRaises(app.AppError) as error:
+                app.chat_answer('Synthetic', 'Synthetic')
+            self.assertEqual(error.exception.status, 503)
+            self.assertEqual(error.exception.message, 'Чат временно недоступен: сервис ещё не настроен владельцем.')
+            diagnostic.assert_called_once_with('CHAT_DIAG status=503 code=provider-not-configured')
+            opened.assert_not_called()
+
     def test_chat_uses_glm_even_with_old_yandex_credentials(self):
         self.assertEqual(self.call()[0], 'z-ai/glm-5.3-flash')
 

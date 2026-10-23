@@ -9,5 +9,6 @@ import './room-experience.css'
 import './room-olive.css'
 import './shared-room-theme.css'
 import './room-structure.css'
+import './qa-accessibility.css'
 
 createRoot(document.getElementById("root")!).render(<App />);

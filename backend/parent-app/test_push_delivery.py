@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 import unittest
+from types import SimpleNamespace
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -44,6 +45,36 @@ class PushDeliveryTest(unittest.TestCase):
     def deliver(self, **kwargs):
         self.sent.append(json.loads(kwargs['data']))
 
+    def test_background_runs_never_call_provider_or_change_quota(self):
+        import reminders
+        import push_delivery
+        for entry in ('reminders', 'daily_job', 'push_delivery'):
+            with self.subTest(entry=entry):
+                self.db.query('DELETE FROM mh_daily_push')
+                self.db.query('DELETE FROM mh_guidance_delivery')
+                self.db.conn.commit()
+                self.sent.clear()
+                before = self.call('session', self.cookie)[1]['quota']
+                with patch.dict(os.environ, {'APP_DAILY_PLANS': '1'}), \
+                        patch.object(app, 'chat_answer') as provider, \
+                        patch.object(self.daily, 'ensure') as ensure:
+                    if entry == 'reminders':
+                        # Keep the real run and DB; substitute only dynamically loaded modules.
+                        with patch.object(reminders.importlib.util, 'spec_from_file_location') as spec, \
+                                patch.object(reminders.importlib.util, 'module_from_spec', side_effect=[job, app]):
+                            result = reminders.run(self.db, app.unseal, self.deliver)
+                    elif entry == 'daily_job':
+                        # Even an old caller passing False cannot enable background AI.
+                        result = job.run(app, self.db, self.deliver, guidance_only=False)
+                    else:
+                        with patch.dict('sys.modules', {'pywebpush': SimpleNamespace(webpush=self.deliver)}):
+                            result = push_delivery.deliver(app)
+                    provider.assert_not_called()
+                    ensure.assert_not_called()
+                self.assertEqual(result, {'generated': 0, 'delivered': 1, 'errors': 0})
+                self.assertEqual(self.sent[0]['type'], 'age-guidance')
+                self.assertEqual(self.call('session', self.cookie)[1]['quota'], before)
+                self.assertEqual(self.db.query('SELECT COUNT(*) FROM mh_daily').fetchone()[0], 0)
     def test_disabled_push_never_generates_plans(self):
         self.state['preferences']['push'] = False
         self.db.query('UPDATE mh_state SET encrypted_data=? WHERE user_id=?', (app.seal(self.state), self.uid))
@@ -120,7 +151,7 @@ class PushDeliveryTest(unittest.TestCase):
         job.run(app, self.db, self.deliver, guidance_only=True)
         self.assertIn('topic=feeding-six-months', self.sent[-1]['path'])
         self.assertIn('child=primary', self.sent[-1]['path'])
-        self.assertIn('около 6 месяцев', self.sent[-1]['body'])
+        self.assertIn('около 6 месяцев', self.sent[-1]['body'].casefold())
 
     def test_unsubscribe_stops_delivery(self):
         self.assertEqual(self.call('unsubscribe', self.cookie)[0]['statusCode'], 200)

@@ -5,6 +5,7 @@ import os
 import unittest
 from datetime import date, timedelta, datetime
 from pathlib import Path
+from unittest.mock import patch
 import test_api as base
 app=base.app
 
@@ -30,10 +31,35 @@ class DailyTest(unittest.TestCase):
         app.chat_answer=self.original
         base.AccountsTest.tearDown(self)
     def plan(self,cid='primary'):
-        response,body=self.call('daily-plan',self.cookie,childId=cid)
+        response,body=self.call('daily-create',self.cookie,childId=cid)
         self.assertEqual(response['statusCode'],200,body);return body
     def change(self,plan,**kw):
         return self.call('daily-feedback',self.cookie,childId=plan['childId'],day=plan['day'],version=plan['version'],itemId=plan['items'][0]['id'],requestId='replace-test',**kw)
+    def test_read_missing_saved_pending_and_stale_never_generates(self):
+        response,body=self.call('daily-plan',self.cookie,childId='primary')
+        self.assertEqual(response['statusCode'],200,body)
+        self.assertIsNone(body['plan']);self.assertEqual(self.contexts,[])
+        db=app.DB()
+        try:self.assertEqual(db.query('SELECT COUNT(*) FROM mh_daily').fetchone()[0],0)
+        finally:db.close()
+        plan=self.plan()
+        self.assertEqual(len(self.contexts),1)
+        response,body=self.call('daily-plan',self.cookie,childId='primary')
+        self.assertEqual(response['statusCode'],200,body)
+        self.assertEqual(body['plan']['items'],plan['items'])
+        for stored in ({'profileKey':'pending'},{**plan,'ageMonths':-1}):
+            db=app.DB()
+            try:
+                db.query('UPDATE mh_daily SET encrypted_data=?',(app.seal(stored),))
+                db.conn.commit()
+            finally:db.close()
+            response,body=self.call('daily-plan',self.cookie,childId='primary')
+            self.assertEqual(response['statusCode'],200,body)
+            self.assertIsNone(body['plan'])
+            if not stored.get('items'):
+                response,body=self.call('daily-create',self.cookie,childId='primary')
+                self.assertEqual(response['statusCode'],409,body)
+        self.assertEqual(len(self.contexts),1)
     def test_stable_daily_plan_and_child_isolation(self):
         first=self.plan(); second=self.plan()
         self.assertEqual(first,second);self.assertEqual(len(self.contexts),1)
@@ -41,7 +67,7 @@ class DailyTest(unittest.TestCase):
         self.assertEqual(other['childId'],'second')
         self.assertNotIn('childName',self.contexts[-1]['profile'])
         self.assertIsInstance(self.contexts[-1]['profile']['ageMonths'],int)
-        self.assertEqual(self.call('daily-plan',self.cookie,childId='someone-else')[0]['statusCode'],404)
+        self.assertEqual(self.call('daily-create',self.cookie,childId='someone-else')[0]['statusCode'],404)
     def test_zero_completed_months_is_known_without_exporting_birth_date(self):
         state=copy.deepcopy(self.state)
         state['children'].append({'id':'newborn','data':{'profile':{**state['profile'],'birthDate':date.today().isoformat(),'childName':'Новорождённый'}}})
@@ -107,7 +133,11 @@ class DailyTest(unittest.TestCase):
         daily.local_now=lambda state:moment
         db=app.DB();sent=[]
         try:
-            job.run(app,db,lambda **kw:sent.append(kw));job.run(app,db,lambda **kw:sent.append(kw))
+            self.plan('primary')
+            self.assertEqual(len(self.contexts),1)
+            job.run(app,db,lambda **kw:sent.append(kw))
+            self.assertEqual(len(sent),1)
+            job.run(app,db,lambda **kw:sent.append(kw))
             self.assertEqual(len(sent),1)
             self.assertIn('child=',json.loads(sent[0]['data'])['path'])
             moment=moment.replace(hour=15)
@@ -116,6 +146,28 @@ class DailyTest(unittest.TestCase):
             db.query('UPDATE mh_daily SET viewed=0');db.conn.commit()
             job.run(app,db,lambda **kw:sent.append(kw));job.run(app,db,lambda **kw:sent.append(kw))
             self.assertEqual(len(sent),2)
+        finally:daily.local_now=original_now;db.close()
+
+    def test_without_created_plan_only_morning_guidance_and_no_provider(self):
+        state=copy.deepcopy(self.state);state['preferences'].update(push=True,secondReminder=True)
+        self.assertEqual(self.call('save',self.cookie,state=state,revision=1)[0]['statusCode'],200)
+        self.call('subscribe',self.cookie,subscription={'endpoint':'https://fcm.googleapis.com/fcm/send/no-plan','keys':{'p256dh':'a'*30,'auth':'b'*30}})
+        spec=importlib.util.spec_from_file_location('daily_job',Path(__file__).with_name('daily_job.py'));job=importlib.util.module_from_spec(spec);spec.loader.exec_module(job)
+        daily,_=app.daily_runtime();original_now=daily.local_now
+        moment=original_now(state).replace(hour=9,minute=0)
+        daily.local_now=lambda state:moment
+        db=app.DB();sent=[]
+        try:
+            with patch.dict(os.environ,{'VAPID_PRIVATE_KEY':'test','VAPID_SUBJECT':'mailto:test@example.test'}), patch.object(app,'chat_answer',side_effect=AssertionError('Unexpected provider call')) as provider:
+                self.assertEqual(job.run(app,db,lambda **kw:sent.append(kw)),{'generated':0,'delivered':1,'errors':0})
+                self.assertEqual(len(sent),1)
+                self.assertEqual(json.loads(sent[0]['data'])['type'],'age-guidance')
+                self.assertEqual(job.run(app,db,lambda **kw:sent.append(kw))['delivered'],0)
+                moment=moment.replace(hour=15)
+                self.assertEqual(job.run(app,db,lambda **kw:sent.append(kw)),{'generated':0,'delivered':0,'errors':0})
+                self.assertEqual(len(sent),1)
+                self.assertEqual(db.query('SELECT COUNT(*) FROM mh_daily').fetchone()[0],0)
+                provider.assert_not_called()
         finally:daily.local_now=original_now;db.close()
 
 if __name__=='__main__':unittest.main()

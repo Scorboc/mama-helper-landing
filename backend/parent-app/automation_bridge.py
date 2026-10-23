@@ -23,6 +23,7 @@ import ai_budget
 ROOT=Path(os.environ['MAMA_AUTOMATION_ROOT'])
 ROOT.mkdir(parents=True,exist_ok=True)
 LOCK=threading.Lock()
+BACKUP_CATCHUP_THREAD=None
 PORT=int(os.environ.get('MAMA_AUTOMATION_PORT','8792'))
 HOSTS={f'127.0.0.1:{PORT}',f'localhost:{PORT}'}
 JOBS={'monitor','backup','daily-report','weekly-review','readiness','restore-check','ai-tests','feedback-analysis','telegram-dispatch'}
@@ -64,7 +65,58 @@ def monitor():
     incidents=[c['target'] for c in checks if not c['ok'] and c['target'] in failed]
     if incidents:write_json(ROOT/'attention.json',{'at':now,'reason':'two-consecutive-failures','targets':incidents,'delivery':'local-only'})
     write_json(previous,result)
+    result['backupMaintenance']=backup_maintenance()
     return result
+
+
+def backup_maintenance():
+    """Monitor backstop; share the scheduled backup lock and never dispatch Telegram."""
+    global BACKUP_CATCHUP_THREAD
+    def read(name):
+        try:
+            value=json.loads((ROOT/name).read_text(encoding='utf-8'))
+            return value if isinstance(value,dict) else {}
+        except (OSError,ValueError):return {}
+    now=int(time.time())
+    status=read('backup-status.json')
+    try:
+        created=dt.datetime.strptime(status['createdAt'][:15],'%Y%m%d-%H%M%S').replace(tzinfo=dt.timezone.utc).timestamp()
+        age=now-created if status.get('ok') is True else float('inf')
+    except (KeyError,TypeError,ValueError):age=float('inf')
+    import telegram_outbox
+    telegram_outbox.backup_alerts(ROOT,age,read('restore-status.json'),now)
+    if age<=24*3600:return {'state':'fresh'}
+    if not LOCK.acquire(blocking=False):return {'state':'busy'}
+    try:
+        try:hours=max(1,float(os.environ.get('MAMA_BACKUP_CATCHUP_HOURS','6')))
+        except ValueError:hours=6
+        if not 1<=hours<=8760:hours=6
+        last=read('backup-catchup.json').get('attemptedAt',0)
+        if isinstance(last,(int,float)) and now-last<hours*3600:
+            LOCK.release()
+            return {'state':'throttled'}
+    except Exception:
+        LOCK.release()
+        raise
+    def catchup():
+        try:
+            write_json(ROOT/'backup-catchup.json',{'attemptedAt':now})
+            result=backup()
+            restored=reliability.restore(ROOT) if result.get('ok') else {'ok':False,'checkedAt':now}
+            write_json(ROOT/'restore-status.json',restored)
+            telegram_outbox.backup_alerts(ROOT,0 if result.get('ok') else age,restored,now)
+        except Exception:
+            restored={'ok':False,'checkedAt':now}
+            write_json(ROOT/'restore-status.json',restored)
+            telegram_outbox.backup_alerts(ROOT,age,restored,now)
+        finally:LOCK.release()
+    try:
+        BACKUP_CATCHUP_THREAD=threading.Thread(target=catchup,name='backup-catchup',daemon=True)
+        BACKUP_CATCHUP_THREAD.start()
+    except Exception:
+        LOCK.release()
+        raise
+    return {'state':'started'}
 
 def aggregates():
     summary=ops.summary()
@@ -84,8 +136,14 @@ def report(weekly=False):
         'prompt':'Исследуй задержку ответа: ожидание провайдера, очередь, размер контекста. Уменьшай расходы без потери активного профиля и свежего дневника. Измерь p50/p95 на синтетических сценариях. Не меняй лимиты и модель без расчёта.'})
     if summary['feedbackCounts'].get('unsafe',0):ideas.append({'priority':'P0','observation':'Есть оценки небезопасного ответа; это сигнал для проверки, а не доказательство ошибки.',
         'prompt':'Локально проверь отмеченные ответы с разрешённым доступом. Различай проверенную ошибку и гипотезу. Сверь медицинские основания с официальными рекомендациями, подготовь правило и синтетический регрессионный тест. Не отправляй медицинские сведения внешним инструментам.'})
+    try:
+        import marketing_control
+        marketing_digest=marketing_control.summary(ROOT)
+    except Exception:
+        marketing_digest='Контроль продвижения временно недоступен; основной отчёт сохранён.'
     result={'ok':True,'generatedAt':dt.datetime.now(dt.timezone.utc).isoformat(),'method':'deterministic-aggregate-rules-not-ai',
-            'summary':summary,'proposals':ideas,'humanApprovalRequired':True,'externalMessagesSent':False}
+            'summary':summary,'proposals':ideas,'marketingControl':marketing_digest,
+            'humanApprovalRequired':True,'externalMessagesSent':False}
     stamp=dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d')
     name=('weekly' if weekly else 'daily')+'-'+stamp
     reports=ROOT/'reports';reports.mkdir(exist_ok=True)

@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import sqlite3
 import time
 import uuid
@@ -34,6 +35,11 @@ def database():
         CREATE INDEX IF NOT EXISTS checks_at ON checks(at);
         CREATE TABLE IF NOT EXISTS documents (id TEXT PRIMARY KEY, kind TEXT, body TEXT, updated INTEGER);
         ''')
+        # Additive migration only: historical events remain untouched.
+        columns = {row[1] for row in conn.execute('PRAGMA table_info(events)')}
+        for name in UTM_FIELDS:
+            if name not in columns:
+                conn.execute('ALTER TABLE events ADD COLUMN ' + name + ' TEXT')
         yield conn
         conn.commit()
     finally:
@@ -47,15 +53,27 @@ def actor_key(uid):
     return hmac.new(key.encode(), uid.encode(), hashlib.sha256).hexdigest()[:32]
 
 
-def event(action, uid='', detail=''):
+UTM_FIELDS = ('utm_source', 'utm_medium', 'utm_campaign', 'utm_content')
+
+
+def clean_utm(value):
+    if not isinstance(value, dict):
+        return {}
+    return {name: value[name] for name in UTM_FIELDS
+            if isinstance(value.get(name), str) and re.fullmatch(r'[a-z0-9_-]{1,64}', value[name])}
+
+
+def event(action, uid='', detail='', utm=None):
     if not enabled() or action not in ACTIONS:
         return
     if action == 'page' and detail not in PAGES:
         return
     try:
         with database() as db:
-            db.execute('INSERT INTO events VALUES(?,?,?,?)',
-                       (int(time.time()), actor_key(uid), action, detail if action == 'page' else ''))
+            tags = clean_utm(utm) if action == 'register' else {}
+            db.execute('INSERT INTO events(at,actor,action,detail,utm_source,utm_medium,utm_campaign,utm_content) VALUES(?,?,?,?,?,?,?,?)',
+                       (int(time.time()), actor_key(uid), action, detail if action == 'page' else '',
+                        *(tags.get(name) for name in UTM_FIELDS)))
     except Exception:
         pass  # Observability must never stop the user's request.
 

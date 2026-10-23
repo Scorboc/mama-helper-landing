@@ -29,7 +29,7 @@ export type ParentState = {
 const calendarDay = (now:Date) => Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
 export const today = (now=new Date()) => new Date(calendarDay(now)).toISOString().slice(0,10);
 export const emptyState = (): ParentState => ({profile:null,saved:[],completed:[],events:{},preferences:{repeat:'never',push:false},messages:[],medicalCard:[]});
-export const defaultProfile = (): Profile => ({childName:'',childSex:'unknown',role:'mom',stage:'pregnancy',birthDate:'',week:20,weekDate:today(),feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]});
+export const defaultProfile = (): Profile => ({childName:'',childSex:'unknown',role:'mom',stage:'child',birthDate:'',week:20,weekDate:today(),feeding:'unknown',sleep:'',health:'',healthConfirmed:false,topics:[]});
 export function ageValue(p:Profile,now=new Date()) {
   if(p.stage==='pregnancy') return p.week + Math.floor((calendarDay(now)-Date.parse(p.weekDate+'T00:00:00Z'))/604800000);
   const d=new Date(p.birthDate+'T00:00:00Z');

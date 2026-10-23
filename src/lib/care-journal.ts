@@ -1,4 +1,6 @@
+import { ruCount } from './ru-count';
 export type CareRecord = {
+  skill?: string;
   id: string;
   kind: "sleep" | "wake" | "feeding" | "food" | "achievement" | "mood";
   at: string;
@@ -66,7 +68,7 @@ export function buildConsultationReport({ profile, records, selected, days, time
     "Профиль: " + (profile.childName || (profile.stage === "pregnancy" ? "Беременность" : "Ребёнок")),
     profile.stage === "child" ? "Дата рождения: " + (profile.birthDate || "не указана") : "Этап: беременность",
     "Период: последние " + days + " календарных дней, включая сегодня. Часовой пояс: " + timezone + ". Сформировано: " + time(now),
-    "Включено только выбранное: " + chosen.length + " записей; эпизодов сна: " + sleepCount + "; отметок кормлений: " + feedingCount + ". Полнота дневника неизвестна; отсутствие записи не означает отсутствие события.",
+    "Включено только выбранное: " + ruCount(chosen.length, "запись", "записи", "записей") + "; эпизодов сна: " + sleepCount + "; отметок кормлений: " + feedingCount + ". Полнота дневника неизвестна; отсутствие записи не означает отсутствие события.",
     ...chosen.map((r) => {
       const label = r.kind === "sleep" ? (r.sleepType === "day" ? "Дневной сон" : r.sleepType === "night" ? "Ночной сон" : "Сон") : r.kind === "wake" && r.wakeType === "morning" ? "Утренний подъём" : recordLabels[r.kind];
       const side = { left: "левая грудь", right: "правая грудь", bottle: "бутылочка" }[r.side || ""] || "";

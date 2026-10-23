@@ -10,6 +10,7 @@ import billing
 import data_rights
 import legal
 import ai_quota
+import closed_beta
 import prompt_policy
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -96,7 +97,7 @@ def choose(app, child, pool, count, previous, feedback, reason=None):
 
 def select_with_quota(app, db, uid, child, pool, count, previous, feedback, reason=None):
     user = db.query('SELECT id,email FROM mh_users WHERE id=?',(uid,)).fetchone()
-    quota = ai_quota.read(app,db,user) if billing.enabled() and user else None
+    quota = ai_quota.read(app,db,user) if (billing.enabled() or closed_beta.enabled()) and user else None
     result = choose(app,{**child,'_allowAI':quota is None or quota['used'] < quota['base']},pool,count,previous,feedback,reason)
     if result[1] == 'ai' and quota is not None:
         if not app.locked_credentials(db,uid=uid):
@@ -136,7 +137,7 @@ def ensure(app, db, uid, state, cid):
             return {**plan,'version':row[1],'viewed':bool(row[2])}
         if not plan.get('items') and now-row[3]<120:
             raise app.AppError(409,'Подборка уже готовится. Откройте её через минуту.')
-    if billing.enabled() and billing.access(db,uid)['mode'] == 'none':
+    if (billing.enabled() or closed_beta.enabled()) and billing.access(db,uid)['mode'] == 'none':
         raise app.AppError(402, 'Для новой подборки нужен действующий доступ. Сохранённые данные и срочная помощь доступны.')
     legal.require_public_ready(app)
     legal.require_health_authorization(app,db,uid)
@@ -170,8 +171,25 @@ def ensure(app, db, uid, state, cid):
     db.conn.commit()
     return {**plan,'version':version+1,'viewed':False}
 
+def read_saved(app, db, uid, state, cid):
+    """Read only: never claim a plan, call the provider, or charge allowance."""
+    child=selected(app,state,cid)
+    day=local_now(state).date().isoformat()
+    row=db.query('SELECT encrypted_data,version,viewed FROM mh_daily WHERE user_id=? AND child_id=? AND day=?',(uid,cid,day)).fetchone()
+    empty={'plan':None}
+    if not row: return empty
+    plan=app.unseal(row[0])
+    months=age(child['profile'],day)
+    key=app.digest(json.dumps(child['profile'],sort_keys=True,ensure_ascii=False))
+    eligible={item['id']:item for item in catalog.candidates(months)}
+    if not plan.get('items') or plan.get('profileKey')!=key or plan.get('catalogVersion')!=catalog.VERSION or plan.get('ageMonths')!=months or any(i['id'] not in eligible for i in plan['items']):
+        return empty
+    plan['items']=[{**item,**{k:eligible[item['id']][k] for k in ('title','goal','materials','steps')}} for item in plan['items']]
+    return {'plan':{**plan,'version':row[1],'viewed':bool(row[2])}}
+
 def action(app,db,uid,state,data):
     cid=data.get('childId',state.get('activeChildId','primary'))
+    if data['action']=='daily-plan': return read_saved(app,db,uid,state,cid)
     child=selected(app,state,cid)
     care_spec=importlib.util.spec_from_file_location('care_daily_tools',Path(__file__).with_name('care_tools.py'))
     care_tools=importlib.util.module_from_spec(care_spec);care_spec.loader.exec_module(care_tools)
@@ -179,11 +197,18 @@ def action(app,db,uid,state,data):
     if data['action']=='age-guidance':
         months=age(child['profile'],local_now(state).date().isoformat())
         items=guidance.cards(months)
+        if child['profile'].get('health'):
+            items=[card for card in items if card.get('area') not in ('Движение','Координация')]
         topic=data.get('topic')
+        if 'milestoneSkill' in data:
+            skill=data['milestoneSkill']
+            if not isinstance(skill,str) or skill not in guidance.MILESTONE_TOPICS:
+                raise app.AppError(400,'Неизвестный навык.')
+            topic=guidance.MILESTONE_TOPICS[skill]
         chosen=next((card for card in items if card['id']==topic),None)
         # Old push links never present advice for a different age as current.
         return {'childId':cid,'childName':child['profile'].get('childName',''),'months':months,'items':items,'selected':chosen,'note':guidance.NOTICE}
-    if data['action']=='daily-plan': return ensure(app,db,uid,state,cid)
+    if data['action']=='daily-create': return ensure(app,db,uid,state,cid)
     day=data.get('day')
     if day!=local_now(state).date().isoformat(): raise app.AppError(409,'Начался новый день. Обновите подборку.')
     row=db.query('SELECT encrypted_data,version,viewed FROM mh_daily WHERE user_id=? AND child_id=? AND day=?',(uid,cid,day)).fetchone()
@@ -212,16 +237,16 @@ def action(app,db,uid,state,data):
         item=next((i for i in plan.get('items',[]) if i['id']==data.get('itemId')),None)
         if not item: raise app.AppError(409,'Занятие уже заменено. Обновите подборку.')
         if kind=='replace':
-            if billing.enabled() and billing.access(db,uid)['mode'] == 'none':
+            if (billing.enabled() or closed_beta.enabled()) and billing.access(db,uid)['mode'] == 'none':
                 raise app.AppError(402, 'Для новой замены нужен действующий доступ. Текущая подборка и отметки сохранены.')
             legal.require_public_ready(app)
             legal.require_health_authorization(app,db,uid)
             data_rights.require_analysis(app,db,uid)
-            if billing.enabled():
+            if (billing.enabled() or closed_beta.enabled()):
                 user=db.query('SELECT id,email FROM mh_users WHERE id=?',(uid,)).fetchone()
                 quota=ai_quota.read(app,db,user)
                 if quota['used'] >= quota['base']:
-                    raise app.AppError(429,'Лимит ИИ на этот период исчерпан. Новые ежедневные игры доступны из каталога; для анализа причины замены нужен новый период.')
+                    raise app.AppError(429,closed_beta.LIMIT_MESSAGE if closed_beta.enabled() else 'Лимит ИИ на этот период исчерпан. Новые ежедневные игры доступны из каталога; для анализа причины замены нужен новый период.')
             reason=data.get('reason'); detail=data.get('detail')
             if reason not in REASONS or not isinstance(detail,str) or not 8<=len(detail.strip())<=600:
                 raise app.AppError(400,'Для замены выберите причину и поясните её: от 8 до 600 символов.')

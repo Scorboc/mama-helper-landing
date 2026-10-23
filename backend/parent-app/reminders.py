@@ -46,7 +46,7 @@ def run(db, unseal, webpush=None):
         job=importlib.util.module_from_spec(spec); spec.loader.exec_module(job)
         spec=importlib.util.spec_from_file_location('daily_app',Path(__file__).with_name('index.py'))
         app=importlib.util.module_from_spec(spec); spec.loader.exec_module(app)
-        return job.run(app,db,webpush)
+        return job.run(app,db,webpush,guidance_only=True)
     if not os.environ.get('VAPID_PRIVATE_KEY') or not os.environ.get('VAPID_SUBJECT'):
         raise RuntimeError('Push credentials are not configured')
     if webpush is None:

@@ -13,7 +13,7 @@ export default function RoomNavigation({ active, onNavigate }: {
 }) {
   return <nav className="cabinet-tabs room-navigation" aria-label="Разделы личного кабинета">
     {sections.map(([id, label]) => {
-      const props = { "aria-current": active === id ? "page" as const : undefined, "data-state": active === id ? "active" : "inactive" };
+      const props = { "aria-label": label, "aria-current": active === id ? "page" as const : undefined, "data-state": active === id ? "active" : "inactive" };
       return onNavigate
         ? <button type="button" key={id} {...props} onClick={() => onNavigate(id)}><span>{label}</span></button>
         : <Link key={id} {...props} to={`/chat?scene=room&tab=${id}`}><span>{label}</span></Link>;

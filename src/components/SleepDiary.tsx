@@ -1,3 +1,4 @@
+import { confirmAction } from "@/lib/confirm-action";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import CareTimeField from "./CareTimeField";
@@ -253,7 +254,7 @@ export default function SleepDiary({
       </div>
       <div className="sleep-section">
         <div className="sleep-chart-heading">
-          <div><h3>Сон за {period} дней</h3><p className="sleep-chart-caption">Ваши записи, не оценка нормы</p></div>
+          <div><h3>Сон по календарным дням · {period} дней</h3><p className="sleep-chart-caption">Ночной сон через полночь делится между датами. Ваши записи, не оценка нормы.</p></div>
           <label>
             <span className="sr-only">Период дневника сна</span>
             <select
@@ -268,7 +269,7 @@ export default function SleepDiary({
           </label>
         </div>
         {dailyMinutes.some(Boolean) ? <div className="sleep-week-chart-scroll">
-          <ol className="sleep-week-chart" style={{ "--sleep-days": days.length, minWidth: `${days.length * 40}px` } as CSSProperties} aria-label="Суммарный сон по дням">
+          <ol className="sleep-week-chart" style={{ "--sleep-days": days.length, minWidth: `${days.length * 40}px` } as CSSProperties} aria-label="Суммарный сон по календарным дням">
             {days.map((day, index) => {
               const date = new Date(day.start).toLocaleDateString("ru-RU", { day: "numeric", month: "numeric" });
               return <li key={day.start}>
@@ -282,7 +283,7 @@ export default function SleepDiary({
           </ol>
         </div> : <p className="sleep-chart-empty">За выбранный период нет записей сна. График появится после первой отметки.</p>}
         <details className="sleep-chart-legend">
-          <summary>Время сна по дням</summary>
+          <summary>Время сна по календарным дням</summary>
           <div className="sleep-scale"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
           {days.map((d) => (
             <div className="sleep-day" key={d.start}>
@@ -290,7 +291,7 @@ export default function SleepDiary({
               <div className="sleep-lane" role="img" aria-label={`${new Date(d.start).toLocaleDateString("ru-RU")}: ${duration(minutes(d.start, d.end))}`}>
                 {spans(d.start, d.end).map((x) => (
                   <span key={x.r.id} className={`sleep-span ${x.r.sleepType || "unknown"}`}
-                    title={`${name(x.r)} ${time(x.r.at)}–${x.r.end ? time(x.r.end) : "сейчас"}`}
+                    title={`${name(x.r)} ${careTime(x.r.at)}–${x.r.end ? careTime(x.r.end) : "сейчас"}${Date.parse(x.r.at) < d.start || (x.r.end ? Date.parse(x.r.end) : now) > d.end ? "; часть сна с соседней даты" : ""}`}
                     style={{ left: `${((x.a - d.start) / (d.end - d.start)) * 100}%`, width: `${((x.b - x.a) / (d.end - d.start)) * 100}%` }} />
                 ))}
               </div>
@@ -335,17 +336,18 @@ export default function SleepDiary({
               <Button
                 variant="outline"
                 disabled={busy || !editable}
-                onClick={() => edit(r)}
+                aria-label={`Исправить: ${name(r)}, ${careTime(r.at)}`} onClick={() => edit(r)}
               >
                 Исправить
               </Button>
               {canDelete && (
                 <Button
                   variant="ghost"
+                  aria-label={`Удалить: ${name(r)}, ${careTime(r.at)}`}
                   disabled={busy}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      window.confirm("Удалить эту запись сна или пробуждения?")
+                      await confirmAction("Удалить эту запись сна или пробуждения?")
                     )
                       void mutate("care-delete", { id: r.id });
                   }}
@@ -396,7 +398,7 @@ export default function SleepDiary({
               {Intl.DateTimeFormat().resolvedOptions().timeZone}
             </p>
             <p>
-              Отмеченные эпизоды сна. Пустые участки — нет записей, не
+              Сон по календарным дням: ночной сон через полночь делится между датами. Отмеченные эпизоды сна. Пустые участки — нет записей, не
               подтверждённое бодрствование.
             </p>
             {days.map((d) => (

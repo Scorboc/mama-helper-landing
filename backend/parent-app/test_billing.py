@@ -186,15 +186,20 @@ class BillingTest(unittest.TestCase):
             candidates=json.loads(context)['candidates']
             return json.dumps({'ids':[item['id'] for item in candidates[:3]]})
         with patch.object(app,'chat_answer',side_effect=fake) as ai:
-            response,first=self.call('daily-plan',cookie)
+            response,empty=self.call('daily-plan',cookie)
+            self.assertEqual(response['statusCode'],200,empty)
+            self.assertIsNone(empty['plan']); self.assertEqual(empty['quota']['used'],0); ai.assert_not_called()
+            response,first=self.call('daily-create',cookie)
             self.assertEqual(response['statusCode'],200,first)
             self.assertEqual(first['source'],'ai'); self.assertEqual(first['quota']['remaining'],0)
-            again=self.call('daily-plan',cookie)[1]
+            saved=self.call('daily-plan',cookie)[1]
+            self.assertEqual(saved['plan']['items'],first['items']); self.assertEqual(saved['quota']['used'],1)
+            again=self.call('daily-create',cookie)[1]
             self.assertEqual(again['quota']['used'],1); self.assertEqual(ai.call_count,1)
         self.assertEqual(self.ask(cookie)[0]['statusCode'],429)
         db=app.DB();db.query('DELETE FROM mh_daily WHERE user_id=?',(uid,));db.conn.commit();db.close()
         with patch.object(app,'chat_answer') as ai:
-            response,plan=self.call('daily-plan',cookie)
+            response,plan=self.call('daily-create',cookie)
             self.assertEqual(response['statusCode'],200,plan); self.assertEqual(plan['source'],'library');ai.assert_not_called()
         self.assertEqual(plan['quota']['used'],1)
 

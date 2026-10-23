@@ -1,12 +1,27 @@
-"""Generate before notifying. One family-wide claim per time slot, across devices."""
+"""Notify from saved plans and reviewed age tips; never generate with AI."""
 import importlib.util
 import json
 import os
 import time
+import calendar
+import care_tools
+from datetime import date
 from pathlib import Path
 from urllib.parse import urlencode
 
-def run(app, db, webpush=None, *, guidance_only=False):
+def candidate_key(card, profile, last):
+    """Safety, explicit milestones by calendar deadline, then existing rotation."""
+    tier = 0 if card['priority'] == 0 else 1 if card.get('milestoneSkill') else 2
+    born = date.fromisoformat(profile['birthDate'])
+    total = born.year * 12 + born.month - 1 + card['maxMonths']
+    year, month = divmod(total, 12)
+    month += 1
+    closes = date(year, month, min(born.day, calendar.monthrange(year, month)[1]))
+    return tier, closes.toordinal(), last, card['priority']
+
+
+def run(app, db, webpush=None, *, guidance_only=True):
+    # Kept for caller compatibility; every background run is guidance-only.
     daily,runtime=app.daily_runtime()
     if webpush is None and os.environ.get('VAPID_PRIVATE_KEY') and os.environ.get('VAPID_SUBJECT'):
         from pywebpush import webpush
@@ -20,7 +35,7 @@ def run(app, db, webpush=None, *, guidance_only=False):
             pref=state['preferences']; hour=pref.get('morningHour',9)
             birthdays=app._birthdays.grant(db,uid,state,now.date())
             db.conn.commit()
-            # Check consent, transport, schedule and previous attempts before any AI work.
+            # Check consent, transport, schedule and previous attempts before delivery.
             if not pref.get('push') or not webpush: continue
             slot=0 if now.hour==hour else 1 if pref.get('secondReminder',False) and now.hour==hour+6 else None
             if slot is None: continue
@@ -35,21 +50,14 @@ def run(app, db, webpush=None, *, guidance_only=False):
                 if (child['data'].get('profile') or {}).get('stage')!='child': continue
                 try:
                     existing=db.query('SELECT encrypted_data,viewed FROM mh_daily WHERE user_id=? AND child_id=? AND day=?',(uid,child['id'],day)).fetchone()
-                    if guidance_only or slot:
-                        # Age tips use the reviewed catalog. A second reminder only
-                        # refers to an existing, current plan; it never creates one.
-                        if not existing: continue
-                        plan=app.unseal(existing[0])
-                        months=daily.age(child['data']['profile'],day)
-                        if plan.get('ageMonths')!=months or plan.get('catalogVersion')!=daily.catalog.VERSION: continue
-                        key=app.digest(json.dumps(child['data']['profile'],sort_keys=True,ensure_ascii=False))
-                        if plan.get('profileKey')!=key: continue
-                        plan={**plan,'childId':child['id'],'viewed':bool(existing[1])}
-                        if plan.get('items'): plans.append(plan)
-                        continue
-                    if not existing and generated>=50: continue
-                    plan=daily.ensure(runtime,db,uid,state,child['id'])
-                    if not existing: generated+=1
+                    # Only current saved plans are eligible for notification.
+                    if not existing: continue
+                    plan=app.unseal(existing[0])
+                    months=daily.age(child['data']['profile'],day)
+                    if plan.get('ageMonths')!=months or plan.get('catalogVersion')!=daily.catalog.VERSION: continue
+                    key=app.digest(json.dumps(child['data']['profile'],sort_keys=True,ensure_ascii=False))
+                    if plan.get('profileKey')!=key: continue
+                    plan={**plan,'childId':child['id'],'viewed':bool(existing[1])}
                     if plan.get('items'): plans.append(plan)
                 except Exception:
                     db.conn.rollback(); errors+=1
@@ -67,17 +75,36 @@ def run(app, db, webpush=None, *, guidance_only=False):
                     _,feedback=daily.history(runtime,db,uid,child['id'],day)
                     excluded={str(f.get('baseId') or f.get('itemId') or f.get('id') or '').split('@')[0] for f in feedback if f.get('kind')=='replace' and f.get('reason') in ('dislike','health')}
                     last=db.query('SELECT COALESCE(MAX(sent_at),0) FROM mh_guidance_delivery WHERE user_id=? AND child_id=?',(uid,child['id'])).fetchone()[0]
-                    for card in daily.guidance.cards(age):
+                    try:
+                        records, owned_state = care_tools.milestone_records(app,db,uid,child['id'])
+                    except Exception:
+                        # A failed read never means "unmarked".
+                        db.conn.rollback(); errors+=1
+                        records=owned_state=None
+                    for card in sorted(daily.guidance.cards(age),key=lambda c:candidate_key(c,profile,last)):
                         if card.get('baseId') in excluded: continue
                         if profile.get('health') and card.get('area') in ('Движение','Координация'): continue
+                        skill=daily.guidance.mark_skill(card)
+                        if skill and (records is None or care_tools.marked_milestone(records,owned_state,skill)):continue
                         if not db.query('SELECT 1 FROM mh_guidance_delivery WHERE user_id=? AND child_id=? AND topic=?',(uid,child['id'],card['id'])).fetchone():
-                            candidates.append((card['priority'],card['maxMonths']-age,last,child,card));break
+                            candidates.append((candidate_key(card,profile,last),child,card));break
                 if candidates:
-                    _,_,_,child,card=min(candidates,key=lambda item:item[:3]);tip=(child,card)
+                    _,child,card=min(candidates,key=lambda item:item[0]);tip=(child,card)
                     # A birthday never displaces an unsent safety or current-stage tip.
                     # The in-app greeting and gift still appear on the birthday.
                     if card['priority']<=1:birthday=None
             if not unread and not birthday and not tip:continue
+            if tip and daily.guidance.mark_skill(tip[1]):
+                # Recheck after selection, before claiming the existing slot.
+                try:
+                    records,owned_state=care_tools.milestone_records(app,db,uid,tip[0]['id'])
+                    if care_tools.marked_milestone(records,owned_state,daily.guidance.mark_skill(tip[1])):continue
+                    if owned_state['profile'].get('health') and tip[1].get('area')=='Движение':continue
+                    if owned_state['profile'].get('stage')!='child':continue
+                    current_age=daily.age(owned_state['profile'],day)
+                    if not tip[1]['minMonths']<=current_age<tip[1]['maxMonths']:continue
+                except Exception:
+                    db.conn.rollback();errors+=1;continue
             # A late run delivers at most one notification, never catches up both slots.
             claim=db.query('INSERT INTO mh_daily_push VALUES(?,?,?,?) ON CONFLICT(user_id,day,slot) DO NOTHING',(uid,day,slot,int(time.time())))
             if claim.rowcount!=1:
@@ -96,6 +123,8 @@ def run(app, db, webpush=None, *, guidance_only=False):
             elif tip:
                 child,card=tip;kind='age-guidance';body=daily.guidance.push_text(card,child['data']['profile'])
                 path={'tab':'chat','child':child['id'],'topic':card['id']}
+                skill=daily.guidance.mark_skill(card)
+                if skill:path={'mark':skill,'child':child['id']}
                 topics=[(child['id'],card['id'])]
             db.conn.commit()
             try:
@@ -118,5 +147,5 @@ if __name__=='__main__':
     spec=importlib.util.spec_from_file_location('daily_app',Path(__file__).with_name('index.py'))
     app=importlib.util.module_from_spec(spec); spec.loader.exec_module(app)
     db=app.DB()
-    try: print(json.dumps(run(app,db,guidance_only=os.environ.get('APP_PUSH_GUIDANCE_ONLY')=='1')))
+    try: print(json.dumps(run(app,db,guidance_only=True)))
     finally: db.close()

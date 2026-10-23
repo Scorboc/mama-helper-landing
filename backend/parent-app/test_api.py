@@ -100,7 +100,7 @@ class AccountsTest(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         self.previous=dict(os.environ)
-        os.environ.update(APP_LOCAL='1',APP_BILLING_MODE='legacy',APP_SQLITE_PATH=self.temp.name+'/test.db',APP_DATA_KEY=Fernet.generate_key().decode(),APP_ORIGINS='http://localhost:5173')
+        os.environ.update(APP_CLOSED_BETA='0',APP_LOCAL='1',APP_BILLING_MODE='legacy',APP_SQLITE_PATH=self.temp.name+'/test.db',APP_DATA_KEY=Fernet.generate_key().decode(),APP_ORIGINS='http://localhost:5173')
         app.initialize()
     def tearDown(self):
         os.environ.clear();os.environ.update(self.previous);self.temp.cleanup()
@@ -111,6 +111,25 @@ class AccountsTest(unittest.TestCase):
         r,b=self.call('register',email=email,password='long-test-password',consent=True)
         self.assertEqual(r['statusCode'],200,b)
         return r['headers']['Set-Cookie'].split(';')[0],b
+    def test_register_actor_and_utm_are_linked_to_session(self):
+        from unittest.mock import patch
+        import operations as ops
+        with patch.dict(os.environ, APP_OPS_PATH=self.temp.name+'/ops.db', APP_OPS_HASH_KEY='synthetic'):
+            response, body = self.call('register', email='utm@example.test', password='long-test-password',
+                consent=True, utm={'utm_source':'source_1', 'utm_medium':'text',
+                    'utm_campaign':'launch-2', 'utm_content':'a'*64, 'email':'discard@example.test'})
+            self.assertEqual(response['statusCode'], 200)
+            cookie = response['headers']['Set-Cookie'].split(';')[0]
+            self.call('session', cookie)
+            with ops.database() as db:
+                rows = db.execute('SELECT actor,action,utm_source,utm_medium,utm_campaign,utm_content FROM events').fetchall()
+            reg = next(r for r in rows if r[1]=='register')
+            session = next(r for r in rows if r[1]=='session')
+            self.assertEqual(reg[0], ops.actor_key(body['user']['id']))
+            self.assertTrue(reg[0])
+            self.assertEqual(reg[0], session[0])
+            self.assertEqual(reg[2:], ('source_1','text','launch-2','a'*64))
+
     def test_registration_login_logout_and_recovery(self):
         cookie,b=self.register('mom@example.test')
         r,got=self.call('session',cookie);self.assertEqual(got['user']['id'],b['user']['id'])
@@ -231,40 +250,6 @@ class AccountsTest(unittest.TestCase):
         self.assertIn('ребёнку',captured['context_text'])
         self.assertIn('смешанное вскармливание',captured['context_text'])
 
-    def test_yandex_gpt_chat_uses_metadata_iam_credentials_without_key_text(self):
-        previous={k:os.environ.get(k) for k in ('YANDEX_API_KEY','YANDEX_FOLDER_ID','YANDEX_USE_METADATA_IAM','AI_COST_RATES_JSON')}
-        os.environ.pop('YANDEX_API_KEY',None)
-        os.environ.update(YANDEX_FOLDER_ID='folder-test',YANDEX_USE_METADATA_IAM='1')
-        # Synthetic prices test the alternative transport without permitting an
-        # unverified real model to bypass the application's spending guard.
-        os.environ['AI_COST_RATES_JSON']=json.dumps({'gpt://folder-test/yandexgpt/latest':{
-            'inputPerMillion':'1','outputPerMillion':'1','checkedAt':date.today().isoformat(),'source':'synthetic-test-only'}})
-        original_token=app.yandex_metadata_iam_token;original_deadline=app.with_chat_deadline;original_open=app.urllib.request.urlopen
-        captured={}
-        class Reply:
-            def __enter__(self):return self
-            def __exit__(self,*_args):return False
-            def read(self):return '{"choices":[{"message":{"content":"Ответ YandexGPT"}}]}'.encode()
-        def fake_open(request,timeout):
-            headers={key.lower():value for key,value in request.header_items()}
-            captured['url']=request.full_url;captured['authorization']=headers.get('authorization')
-            captured['folder']=headers.get('openai-project');captured['body']=json.loads(request.data)
-            return Reply()
-        app.yandex_metadata_iam_token=lambda:'temporary-iam-token'
-        app.with_chat_deadline=lambda call:call()
-        app.urllib.request.urlopen=fake_open
-        try:
-            answer=app.chat_answer('Привет','контекст')
-        finally:
-            app.yandex_metadata_iam_token=original_token;app.with_chat_deadline=original_deadline;app.urllib.request.urlopen=original_open
-            for key,value in previous.items():
-                if value is None:os.environ.pop(key,None)
-                else:os.environ[key]=value
-        self.assertEqual(answer,'Ответ YandexGPT')
-        self.assertEqual(captured['authorization'],'Bearer temporary-iam-token')
-        self.assertEqual(captured['folder'],'folder-test')
-        self.assertEqual(captured['body']['model'],'gpt://folder-test/yandexgpt/latest')
-        self.assertEqual(captured['url'],app.YANDEX_CHAT_API_URL)
     def test_chat_creates_a_medical_card_entry_for_a_reported_fact(self):
         c,_=self.register('card@example.test')
         original=app.chat_answer

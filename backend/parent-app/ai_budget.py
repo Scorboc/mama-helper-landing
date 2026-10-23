@@ -5,6 +5,7 @@ their budget before network access even while the application database is busy.
 Rubles are represented as integer millionths; unknown usage retains the reservation.
 """
 import contextvars
+import closed_beta
 from contextlib import contextmanager
 from datetime import datetime, date
 from decimal import Decimal, InvalidOperation, ROUND_CEILING
@@ -65,6 +66,8 @@ def config():
         value = lambda key, default: policy.get(key, os.environ.get(key,default))
         daily = int((decimal(value('AI_BUDGET_DAY_RUB', '100'))*MICRO).to_integral_value(rounding=ROUND_CEILING))
         monthly = int((decimal(value('AI_BUDGET_MONTH_RUB', '1000'))*MICRO).to_integral_value(rounding=ROUND_CEILING))
+        if closed_beta.enabled():
+            monthly = int((decimal(os.environ.get('APP_BETA_MONTH_RUB', '300'))*MICRO).to_integral_value(rounding=ROUND_CEILING))
         maximum_input = int(value('AI_MAX_INPUT_BYTES', '65536'))
         concurrency = int(value('AI_MAX_CONCURRENT_CALLS', '4'))
         if maximum_input < 1024 or maximum_input > 1_000_000 or not 1 <= concurrency <= 20:
@@ -175,7 +178,7 @@ def reserve(model, kind, input_bytes, maximum_output):
         day_used = db.execute('SELECT COALESCE(SUM(accounted_micro),0) FROM ai_spend WHERE day=?', (day,)).fetchone()[0]
         month_used = db.execute('SELECT COALESCE(SUM(accounted_micro),0) FROM ai_spend WHERE month=?', (month,)).fetchone()[0]
         if day_used+estimate > daily or month_used+estimate > monthly:
-            raise BudgetError(429, 'ИИ временно приостановлен: достигнут общий бюджет сервиса. История и трекеры доступны; срочная помощь — по ссылке ниже.')
+            raise BudgetError(429, closed_beta.BUDGET_MESSAGE if closed_beta.enabled() else 'ИИ временно приостановлен: достигнут общий бюджет сервиса. История и трекеры доступны; срочная помощь — по ссылке ниже.')
         ident = secrets.token_hex(16)
         db.execute('INSERT INTO ai_spend VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                    (ident,actor,request,kind,model,day,month,stamp,'pending',estimate,estimate,None,None,0,str(incoming),str(outgoing),checked))

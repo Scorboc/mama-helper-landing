@@ -36,9 +36,10 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
 if __name__=='__main__':
-    app.cipher();app.initialize();print('Local account server: 127.0.0.1:8787')
+    port = int(os.environ.get('APP_PORT', '8787'))
+    app.cipher();app.initialize();print(f'Local account server: 127.0.0.1:{port}')
     import mail_delivery
     mail_delivery.start(app)
     import push_delivery
     push_delivery.start(app)
-    ThreadingHTTPServer(('127.0.0.1',8787),Handler).serve_forever()
+    ThreadingHTTPServer(('127.0.0.1',port),Handler).serve_forever()

@@ -4,6 +4,7 @@ import hmac
 import os
 import ai_budget
 import billing
+import closed_beta
 
 
 def free_limit(app):
@@ -20,7 +21,7 @@ def free_limit(app):
 
 def read(app, db, user):
     access = billing.access(db, user[0])
-    paid = app._birthdays.paid_access(db, user[0])
+    paid = None if closed_beta.enabled() else app._birthdays.paid_access(db, user[0])
     test = access['mode'] == 'test'
     key = ('test-quota:'+user[0]+':'+access['periodKey'] if test else
            'paid-quota:'+user[0]+':'+paid[0] if paid else 'ai-quota:'+user[0])
@@ -54,7 +55,7 @@ def charge(app, db, user, quota):
     # requests cannot both spend the last answer from an earlier snapshot.
     quota.update(read(app, db, user))
     if quota['used'] >= quota['base'] and quota['bonus'] == 0:
-        raise app.AppError(429, 'Доступные AI-ответы закончились. Обратитесь к организатору.')
+        raise app.AppError(429, closed_beta.LIMIT_MESSAGE if closed_beta.enabled() else 'Доступные AI-ответы закончились. Обратитесь к организатору.')
     if quota['paid'] and quota['used'] >= quota['base']:
         if not app._birthdays.consume(db, user[0]):
             raise app.AppError(409, 'Баланс изменился. Повторите запрос.')

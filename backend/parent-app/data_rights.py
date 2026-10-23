@@ -1,8 +1,39 @@
 """Authenticated data requests; descriptions are encrypted and stay on the owner's server."""
+import logging
+import os
+from datetime import datetime, timedelta
+from pathlib import Path
+from zoneinfo import ZoneInfo
+import telegram_outbox
 import re
 import time
 
 KINDS = ('access', 'correct', 'withdraw', 'delete', 'refund')
+# Preliminary response target; weekends excluded, public holidays not yet configured.
+RESPONSE_WORKING_DAYS = 10  # уточнить у юриста
+OWNER_PANEL_URL = 'http://127.0.0.1:8791/'
+KIND_LABELS = dict(access='Сведения об обработке', correct='Исправление данных',
+                   withdraw='Отзыв согласия / прекращение обработки',
+                   delete='Удаление данных', refund='Оплата / возврат')
+
+
+def notify_owner(kind, ident, created_at):
+    created = datetime.fromtimestamp(created_at, ZoneInfo('Europe/Moscow'))
+    deadline = created.date()
+    remaining = RESPONSE_WORKING_DAYS
+    while remaining:
+        deadline += timedelta(days=1)
+        if deadline.weekday() < 5:
+            remaining -= 1
+    # No description, account identifier, email, or child/profile information.
+    body = (f'MAMA: новое обращение\nВид: {KIND_LABELS[kind]}\nНомер: {ident}'
+            f'\nДата: {created:%d.%m.%Y %H:%M} (Москва)'
+            f'\nКрайний срок ответа: {deadline:%d.%m.%Y}'
+            f'\n{RESPONSE_WORKING_DAYS} рабочих дней — уточнить у юриста; '
+            'пока исключены только суббота и воскресенье.'
+            f'\nЛокальная панель: {OWNER_PANEL_URL}')
+    telegram_outbox.put(Path(os.environ['MAMA_AUTOMATION_ROOT']),
+                        'data-request:' + ident, 'data-request', body, 150)
 
 
 def action(app, db, user, action, data, headers, ip):
@@ -14,6 +45,7 @@ def action(app, db, user, action, data, headers, ip):
         app.reauthenticate(db, user, headers, ip, data.get('password'))
         state = app.payload(db, user)['state']
         records = [app.unseal(r[0]) for r in db.query('SELECT encrypted_data FROM mh_care_records WHERE owner_id=?', (uid,)).fetchall()]
+        records = [{k: v for k, v in record.items() if k not in ('undoToken', 'addedBy')} for record in records]
         authors = [{'childId':r[0],'recordId':r[1],**app.unseal(r[2])} for r in db.query('SELECT child_id,record_id,encrypted_data FROM mh_care_authorship WHERE owner_id=?',(uid,)).fetchall()]
         return {'createdAt': int(time.time()), 'email': user[1], 'state': state, 'careRecords': records, 'careAuthorship':authors,
                 'note': 'Выгрузка личного кабинета. Для сведений о получателях, основаниях и сроках обработки отправьте запрос доступа.'}
@@ -30,6 +62,14 @@ def action(app, db, user, action, data, headers, ip):
         if kind in ('withdraw','delete'):
             db.query('INSERT INTO mh_processing_restrictions VALUES(?,?,?) ON CONFLICT(user_id) DO NOTHING', (uid,kind,int(time.time())))
             db.query('UPDATE mh_health_consents SET revoked_at=? WHERE user_id=?',(int(time.time()),uid))
+    # Commit the request before touching the separate notification queue.
+    db.conn.commit()
+    created_at = db.query('SELECT created_at FROM mh_data_requests WHERE id=?', (ident,)).fetchone()[0]
+    try:
+        # A retry can repair a queue failure; INSERT OR IGNORE prevents duplicate alerts.
+        notify_owner(kind, ident, created_at)
+    except Exception:
+        logging.getLogger(__name__).warning('Data request saved; owner notification queue unavailable')
     return {'ok': True, 'id': ident, 'notice': 'Обращение сохранено. Новые обращения к ИИ приостановлены до решения вопроса об обработке данных; выгрузка и срочная помощь доступны.' if kind in ('withdraw','delete') else 'Обращение сохранено. Это запрос владельцу сервиса; данные и оплаты не изменены автоматически.'}
 
 

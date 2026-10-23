@@ -32,6 +32,45 @@ class ScenarioTests(unittest.TestCase):
         self.assertNotIn('from_id', str(a.BANK))
         self.assertIn('Не спрашивай повторно', a.TONE)
 
+    def test_tone_separates_missing_skill_from_regression(self):
+        self.assertIn('Потеря навыка требует обращения к врачу без ожидания нескольких недель', a.TONE)
+        missing = a.TONE.split('Если навык ЕЩЁ НЕ ПОЯВИЛСЯ', 1)[1]
+        for rule in ('это не потеря навыка', 'ближайшем плановом осмотре',
+                     'обычном порядке', 'проверки слуха', 'без запугивания',
+                     'без «сейчас», «не ждите», «срочно», «не откладывайте»',
+                     'Не задавай нормы, сроки освоения', 'записать для врача',
+                     'шага дома', 'не реагирует на звуки или имя',
+                     'асимметрия движений', 'не опирается на ноги',
+                     'нет интереса к общению', 'при непосредственной опасности'):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, missing)
+
+    def test_practical_steps_precede_questions_including_sleep(self):
+        for rule in ('сначала дай 1–2 конкретных безопасных шага на сегодня',
+                     'затем задай максимум два', 'Не заменяй помощь одними вопросами',
+                     'сохраняй приоритет срочной помощи', 'уважай прямой отказ от советов',
+                     'ночью приглушить свет', 'затем уточни трудность',
+                     'не отменяй ночные кормления'):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, a.TONE)
+        self.assertNotIn('сначала уточни её', a.TONE)
+
+    def test_speech_keeps_source_and_routine_assessment(self):
+        speech = a.BANK['speech']
+        self.assertEqual(speech['version'], 3)
+        self.assertEqual(speech['sources'], ['https://www.cdc.gov/act-early/families/concerned.html'])
+        for rule in ('обычном порядке', 'проверку слуха', 'паузу', 'без ожидания'):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, speech['answer_draft'])
+
+    def test_missing_skill_examples_do_not_route_to_loss_or_emergency(self):
+        for question in ('Лев в 10 месяцев не ползает, только сидит. Это плохо?',
+                         'Саше полтора года, говорит только «мама» и «дай». Пора беспокоиться?'):
+            with self.subTest(question=question):
+                self.assertNotIn('lost-skill', a.select(question))
+                self.assertIsNone(app._safety.reply(question))
+                self.assertIn('Если навык ЕЩЁ НЕ ПОЯВИЛСЯ', app.build_chat_context(app.blank_state(), question))
+
     def test_active_child_only_and_no_mutation(self):
         import copy
         state=app.blank_state()

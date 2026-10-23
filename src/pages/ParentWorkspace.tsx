@@ -1,3 +1,8 @@
+import { ruCount } from '@/lib/ru-count';
+import QuickConveniences from '@/components/QuickConveniences';
+import { AskDoctor } from '@/components/DoctorQuestions';
+import { conversationList, openConversation } from "@/lib/conversations";
+import { confirmAction } from "@/lib/confirm-action";
 import SimpleMyDay from "@/components/SimpleMyDay";
 import RoomChatWelcome, { RoomChatFeed } from "@/components/RoomChatWelcome";
 import RoomChatMenu from "@/components/RoomChatMenu";
@@ -14,6 +19,8 @@ import Favorites, { FavoriteButton } from "@/components/Favorites";
 import { familyList, switchChild, addChild } from "@/lib/family";
 import { type CSSProperties, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import ProductIdeas from "@/components/ProductIdeas";
+import MilestoneMark, { PushMilestoneMark } from "@/components/MilestoneMark";
+import { detectMilestones, milestoneFromSearch } from "@/lib/milestone-marks";
 import ChatQuickCare from "@/components/ChatQuickCare";
 import ChatMessageText from "@/components/ChatMessageText";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -141,6 +148,7 @@ export default function ParentWorkspace({
     card: "Наблюдения и память",
     "first-aid": "Первая помощь",
   };
+  const [chatRecovery, setChatRecovery] = useState(false);
   const draftKey = `${user?.id || "pending"}:${state.activeChildId || "primary"}:${state.conversationId || "legacy-active"}`;
   const scrollPositions = useRef<Record<string, number>>({});
   const [childPickerOpen, setChildPickerOpen] = useState(false);
@@ -272,9 +280,10 @@ export default function ParentWorkspace({
           navigate("/account?mode=email-await&next=" + encodeURIComponent(window.location.pathname + window.location.search), { replace: true });
           return;
         }
-        const requestedChild = new URLSearchParams(window.location.search).get(
-          "child",
-        );
+        const search = new URLSearchParams(window.location.search);
+        const requestedChild = search.has("mark")
+          ? milestoneFromSearch(window.location.search, familyList(s.state).map(c => c.id))?.childId
+          : search.get("child");
         if (
           requestedChild &&
           familyList(s.state).some((child) => child.id === requestedChild) &&
@@ -421,6 +430,7 @@ export default function ParentWorkspace({
     setError("");
     setNotice("");
     // Show the fixed emergency handoff before waiting for network, profile or quota.
+    setChatRecovery(false);
     setUrgentAnswer(localEmergencyNotice(q));
     const messageId =
       retryRequest?.question === q
@@ -463,11 +473,13 @@ export default function ParentWorkspace({
       writeChatDraft(draftKey, "");
       setNotice(
         result.sleepContext?.records
-          ? `Ответ подготовлен с записями сна: ${result.sleepContext.childName}, последние ${result.sleepContext.days} дней (${result.sleepContext.records} эпизодов).`
+          ? `Ответ подготовлен с записями сна: ${result.sleepContext.childName}, последние ${result.sleepContext.days} дней (${ruCount(result.sleepContext.records,"эпизод","эпизода","эпизодов")}).`
           : result.transientAnswer ? "История заполнена. Срочная помощь показана ниже; прежняя переписка сохранена." : "Переписка сохранена",
       );
     } catch (e) {
       const detail = (e as Error).message;
+      const needsRecovery = (e instanceof ApiError && e.status === 429) || /истори.*(длин|заполн)|history.*(long|full)/i.test(detail);
+      setChatRecovery(needsRecovery);
       setPartial("");
       setDraft((current) => {
         const next = current || q;
@@ -476,7 +488,7 @@ export default function ParentWorkspace({
         return next;
       });
       setError(
-        "Ответ не получен. Текст оставлен на экране и в поле ввода — можно отправить повторно. " +
+        needsRecovery ? detail : "Ответ не получен. Текст оставлен на экране и в поле ввода — можно отправить повторно. " +
           detail,
       );
     } finally {
@@ -510,7 +522,7 @@ export default function ParentWorkspace({
     }
     if (
       !state.profile &&
-      !window.confirm(
+      !await confirmAction(
         "Проверьте сведения. Профиль ребёнка заполняется один раз: после сохранения можно изменить только имя. Дату рождения, этап, кормление и другие поля изменить самостоятельно нельзя. Продолжить?",
       )
     )
@@ -743,6 +755,8 @@ export default function ParentWorkspace({
           onProfile={() => state.profile ? setChildPickerOpen(true) : setTab("profile")} onOptions={() => setRoomPanel("options")}
           onSettings={() => setTab("settings")} onLogout={() => void logout()}
         />}
+        <QuickConveniences key={state.activeChildId || "primary"} state={state} showLatest={tab === "home" || tab === "chat"} onRecords={() => setTab("trackers")} />
+        <PushMilestoneMark key={state.activeChildId || "primary"} state={state} search={location.search} />
         {!roomScene && <Link className="standalone-link" to="/first-aid">Срочная помощь · 112</Link>}
         {roomScene ? <h1 className={tab === "chat" ? "sr-only" : "room-section-title"}>{sectionTitles[tab] || "Ваш кабинет"}</h1> : <div className="cabinet-greeting">
           <div>
@@ -992,7 +1006,7 @@ export default function ParentWorkspace({
                     </p>
                   </div>
                 )}
-                {state.messages.map((m) => (
+                {state.messages.map((m, messageIndex) => (
                   <div
                     key={m.id}
                     className={`bubble ${m.role}`}
@@ -1005,6 +1019,8 @@ export default function ParentWorkspace({
                   >
                     <span className={roomScene ? "room-message-author" : undefined}>{m.role === "user" ? "Вы" : "Мамин помощник"}</span>
                     <p>{m.role === "assistant" ? <ChatMessageText text={m.text} /> : m.text}</p>
+                    <AskDoctor key={(state.activeChildId || "primary") + m.id} childId={state.activeChildId || "primary"} text={m.role === "user" ? m.text : [...state.messages.slice(0,messageIndex)].reverse().find(message => message.role === "user")?.text || ""} disabled={busy || chatBusy} />
+                    {m.role === "assistant" && messageIndex === state.messages.length - 1 && state.profile?.stage === "child" && state.messages[messageIndex - 1]?.role === "user" && detectMilestones(state.messages[messageIndex - 1].text).map(skill => <MilestoneMark key={(state.activeChildId || "primary") + m.id + skill} state={state} skill={skill} />)}
                     {m.role === "assistant" && m.careVersion && careVersion && m.careVersion !== careVersion && <p className="text-sm muted" role="note">Дневник обновлён после этого ответа.</p>}
                     {m.role === "assistant" && (roomScene ? <details className="room-answer-actions">
                       <summary><Ellipsis size={18} /><span>Действия с ответом</span><ChevronDown size={14} /></summary>
@@ -1042,7 +1058,7 @@ export default function ParentWorkspace({
                   </div>
                 )}
               </div>
-              {!chatBusy && retryRequest && (
+              {!chatBusy && retryRequest && !chatRecovery && (
                 <Button
                   className="my-3"
                   variant="outline"
@@ -1057,7 +1073,16 @@ export default function ParentWorkspace({
             </section>
               {roomScene && <ChatQuickCare inline key={state.activeChildId || "primary"} state={state} onTrackers={() => setTab("trackers")} profileBusy={busy || chatBusy} />}
               <div ref={composer} className="chat-composer" role="region" aria-label="Написать вопрос">
-                {error && <p id="chat-request-error" role="alert" className="form-error chat-request-error">{error}</p>}
+                {error && <p id="chat-request-error" role="alert" className="form-error chat-request-error">{error}{chatRecovery && <span className="chat-recovery-actions"><Link to="/data-rights">Написать владельцу</Link><Button type="button" variant="outline" disabled={busy || chatBusy || conversationList(state).length >= 21} onClick={async () => {
+                  const next = openConversation(state, { title: "Новый чат" });
+                  if (next === state) return;
+                  const nextKey = `${user?.id || "pending"}:${next.activeChildId || "primary"}:${next.conversationId}`;
+                  messageDrafts.current[nextKey] = draft;
+                  writeChatDraft(nextKey, draft);
+                  if (await save(next, "Новый чат открыт. Черновик сохранён.")) {
+                    setRetryRequest(null); setPartial(""); setUrgentAnswer(""); setChatRecovery(false);
+                  }
+                }}>Новый чат</Button></span>}</p>}
                 <VoiceInput
                   disabled={busy || chatBusy}
                   onText={(text) =>
@@ -1259,7 +1284,7 @@ export default function ParentWorkspace({
                           })
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger aria-label="Кто вы">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1279,7 +1304,7 @@ export default function ParentWorkspace({
                           })
                         }
                       >
-                        <SelectTrigger>
+                        <SelectTrigger aria-label="Этап">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1293,9 +1318,10 @@ export default function ParentWorkspace({
                   </div>
                   {profileDraft.stage === "child" ? (
                     <>
-                      <label className="form-field">
+                      <label htmlFor="profile-birth-date" className="form-field">
                         Дата рождения ребёнка
                         <Input
+                          id="profile-birth-date"
                           type="date"
                           required
                           max={today()}
@@ -1319,7 +1345,7 @@ export default function ParentWorkspace({
                             })
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger aria-label="Пол">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1334,9 +1360,10 @@ export default function ParentWorkspace({
                     </>
                   ) : (
                     <div className="form-grid">
-                      <label className="form-field">
+                      <label htmlFor="profile-pregnancy-week" className="form-field">
                         Полных недель
                         <Input
+                          id="profile-pregnancy-week"
                           type="number"
                           min={1}
                           max={42}
@@ -1350,9 +1377,10 @@ export default function ParentWorkspace({
                           }
                         />
                       </label>
-                      <label className="form-field">
+                      <label htmlFor="profile-pregnancy-week-date" className="form-field">
                         На какую дату указан срок
                         <Input
+                          id="profile-pregnancy-week-date"
                           type="date"
                           max={today()}
                           required
@@ -1382,7 +1410,7 @@ export default function ParentWorkspace({
                         })
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-label="Кормление">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>

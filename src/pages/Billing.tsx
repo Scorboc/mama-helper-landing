@@ -43,18 +43,18 @@ export default function Billing() {
       <p>Трекеры, графики, заметки, избранное и семейные функции. Продление по вашему действию, без автоматических списаний.</p>
       <p className="muted text-sm">Неиспользованные ответы не переносятся. Новый период можно оплатить после окончания текущего. История, отметки и срочная помощь доступны и после окончания доступа.</p>
     </section>
-    {active && <p role="status">{billing?.mode === "test" ? "Ваш доступ активен" : "Ваш платный доступ активен"}{billing?.endsAt ? " до " + new Date(billing.endsAt * 1000).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" }) + " МСК" : ""}.</p>}
-    {!billing?.paymentConfigured && <p role="status" className="rounded-xl border p-4">Онлайн-оплата пока недоступна. Деньги не списываются.</p>}
-    {!loggedIn ? <Button asChild><Link to="/account?mode=login">Войти в аккаунт</Link></Button> : !active && <>
+    {billing?.closedBeta && <p role="status">Закрытое тестирование: {billing.betaAnswerLimit} ответов и подборок ИИ на аккаунт. После исчерпания лимита напишите владельцу через «Данные и обращения».</p>}{active && <p role="status">{billing?.mode === "test" ? "Ваш доступ активен" : "Ваш платный доступ активен"}{billing?.endsAt ? " до " + new Date(billing.endsAt * 1000).toLocaleString("ru-RU", { timeZone: "Europe/Moscow" }) + " МСК" : ""}.</p>}
+    {!billing?.paymentConfigured && <p role="status" className="rounded-xl border p-4">Оплата откроется позже. Деньги не списываются.</p>}
+    {!loggedIn ? <Button asChild><Link to="/account?mode=login">Войти в аккаунт</Link></Button> : !active && billing?.paymentConfigured && !billing.closedBeta && <>
       <div className="flex items-start gap-3"><Checkbox id="offer-accepted" checked={accepted} onCheckedChange={v => setAccepted(v === true)} /><label htmlFor="offer-accepted" className="leading-relaxed">Принимаю <Link className="underline" to="/offer">оферту</Link> на доступ за 480 ₽ и 300 ответов и подборок ИИ на календарный месяц.</label></div>
       <Button onClick={() => void checkout()} disabled={busy || !accepted || !billing?.paymentConfigured}>Открыть оплату · 480 ₽</Button>
     </>}
-    {confirmation && <a className="glass-btn inline-block px-5 py-3" href={confirmation}>Перейти на страницу платёжного сервиса</a>}
-    {order && <Button variant="outline" onClick={() => void checkout(true)} disabled={busy}>Проверить оплату</Button>}
+    {!billing?.closedBeta && confirmation && <a className="glass-btn inline-block px-5 py-3" href={confirmation}>Перейти на страницу платёжного сервиса</a>}
+    {!billing?.closedBeta && order && <Button variant="outline" onClick={() => void checkout(true)} disabled={busy}>Проверить оплату</Button>}
     {busy && <p role="status">Проверяем заказ…</p>}
     {notice && <p role="status">{notice}</p>}
     {error && <p role="alert" className="form-error">{error}</p>}
-    <Link className="standalone-link" to="/data-rights">Задать вопрос об оплате или запросить возврат</Link>
+    <Link className="standalone-link" to="/data-rights">{billing?.closedBeta ? "Написать владельцу" : "Задать вопрос об оплате или запросить возврат"}</Link>
     <LegalLinks />
     <Link className="standalone-link" to="/first-aid">Срочная помощь · 112</Link>
   </article></main>;

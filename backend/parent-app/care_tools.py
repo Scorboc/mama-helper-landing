@@ -9,6 +9,30 @@ from zoneinfo import ZoneInfo,ZoneInfoNotFoundError
 import care_summary
 
 KINDS = {'sleep','wake','feeding','food','achievement','mood'}
+MILESTONE_LABELS = {'roll':'Переворачивается','crawl':'Ползает','stand':'Встаёт у опоры','walk':'Ходит','words':'Первые слова'}
+
+def marked_milestone(records, state, skill):
+    """Shared predicate for saving, push eligibility and legacy card records."""
+    label = MILESTONE_LABELS.get(skill)
+    if not label:
+        return None
+    previous = next((r for r in records if r.get('kind') == 'achievement'
+                     and (r.get('skill') == skill or r.get('value') == label)), None)
+    if previous:
+        return previous
+    old = next((r for r in (state.get('care') or {}).get('achievements', [])
+                if r.get('kind') == skill), None)
+    if old:
+        return {'id':old['id'], 'kind':'achievement', 'value':label,
+                'at':old['date']+'T00:00:00Z', 'legacy':True}
+    return None
+
+
+def milestone_records(app, db, uid, cid):
+    """Read this account's own child; propagate errors rather than assume no marks."""
+    state = child(app, db, uid, cid)
+    rows = db.query('SELECT encrypted_data FROM mh_care_records WHERE owner_id=? AND child_id=?', (uid, cid)).fetchall()
+    return [app.unseal(r[0]) for r in rows], state
 
 def version(records):
     # A snapshot identifier, not a copy of private journal contents.
@@ -17,7 +41,7 @@ def version(records):
 
 def current_version(app,db,uid,cid):
     rows=db.query('SELECT encrypted_data FROM mh_care_records WHERE owner_id=? AND child_id=?',(uid,cid)).fetchall()
-    return version([app.unseal(r[0]) for r in rows])
+    return version([app.unseal(r[0]) for r in rows if app.unseal(r[0]).get('kind')!='doctor-question'])
 
 def child(app, db, uid, cid):
     row=db.query('SELECT encrypted_data FROM mh_state WHERE user_id=?',(uid,)).fetchone()
@@ -76,6 +100,30 @@ def action(app,db,uid,data):
         return {'code':token,'id':ident}
     rows=db.query('SELECT encrypted_data FROM mh_care_records WHERE owner_id=? AND child_id=?',(owner,cid)).fetchall()
     records=[app.unseal(r[0]) for r in rows]
+    questions=[r for r in records if r.get('kind')=='doctor-question']
+    records=[r for r in records if r.get('kind')!='doctor-question']
+    if name in ('doctor-question-put','doctor-question-delete'):
+        if permission=='read':raise app.AppError(403,'Предоставлен только просмотр.')
+        ident=data.get('id')
+        if not isinstance(ident,str) or not re.fullmatch(r'[a-zA-Z0-9-]{1,100}',ident):raise app.AppError(400,'Проверьте вопрос.')
+        existing=next((q for q in questions if q['id']==ident),None)
+        if name=='doctor-question-delete':
+            if permission!='owner':
+                token=data.get('undoToken')
+                if not existing or existing.get('addedBy')!=uid or not isinstance(token,str) or not secrets.compare_digest(existing.get('undoToken',''),token) or not token or time.time()-datetime.fromisoformat(existing['at']).timestamp()>300:raise app.AppError(403,'Удалять вопросы может владелец.')
+            if existing:db.query('DELETE FROM mh_care_records WHERE owner_id=? AND child_id=? AND id=?',(owner,cid,ident))
+            return {'ok':True}
+        text=data.get('text')
+        if not isinstance(text,str) or not 1<=len(text.strip())<=500:raise app.AppError(400,'Вопрос: от 1 до 500 символов.')
+        text=text.strip()
+        duplicate=next((q for q in questions if ' '.join(q['note'].split()).casefold()==' '.join(text.split()).casefold() and q['id']!=ident),None)
+        if duplicate:return {'ok':True,'duplicate':True,'id':duplicate['id']}
+        if not existing and len(questions)>=30:raise app.AppError(400,'Можно сохранить до 30 вопросов.')
+        if not existing and db.query('SELECT id FROM mh_care_records WHERE owner_id=? AND child_id=? AND id=?',(owner,cid,ident)).fetchone():raise app.AppError(409,'Обновите список вопросов.')
+        token=secrets.token_urlsafe(24) if not existing else ''
+        question={'id':ident,'kind':'doctor-question','note':text,'at':existing['at'] if existing else datetime.now(timezone.utc).isoformat(),'addedBy':uid,'undoToken':token}
+        db.query('INSERT INTO mh_care_records VALUES(?,?,?,?) ON CONFLICT(owner_id,child_id,id) DO UPDATE SET encrypted_data=excluded.encrypted_data',(owner,cid,ident,app.seal(question)))
+        return {'ok':True,'id':ident,'undoToken':token}
     # Parent feelings are private even when child care has been shared.
     if permission!='owner':records=[r for r in records if r['kind']!='mood']
     if name=='care-list':
@@ -90,7 +138,7 @@ def action(app,db,uid,data):
                 if plan.get('catalogVersion')==mod.catalog.VERSION and plan.get('ageMonths')==months:
                     daily=plan.get('items',[])
         authors={r[0]:app.unseal(r[1]) for r in db.query('SELECT record_id,encrypted_data FROM mh_care_authorship WHERE owner_id=? AND child_id=?',(owner,cid)).fetchall() if any(v['id']==r[0] for v in records)}
-        return {'daily':daily,'records':sorted(records,key=lambda r:r['at'],reverse=True),'authors':authors,'contextVersion':version(records),
+        return {'doctorQuestions':[{k:q[k] for k in ('id','note')} for q in questions],'daily':daily,'records':sorted(records,key=lambda r:r['at'],reverse=True),'authors':authors,'contextVersion':version(records),
                 'summary':care_summary.summary(records,state.get('preferences',{}).get('timezone') or 'Europe/Moscow'),
                 'profile':{'childName':state['profile'].get('childName',''),'stage':state['profile']['stage'],'birthDate':state['profile']['birthDate']},'permission':permission,'achievements':care.get('achievements',[]),'appointments':care.get('appointments',[]) if permission=='owner' else []}
     if permission=='read':raise app.AppError(403,'Предоставлен только просмотр.')
@@ -122,7 +170,12 @@ def action(app,db,uid,data):
         return {'ok':True}
     if name=='care-put':
         r=data.get('record')
-        if not isinstance(r,dict) or set(r)-{'id','kind','at','end','note','value','side','sleepType','settlingAt','feeling','wakeType'}:raise app.AppError(400,'Проверьте запись.')
+        if not isinstance(r,dict) or set(r)-{'id','kind','at','end','note','value','side','sleepType','settlingAt','feeling','wakeType','skill'}:raise app.AppError(400,'Проверьте запись.')
+        if 'skill' in r:
+            if not isinstance(r['skill'],str) or r['skill'] not in MILESTONE_LABELS or r.get('kind')!='achievement':
+                raise app.AppError(400,'Неизвестный навык.')
+            if permission!='owner':raise app.AppError(403,'Отметить навык может владелец профиля.')
+            r={**r,'value':MILESTONE_LABELS[r['skill']]}
         if not isinstance(r.get('id'),str) or not re.fullmatch(r'[a-zA-Z0-9-]{1,100}',r['id']) or r.get('kind') not in KINDS:raise app.AppError(400,'Проверьте запись.')
         if r['kind']=='mood' and permission!='owner':raise app.AppError(403,'Самочувствие родителя приватно.')
         if r['kind']!='mood' and state['profile']['stage']!='child':raise app.AppError(400,'Этот дневник доступен после рождения ребёнка.')
@@ -132,9 +185,17 @@ def action(app,db,uid,data):
                 v=datetime.fromisoformat(r.get(key,'').replace('Z','+00:00'))
                 if v.tzinfo is None or v.timestamp()>time.time()+60:raise ValueError()
             except (ValueError,TypeError,AttributeError):raise app.AppError(400,'Проверьте время записи.')
+        if r.get('skill'):
+            try:zone=ZoneInfo(state.get('preferences',{}).get('timezone') or 'Europe/Moscow')
+            except (ZoneInfoNotFoundError,TypeError,ValueError):zone=ZoneInfo('Europe/Moscow')
+            marked_day=datetime.fromisoformat(r['at'].replace('Z','+00:00')).astimezone(zone).date().isoformat()
+            if marked_day<state['profile']['birthDate']:raise app.AppError(400,'Дата наблюдения раньше рождения ребёнка.')
+            if marked_day>datetime.now(zone).date().isoformat():raise app.AppError(400,'Дата наблюдения в будущем.')
         if r.get('end') and datetime.fromisoformat(r['end'].replace('Z','+00:00'))<datetime.fromisoformat(r['at'].replace('Z','+00:00')):raise app.AppError(400,'Окончание раньше начала.')
         if not isinstance(r.get('note',''),str) or len(r.get('note',''))>500:raise app.AppError(400,'Запись до 500 символов.')
         if not isinstance(r.get('value',''),str) or len(r.get('value',''))>120 or r.get('side','') not in ('','left','right','bottle'):raise app.AppError(400,'Проверьте поля записи.')
+        if r['kind']=='achievement' and r.get('value') in MILESTONE_LABELS.values() and permission!='owner':
+            raise app.AppError(403,'Отметить навык может владелец профиля.')
         if r.get('sleepType','') not in ('','day','night') or r.get('wakeType','') not in ('','morning','night') or r.get('feeling','') not in ('','calm','fussy','crying'):
             raise app.AppError(400,'Проверьте вид сна и самочувствие.')
         if r.get('settlingAt'):
@@ -152,6 +213,9 @@ def action(app,db,uid,data):
                 a=datetime.fromisoformat(x['at'].replace('Z','+00:00')).timestamp()
                 b=datetime.fromisoformat(x['end'].replace('Z','+00:00')).timestamp() if x.get('end') else float('inf')
                 if start<b and a<end:raise app.AppError(409,'Этот сон пересекается с другой записью. Исправьте время или завершите текущий сон.')
+        if r.get('skill'):
+            previous=marked_milestone(records,state,r['skill'])
+            if previous:return {'ok':True,'record':previous,'alreadyMarked':True}
         exists=db.query('SELECT encrypted_data FROM mh_care_records WHERE owner_id=? AND child_id=? AND id=?',(owner,cid,r['id'])).fetchone()
         if exists:
             previous=app.unseal(exists[0])
@@ -165,13 +229,13 @@ def action(app,db,uid,data):
         author=app.unseal(author_row[0]) if author_row else {'createdByRole':'Не сохранено для прежней записи' if exists else role}
         author.update(updatedByRole=role,updatedAt=datetime.now(timezone.utc).isoformat())
         db.query('INSERT INTO mh_care_authorship VALUES(?,?,?,?) ON CONFLICT(owner_id,child_id,record_id) DO UPDATE SET encrypted_data=excluded.encrypted_data',(owner,cid,r['id'],app.seal(author)))
-        return {'ok':True}
+        return {'ok':True,'record':r} if r.get('skill') else {'ok':True}
     raise app.AppError(400,'Неизвестное действие.')
 
 
 def observations(app,db,uid,cid,limit=80,with_version=False):
     rows=db.query('SELECT encrypted_data FROM mh_care_records WHERE owner_id=? AND child_id=?',(uid,cid)).fetchall()
-    records=sorted([app.unseal(r[0]) for r in rows],key=lambda r:r['at'],reverse=True)
+    records=sorted([app.unseal(r[0]) for r in rows if app.unseal(r[0]).get('kind')!='doctor-question'],key=lambda r:r['at'],reverse=True)
     row=db.query('SELECT encrypted_data FROM mh_state WHERE user_id=?',(uid,)).fetchone()
     state=app.unseal(row[0]) if row else {}
     try: zone=ZoneInfo(state.get('preferences',{}).get('timezone') or 'Europe/Moscow')

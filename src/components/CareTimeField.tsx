@@ -64,7 +64,7 @@ export default function CareTimeField({ label, value, disabled = false, onChange
   function close() { setOpen(false); trigger.current?.focus({ preventScroll: true }); }
   return <div className="care-time-field">
     <span id={id + "-label"}>{label}</span>
-    <Button ref={trigger} type="button" variant="outline" disabled={disabled} aria-labelledby={id + "-label " + id + "-value"} aria-expanded={open} aria-controls={id + "-picker"}
+    <Button ref={trigger} type="button" variant="outline" disabled={disabled} aria-label={`${label}: ${value ? careTime(value) : emptyLabel}`} aria-expanded={open} aria-controls={id + "-picker"}
       onClick={() => { setDraft(value ? new Date(value) : new Date()); setOpen(!open); }}><span id={id + "-value"}>{value ? careTime(value) : emptyLabel}</span></Button>
     {open && <div ref={picker} id={id + "-picker"} className="care-time-picker" role="group" aria-label={label + ": выбрать время"}>
       <div className="care-time-picker__day">

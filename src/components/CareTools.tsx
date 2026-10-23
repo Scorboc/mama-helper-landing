@@ -1,3 +1,7 @@
+import FirstYearBook from './FirstYearBook';
+import { recordQuestionContext } from '@/lib/quick-wins';
+import { AskDoctor, DoctorQuestionList, type DoctorQuestion } from './DoctorQuestions';
+import { confirmAction } from "@/lib/confirm-action";
 import SleepDiary from "./SleepDiary";
 import CareWeek from "./CareWeek";
 import FoodPreparation from "./FoodPreparation";
@@ -18,6 +22,7 @@ import { careTime } from "@/lib/care-time";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 
 type RecordItem = {
+  skill?: string;
   id: string;
   kind: "sleep" | "wake" | "feeding" | "food" | "achievement" | "mood";
   at: string;
@@ -36,6 +41,7 @@ type Access = {
   childName: string;
 };
 type Listing = {
+  doctorQuestions: DoctorQuestion[];
   summary?: import("@/lib/care-journal").CareSummary;
   contextVersion: string;
   authors?: Record<string,{createdByRole:string;updatedByRole:string;updatedAt:string}>;
@@ -51,6 +57,7 @@ type Listing = {
     instructions: string;
   }[];
 };
+const recordLabel = (r: RecordItem) => r.kind === "achievement" && !r.skill ? "Наше открытие" : labels[r.kind];
 const labels = {
   wake: "Пробуждение",
   sleep: "Сон",
@@ -131,7 +138,7 @@ export function TrackerSummary({
   return (
     <section
       className="tracker-summary"
-      aria-label="Записано за последние сутки"
+      aria-label="Записано за последние 24 часа"
     >
       <h3>Последние 24 часа</h3>
       <div className="tracker-numbers">
@@ -170,18 +177,18 @@ export function TrackerSummary({
         aria-label="Записанный сон: семь периодов по 24 часа"
       >
         {week.map((d) => (
-          <div key={d.label}>
+          <div key={d.label} title={`24 часа до ${d.label}, ${new Date(now).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}: ${d.minutes} мин сна`}>
             <span>{Math.round((d.minutes / 60) * 10) / 10} ч</span>
             <div
               className="sleep-bar"
               style={{ height: Math.max(2, (d.minutes / max) * 70) }}
             />
-            <small>{d.label}</small>
+            <small style={{ fontSize: 12 }} aria-label={d.label}>{d.label.split(".")[0]}</small>
           </div>
         ))}
       </div>
       <p className="muted">
-        Сводка отражает ваши записи. Она не определяет норму сна, достаточность
+        Столбцы — последовательные периоды по 24 часа, дата обозначает конец периода. Сводка отражает ваши записи. Она не определяет норму сна, достаточность
         питания или причину изменений.
       </p>
     </section>
@@ -254,6 +261,8 @@ export default function CareTools({
   useEffect(() => { setFeedingEditor(null); }, [contextKey]);
   const [includeVisits, setIncludeVisits] = useState(false);
   const [printingReport, setPrintingReport] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
+  useEffect(() => { setBookOpen(false); }, [contextKey, panel, active]);
   const [includeAchievements, setIncludeAchievements] = useState(false);
   const lastDraft = useRef({ note, value, sleepStart, sleepEnd });
   lastDraft.current = { note, value, sleepStart, sleepEnd };
@@ -361,10 +370,12 @@ export default function CareTools({
     update();
     const timer = setInterval(update, 30000);
     window.addEventListener("care-records-changed", update);
+    window.addEventListener("doctor-questions-changed", update);
     document.addEventListener("visibilitychange", update);
     return () => {
       clearInterval(timer);
       window.removeEventListener("care-records-changed", update);
+      window.removeEventListener("doctor-questions-changed", update);
       document.removeEventListener("visibilitychange", update);
     };
   // load is recreated every render; the poll re-runs on context, panel and visibility changes only.
@@ -386,8 +397,8 @@ export default function CareTools({
       if (key === contextRef.current) {
         await load();
         await families();
-        drafts[originDraft] = { note: "", value: "" };
-        if (draftKeyRef.current === originDraft) {
+        if (!action.startsWith("doctor-question-")) drafts[originDraft] = { note: "", value: "" };
+        if (draftKeyRef.current === originDraft && !action.startsWith("doctor-question-")) {
           setNote("");
           setValue("");
           setStatus(action === "care-delete" ? "Запись удалена" : "Сохранено");
@@ -449,7 +460,7 @@ export default function CareTools({
   function reportText() {
     return buildConsultationReport({
       profile: listing?.profile || { stage: "child" }, records, selected, days,
-      timezone: state.preferences.timezone, now, questions: note,
+      timezone: state.preferences.timezone, now, questions: [...(listing?.doctorQuestions || []).map(q => q.note), note].filter(Boolean).join("\n"),
       appointments: includeVisits ? (listing?.appointments || []).filter((a) => Date.parse(a.date + "T12:00:00Z") >= cutoff && Date.parse(a.date + "T00:00:00Z") <= now) : [],
       achievements: includeAchievements ? (listing?.achievements || []).filter((a) => Date.parse(a.date + "T12:00:00Z") >= cutoff && Date.parse(a.date + "T00:00:00Z") <= now) : [],
     });
@@ -802,12 +813,13 @@ export default function CareTools({
               <input type="checkbox" checked={includeAchievements} onChange={(e) => setIncludeAchievements(e.target.checked)} />
               Добавить сохранённые наблюдения о развитии
             </label>
+            <DoctorQuestionList key={contextKey} questions={listing?.doctorQuestions || []} permission={listing?.permission || 'read'} onChange={async (id,text) => { const ok=await mutate(text === undefined ? 'doctor-question-delete' : 'doctor-question-put',{id,text});if(ok)window.dispatchEvent(new Event('doctor-questions-changed'));return ok;}} />
             <label className="form-field">
-              Ваши вопросы врачу · необязательно
+              Дополнительный вопрос для этой сводки · необязательно
               <Textarea value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} />
             </label>
             {recent.map((r) => (
-              <label key={r.id} className="flex items-start gap-3 py-3 min-h-11">
+              <div key={r.id}><label className="flex items-start gap-3 py-3 min-h-11">
                 <input
                   type="checkbox"
                   checked={selected.includes(r.id)}
@@ -819,8 +831,8 @@ export default function CareTools({
                     )
                   }
                 />{" "}
-                <span>{new Date(r.at).toLocaleString("ru-RU", { timeZone: state.preferences.timezone || "Europe/Moscow" })} · {labels[r.kind]} · {r.value} {r.note}</span>
-              </label>
+                <span>{new Date(r.at).toLocaleString("ru-RU", { timeZone: state.preferences.timezone || "Europe/Moscow" })} · {recordLabel(r)} · {r.value} {r.note}</span>
+              </label><AskDoctor childId={context.childId} ownerId={shared?.ownerId} text={r.note?.trim() || recordQuestionContext(r,state.preferences.timezone)} context={r.note?.trim() ? undefined : recordQuestionContext(r,state.preferences.timezone)} disabled={!editable || busy} /></div>
             ))}
             <label className="block mt-4">
               Предпросмотр сводки
@@ -840,6 +852,7 @@ export default function CareTools({
             <Dialog open={printingReport} onOpenChange={setPrintingReport}><DialogContent className="sleep-print-sheet max-w-4xl"><DialogHeader><DialogTitle>Выбранные записи для специалиста</DialogTitle><DialogDescription>Проверьте документ перед печатью. Переписка и самочувствие родителя не включены.</DialogDescription></DialogHeader><div className="sleep-print-actions"><Button onClick={() => window.print()}>Печать / Сохранить PDF</Button><Button variant="outline" onClick={() => setPrintingReport(false)}>Закрыть</Button></div><div style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{reportText()}</div></DialogContent></Dialog>
           </>
         )}
+        {panel === "development" && active && <div className="my-4"><Button className="min-h-11" variant="outline" onClick={() => setBookOpen(v => !v)} aria-expanded={bookOpen}>Книга первого года</Button>{bookOpen && <FirstYearBook key={contextKey} context={context} zone={state.preferences.timezone || "Europe/Moscow"}/>}</div>}
         {panel === "family" && (
           <>
             <CareWeek authors={listing?.authors} summary={listing?.summary} records={records} timezone={state.preferences.timezone || "Europe/Moscow"} />
@@ -929,7 +942,7 @@ export default function CareTools({
               .slice(0, 60)
               .map((r) => (
                 <div key={r.id} className="border-b py-3">
-                  <strong>{labels[r.kind]}</strong> ·{" "}
+                  <strong>{recordLabel(r)}</strong> ·{" "}
                   {r.kind === "feeding" ? careTime(r.at) + (r.end ? " — " + careTime(r.end) : "") : new Date(r.at).toLocaleString("ru-RU")}
                   <p>
                     {r.value}{" "}
@@ -949,13 +962,15 @@ export default function CareTools({
                         " мин."
                       : ""}
                   </p>
-                  {r.kind === "feeding" && <Button variant="outline" disabled={busy || !editable} onClick={() => { setError(""); setFeedingEditor({ ...r }); }}>Исправить</Button>}
+                  <AskDoctor key={contextKey+r.id} childId={context.childId} ownerId={shared?.ownerId} text={r.note?.trim() || recordQuestionContext(r,state.preferences.timezone)} context={r.note?.trim() ? undefined : recordQuestionContext(r,state.preferences.timezone)} disabled={!editable || busy} />
+                  {r.kind === "feeding" && <Button aria-label={`Исправить: ${recordLabel(r)}, ${careTime(r.at)}`} variant="outline" disabled={busy || !editable} onClick={() => { setError(""); setFeedingEditor({ ...r }); }}>Исправить</Button>}
                   {own && (
                     <Button
                       variant="ghost"
+                      aria-label={`Удалить: ${recordLabel(r)}, ${careTime(r.at)}`}
                       disabled={busy}
-                      onClick={() => {
-                        if (window.confirm("Удалить эту запись?"))
+                      onClick={async () => {
+                        if (await confirmAction("Удалить эту запись?"))
                           void mutate("care-delete", { id: r.id });
                       }}
                     >

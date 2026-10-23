@@ -210,7 +210,7 @@ class ProviderBudgetTests(unittest.TestCase):
             self.assertEqual(self.ask(cookie,'blocked')[0]['statusCode'],429)
             urgent=self.ask(cookie,'urgent','Ребёнок не дышит')[1]
             self.assertIn('112',urgent['answer'])
-            plan=self.call('daily-plan',cookie)[1]
+            plan=self.call('daily-create',cookie)[1]
             self.assertEqual(plan['source'],'library');self.assertEqual(len(plan['items']),3)
             network.assert_not_called()
         self.assertEqual(self.call('session',cookie)[1]['quota']['used'],0)
@@ -219,9 +219,9 @@ class ProviderBudgetTests(unittest.TestCase):
         cookie,_=self.parent()
         with patch.dict(os.environ,AI_PROVIDER='proxyapi',PROXYAPI_API_KEY='synthetic-only'), \
              patch.object(app,'CHAT_LIVE_ENABLED',True), patch.object(app.urllib.request,'urlopen',side_effect=self.response) as network:
-            first=self.call('daily-plan',cookie)[1]
+            first=self.call('daily-create',cookie)[1]
             self.assertEqual(first['source'],'ai')
-            second=self.call('daily-plan',cookie)[1]
+            second=self.call('daily-create',cookie)[1]
             self.assertEqual(first,second);self.assertEqual(network.call_count,1)
             self.assertEqual(self.call('session',cookie)[1]['quota']['used'],0)
             answered=self.ask(cookie,'chat')[1]

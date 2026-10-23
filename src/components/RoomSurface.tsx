@@ -12,6 +12,7 @@ export default function RoomSurface({ children }: { children: ReactNode }) {
     let preparing = false;
     let frame = 0;
     let timeout = 0;
+    const fallback = window.setTimeout(() => { if (!disposed) setReadyPath(location.pathname); }, 1500);
     const image = new Image();
     image.src = `${import.meta.env.BASE_URL}media/room/rest-v12.webp`;
     const backdropReady = image.decode().catch(() => {});
@@ -30,7 +31,7 @@ export default function RoomSurface({ children }: { children: ReactNode }) {
     const observer = new MutationObserver(check);
     if (surface.current) observer.observe(surface.current, { childList: true, subtree: true });
     check();
-    return () => { disposed = true; observer.disconnect(); cancelAnimationFrame(frame); window.clearTimeout(timeout); };
+    return () => { disposed = true; window.clearTimeout(fallback); observer.disconnect(); cancelAnimationFrame(frame); window.clearTimeout(timeout); };
   }, [enabled, location.pathname]);
   useEffect(() => {
     if (!enabled) return;

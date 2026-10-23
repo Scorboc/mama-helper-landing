@@ -2,7 +2,8 @@ import {useCallback,useEffect,useId,useRef,useState} from 'react';
 import {Button} from './ui/button';
 import {Textarea} from './ui/textarea';
 import {Dialog,DialogContent,DialogHeader,DialogTitle,DialogDescription} from './ui/dialog';
-import {api} from '@/lib/parent-api';
+import {api,ApiError} from '@/lib/parent-api';
+import {Link} from 'react-router-dom';
 import {randomId} from '@/lib/id';
 import {RequestScope} from '@/lib/request-scope';
 import type {ParentState} from '@/lib/parent-model';
@@ -16,6 +17,7 @@ export default function DailyActivities({state,active=true}:{state:ParentState;a
  const seenKeys=useRef(new Set<string>());
  const cid=state.activeChildId || 'primary';
  const [plan,setPlan]=useState<Plan>(); const [busy,setBusy]=useState(false); const [error,setError]=useState('');
+ const generating=useRef(new Set<string>()); const [limited,setLimited]=useState(false);
  const [target,setTarget]=useState<Activity>(); const [reason,setReason]=useState(''); const [detail,setDetail]=useState('');
  const [today,setToday]=useState(''); const mounted=useRef(true); const pending=useRef<{key:string;id:string}>();
  const profileKey=JSON.stringify(state.profile);
@@ -25,15 +27,17 @@ export default function DailyActivities({state,active=true}:{state:ParentState;a
  requestScope.current.select(contextKey);
  useEffect(()=>{const tick=()=>setToday(new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));tick();const timer=setInterval(tick,60000);return()=>clearInterval(timer);},[zone]);
  useEffect(()=>{const scope=requestScope.current;mounted.current=true;return()=>{mounted.current=false;scope.cancel();};},[]);
- const load=useCallback(async()=>{
+ const load=useCallback(async(create=false)=>{
+   if(generating.current.has(contextKey))return;
+   if(create)generating.current.add(contextKey);
    const ticket=requestScope.current.begin(contextKey);
    const current=()=>mounted.current && requestScope.current.current(ticket);
-   setBusy(true);setError('');
-   try {const result=await api<Plan>('daily-plan',{childId:cid});if(current()){setPlan(result);setError('');}}
-   catch(e){if(current())setError((e as Error).message);}
-   finally{if(current())setBusy(false);}
+   setBusy(true);setError('');setLimited(false);
+   try {const result=create ? await api<Plan>('daily-create',{childId:cid}) : (await api<{plan:Plan|null}>('daily-plan',{childId:cid})).plan;if(current()){setPlan(result || undefined);setError('');}}
+   catch(e){if(current()){setError((e as Error).message);setLimited(e instanceof ApiError && e.status===429);}}
+   finally{if(create)generating.current.delete(contextKey);if(current())setBusy(false);}
  },[cid,contextKey]);
- useEffect(()=>{setTarget(undefined);pending.current=undefined;if(today && active){void load();}},[load,today,active]);
+ useEffect(()=>{setPlan(undefined);setLimited(false);setTarget(undefined);pending.current=undefined;if(today && active){void load();}},[load,today,active]);
  useEffect(()=>{
    const element=contentRef.current;
    if(!active || !element || !plan || plan.viewed || plan.childId!==cid || plan.day!==today)return;
@@ -57,15 +61,16 @@ export default function DailyActivities({state,active=true}:{state:ParentState;a
    if(pending.current?.key!==key)pending.current={key,id:randomId()};
    const ticket=requestScope.current.begin(contextKey);
    const current=()=>mounted.current && requestScope.current.current(ticket);
-   setBusy(true);setError('');
+   setBusy(true);setError('');setLimited(false);
    try {const result=await api<Plan>('daily-feedback',{...data,requestId:pending.current.id});if(current()){setPlan(result);setTarget(undefined);setDetail('');setReason('');pending.current=undefined;}}
-   catch(e){if(current())setError((e as Error).message);}
+   catch(e){if(current()){setError((e as Error).message);setLimited(e instanceof ApiError && e.status===429);}}
    finally{if(current())setBusy(false);}
  }
  return <div ref={contentRef} className="daily-activities">
   <p className="muted">Три игры по возрасту на выбор. Можно попробовать одну — сколько сегодня удобно.</p>
   {busy && <p role="status">{target?'ИИ разбирает причину и подбирает замену…':'Готовим подборку…'}</p>}
-  {error && !target && <div role="alert"><p>{error}</p><Button variant="outline" disabled={busy} onClick={()=>void load()}>Обновить подборку</Button></div>}
+  {error && !target && <div role="alert"><p>{error}</p><Link to="/data-rights">Написать владельцу</Link></div>}
+  {(!plan || plan.childId!==cid || plan.day!==today) && !limited && <div><Button disabled={busy || !today || !active} onClick={()=>void load(true)}>Подобрать идеи на сегодня</Button><p className="muted text-sm">ИИ-подборка тратит один ответ из лимита теста. Если лимит исчерпан, доступны идеи из каталога без ИИ.</p></div>}
   {plan && plan.childId===cid && plan.day===today && <>
    <p className="muted text-sm">{new Date(plan.day+'T12:00:00Z').toLocaleDateString('ru-RU')} · {zone === 'Europe/Moscow'?'московское время':zone}</p>
    {plan.items.some(item=>item.selection==='library') && <p className="muted text-sm">При подготовке этой подборки использована резервная библиотека игр. Занятия подобраны по возрасту.</p>}
@@ -85,8 +90,8 @@ export default function DailyActivities({state,active=true}:{state:ParentState;a
     <div className="form-field"><label htmlFor={fieldId+'-reason'}>Причина</label><select id={fieldId+'-reason'} required disabled={busy} value={reason} onChange={e=>setReason(e.target.value)}><option value="">Выберите причину</option>{reasons.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
     <div className="form-field"><label htmlFor={fieldId+'-detail'}>Пояснение — обязательно</label><Textarea id={fieldId+'-detail'} required minLength={8} maxLength={600} disabled={busy} value={detail} onChange={e=>setDetail(e.target.value)} placeholder="Например: ребёнок пока не сидит самостоятельно; нужна игра лёжа или у меня на руках."/></div>
     <p className="muted text-sm">От 8 до 600 символов. При плохом самочувствии занятие можно просто отложить.</p>
-    {error && <p role="alert">{error}</p>}
-    <Button disabled={busy || !reason || detail.trim().length<8}>{busy?'ИИ подбирает замену…':'Объяснить и заменить'}</Button>
+    {error && <div role="alert"><p>{error}</p><Link to="/data-rights">Написать владельцу</Link></div>}
+    <Button disabled={busy || limited || !reason || detail.trim().length<8}>{busy?'ИИ подбирает замену…':'Объяснить и заменить'}</Button>
     <Button type="button" variant="ghost" disabled={busy} onClick={()=>{setTarget(undefined);setError('');}}>Оставить занятие</Button>
    </form>
   </DialogContent></Dialog>

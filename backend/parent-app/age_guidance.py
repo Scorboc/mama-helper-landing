@@ -43,7 +43,7 @@ ROWS += [
 ('bath-supervision',0,60,'Безопасность','Купание: взрослый остаётся рядом','{name}: сиденье для купания не заменяет взрослого. Что подготовить до того, как включить воду?', 'Подготовьте полотенце и всё необходимое заранее. Не оставляйте ребёнка в ванне ни на секунду и не поручайте присмотр старшему ребёнку. Если нужно отойти, заберите малыша с собой. После купания слейте воду.',NHS+'caring-for-a-newborn/washing-and-bathing-your-baby/','NHS: безопасное купание'),
 ('button-batteries',6,60,'Безопасность','Батарейки в игрушках и пультах','{name}: пора проверить батарейные отсеки игрушек и пультов. Маленькая батарейка требует особого внимания.', 'Храните батарейки недоступно для ребёнка, проверяйте надёжное закрытие отсеков. При подозрении на проглатывание батарейки немедленно вызывайте 112 или 103; не ждите симптомов и ответа в чате.',NHS+'babys-development/play-and-learning/baby-and-toddler-play-ideas/','NHS: безопасность игрушек'),
 ('hot-drinks',6,60,'Безопасность','Горячее вне досягаемости','{name}: чашка на краю стола становится доступнее с новыми движениями. Проверьте кухню сегодня.', 'Уберите горячие напитки и свисающие провода подальше от края. При готовке используйте дальние конфорки и поворачивайте ручки посуды от ребёнка. Остывающие утюги и приборы тоже должны быть недоступны.',NHS+'first-aid-and-safety/safety/baby-and-toddler-safety/','NHS: предупреждение ожогов'),
-('words-fifteen',15,18,'Речь','Первые слова кроме «мама» и «папа»','{name}: к 15 месяцам обычно появляются попытки сказать ещё одно-два слова. Как поддержать их в игре?', 'Называйте предмет, который заинтересовал ребёнка, и дайте время ответить. Принимайте приближённое звучание слова. Если новых слов нет или исчезли уже знакомые, обсудите наблюдения с педиатром. Не тренируйте речь принуждением.',CDC+'15-months.html','CDC: 15 месяцев'),
+('words-fifteen',15,18,'Речь','Первые слова кроме «мама» и «папа»','Первые слова: как поддержать их в игре. И можно сохранить новое слово в книгу', 'Называйте предмет, который заинтересовал ребёнка, и дайте время ответить. Принимайте приближённое звучание слова. Если новых слов нет или исчезли уже знакомые, обсудите наблюдения с педиатром. Не тренируйте речь принуждением.',CDC+'15-months.html','CDC: 15 месяцев'),
 ('two-steps',30,36,'Понимание речи','Просьба из двух действий','{name}: около 2,5 лет дети обычно понимают просьбу из двух действий. Попробуйте в знакомой игре.', 'Предложите: «Возьми мяч и положи в коробку». Используйте крупные безопасные предметы. Если трудно, покажите действия по одному; не превращайте игру в экзамен. Устойчивые трудности с пониманием обсудите со специалистом.',CDC+'30-months.html','CDC: 30 месяцев'),
 ('separation',6,36,'Эмоции','Спокойное прощание','{name}: расставание вызывает слёзы? Короткий ритуал прощания может сделать ситуацию понятнее.', 'Начинайте с короткого расставания с хорошо знакомым заботливым взрослым. Прощайтесь спокойно и понятно, говорите о возвращении. При длительном сильном переживании обратитесь за поддержкой к специалисту. Подсказка применима, если в вашей семье действительно есть такая ситуация.',NHS+'babys-development/behaviour/separation-anxiety/','NHS: тревога при расставании'),
 ('tantrums',18,60,'Эмоции','Когда ребёнок сердится','{name}: трудно остановить игру без слёз? Начните с проверки усталости и голода.', 'Усталость и голод могут усиливать вспышки недовольства. Сохраняйте спокойствие, обеспечьте безопасность и оставайтесь рядом. Не кричите в ответ и не бейте. Когда ребёнок успокоится, коротко назовите чувство и предложите следующий понятный шаг.',NHS+'babys-development/behaviour/temper-tantrums/','NHS: детские истерики'),
@@ -92,19 +92,56 @@ ROWS.append(('plan-explain',72,85,'Мышление','Объяснить сво�
 for lo,hi,title,body in _pediatric:
     ROWS.append((f'pediatric-{lo}',lo,hi,'Советы педиатров',title,'{name}: '+title+'. Какие наблюдения пригодятся?',body,CDC if lo<72 else 'https://www.unicef.org/asia-pacific/place-for-parents/positive-parenting-tips-6-10','Возрастные рекомендации: редакционная адаптация'))
 
-SAFETY={'safe-sleep'}
+MILESTONE_TOPICS = {'roll':'milestone-roll', 'crawl':'milestone-crawl',
+                    'stand':'milestone-stand', 'walk':'milestone-walk', 'words':'words-fifteen'}
+MILESTONE_WINDOWS = {'milestone-roll':(6,7), 'milestone-crawl':(9,10),
+                     'milestone-stand':(11,12), 'milestone-walk':(15,16)}
+_milestones = [
+ ('roll','Перевороты: безопасное место для игры',
+  'Перевороты: где безопасно играть. И можно сохранить новое движение в книгу',
+  'Не оставляйте ребёнка одного на кровати, диване или пеленальном столе, даже если переворотов ещё не замечали. Для игры выберите свободное место на полу и оставайтесь рядом. Покажите игрушку сбоку на расстоянии вытянутой руки и дайте потянуться к ней, без помощи через силу. Уже получается переворачиваться?',
+  CDC+'6-months.html','CDC: движение и игра в 6 месяцев'),
+ ('crawl','Ползание: дом на уровне пола',
+  'Дом на уровне пола: что убрать из доступа. И можно сохранить ползание в книгу',
+  'Осмотрите дом с уровня пола: уберите из доступа мелкие предметы, батарейки, провода, лекарства и бытовую химию. Для игры положите любимую игрушку чуть впереди на свободном полу и оставайтесь рядом; пусть ребёнок выбирает, как к ней добраться. Уже получается ползать? Если передвигается иначе, можно записать своё открытие своими словами.',
+  'https://www.healthychildren.org/English/ages-stages/baby/Pages/Movement-8-to-12-Months.aspx','AAP: движение и игра в 8–12 месяцев'),
+ ('stand','Вставание у опоры: устойчивая мебель',
+  'Устойчивая опора: закрепите мебель и уберите скатерти. И можно сохранить новое движение в книгу',
+  'Закрепите комоды, стеллажи и телевизор по инструкции, уберите скатерти и предметы, которые можно потянуть на себя. Для игры предложите перекладывать большую игрушку из ваших рук на низкую устойчивую поверхность. Если ребёнок сам встаёт у опоры, оставайтесь рядом; не подтягивайте за руки и не ставьте ради игры. Уже получается вставать у опоры?',
+  'https://www.healthychildren.org/English/ages-stages/baby/Pages/Movement-8-to-12-Months.aspx','AAP: самостоятельное движение у опоры'),
+ ('walk','Первые самостоятельные шаги: свободный проход',
+  'Свободный проход и защита лестниц и окон. И можно сохранить первые самостоятельные шаги в книгу',
+  'Закройте доступ к лестницам защитными воротцами и проверьте защиту окон. Для игры освободите ровный нескользкий участок пола: предложите передать вам большую мягкую игрушку любым удобным способом. Если ребёнок сам делает шаги, оставайтесь рядом, без спешки и просьб повторить; идти ради игры не нужно. Уже получается делать первые самостоятельные шаги?',
+  CDC+'15-months.html','CDC: первые самостоятельные шаги и игра'),
+]
+for skill,title,push,body,source,source_title in _milestones:
+    topic=MILESTONE_TOPICS[skill]
+    ROWS.append((topic,*MILESTONE_WINDOWS[topic],'Движение',title,push,body,source,source_title))
+
+SAFETY={'safe-sleep','button-batteries','hot-drinks','safe-home','body-boundaries','bath-supervision'}
+# Monthly care entries with concrete fall/choking/strangulation/water/chemical
+# precautions keep their safety slot even though their category is hygiene.
+SAFETY.update('month-care-'+str(month) for month in (3,4,7,14,15,17,18,20))
 AGE_WINDOWS={'face','sounds','hidden-toy','bye','point','two-words','conversation','story-four','rules-five','words-fifteen','two-steps'}
 EVERYDAY={'touch','shared-reading','parent-pause','feelings-story','sleep-routine','checkup'}
 LABELS=['Сначала безопасность','Важно на этом этапе','Развитие и уход','На каждый день']
 
 def priority(card,months):
-    if card['id'] in SAFETY:return 0
+    if card['id'] in SAFETY or card.get('category')=='Безопасность':return 0
+    if mark_skill(card):return 1
     if card['id'] in {'feeding-six-months','first-tooth'}:return 1
     if card['id'] in AGE_WINDOWS and months<card['minMonths']+2:return 1
     return 3 if card['id'] in EVERYDAY else 2
 
 def row_card(r):
-    return dict(id=r[0],category=r[3],title=r[4],pushText=r[5],text=r[6],source=r[7],sourceTitle=r[8],note=NOTICE,minMonths=r[1],maxMonths=r[2])
+    card=dict(id=r[0],category=r[3],title=r[4],pushText=r[5],text=r[6],source=r[7],sourceTitle=r[8],note=NOTICE,minMonths=r[1],maxMonths=r[2])
+    skill=next((skill for skill,topic in MILESTONE_TOPICS.items() if topic==r[0]),None)
+    if skill:card['milestoneSkill']=skill
+    if r[0] in MILESTONE_WINDOWS:
+        card.update(area='Движение',section='Развитие')
+        card['guidanceText']=r[6].split(' Уже получается')[0]
+        card['sources']=[r[7], 'https://bedslutonchildrenshealth.nhs.uk/staying-safe-and-accident-prevention/']
+    return card
 
 def cards(months):
     bounds=_play.monthly.window(months)
@@ -118,7 +155,7 @@ def cards(months):
               'words-fifteen':(15,16),'point':(18,19),
               'two-words':(24,26),'two-steps':(30,32),
               'conversation':(36,38),'pretend-four':(48,50),
-              'rules-five':(60,62),'body-boundaries':(72,74)}
+              'rules-five':(60,62),'body-boundaries':(72,74),**MILESTONE_WINDOWS}
     for r in ROWS:
         start,end=triggers.get(r[0],(-1,-1))
         if start<=months<end and r[1]<=months<r[2]:
@@ -129,13 +166,18 @@ def cards(months):
     for c in result:
         c['note']=NOTICE
         c['pushText']=c.get('pushText','{name}: '+c['title']+'. Один посильный шаг на этот месяц.')
-        c['priority']=c.get('priority',priority(c,months));c['priorityLabel']=LABELS[c['priority']]
+        c['priority']=0 if c['id'] in SAFETY or c.get('category')=='Безопасность' else c.get('priority',priority(c,months));c['priorityLabel']=LABELS[c['priority']]
         c['section']='Игры' if c['category']=='Игры' else 'Уход и гигиена' if c['category'] in ('Уход и гигиена','Уход','Зубы') else 'Советы педиатров' if c['category'] in ('Советы педиатров','Безопасность','Питание','Профилактика','Сон') else 'Развитие'
     # Within a tier, a closing age window is shown before a broad evergreen topic.
     return sorted(result,key=lambda c:(c['priority'],c['maxMonths']-months,c['id']))
 
 def get(topic):
     return next((row_card(r) for r in ROWS if r[0]==topic),None)
+
+def mark_skill(card):
+    """A title or a game never grants a milestone action."""
+    skill=card.get('milestoneSkill')
+    return skill if isinstance(skill,str) and skill in MILESTONE_TOPICS else None
 
 def push_text(card,profile):
     # Lock-screen text must not expose account names, dates or medical context.
@@ -146,4 +188,10 @@ def push_text(card,profile):
         return 'Держите батарейки и устройства с ними вне доступа ребёнка. Проверьте, что батарейные отсеки надёжно закрыты.'
     if card['id']=='hot-drinks':
         return 'Ставьте горячие напитки вне доступа ребёнка. Не держите малыша на руках, когда пьёте или переносите горячее.'
-    return card['pushText'].replace('{name}: ','').replace('{name}','')[:180]
+    text = card['pushText'].replace('{name}: ','').replace('{name}','')
+    # Preserve the rest of the copy, including acronyms and names.
+    for index, char in enumerate(text):
+        if char.isalpha():
+            text = text[:index] + char.upper() + text[index+1:]
+            break
+    return text[:180]

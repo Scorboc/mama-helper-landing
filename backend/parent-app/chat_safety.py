@@ -105,7 +105,43 @@ def _urgent_reply(question, profile=None, messages=None):
     age=None if _policy.profile_scope_reply(current,profile) else _policy.months(profile)
     return medical_guardrails.emergency_reply(current,age)
 
+def _child_accident(q):
+    """Require a child impact or a fall from height, excluding adult/object subjects."""
+    if re.search(r'\bя\s+(?:\w+\s+){0,2}(?:упал|ударил|стукнул)|у меня[^.!?]{0,30}голов', q):
+        return False
+    if re.search(r'\b(?:упал\w*\s+(?:\w+\s+){0,2}(?:погремушк|игрушк)|(?:погремушк|игрушк)\w*\s+упал)', q):
+        return False
+    fall = re.search(r'\b(?:упал\w*|свалил\w*|скатил\w*|уронил\w*)\b', q)
+    height = re.search(r'\b(?:с|со|из)\s+(?:пеленальн\w*\s+)?(?:диван|кроват|стол|стул|рук)', q)
+    impact = re.search(r'голов|лбом', q) and re.search(
+        r'\b(?:упал\w*|падени\w*|ударился|ударилась|стукнул\w*|уронил\w*)\b', q)
+    return bool(impact or fall and height)
+
+
+def _injury_red_flags(q):
+    return bool(re.search(
+        r'рвот|потер\w* сознани|без сознани|отключил|судорог|не просыпается|'
+        r'трудно разбудить|вял\w*|(?:кровь|жидкость)[^.!?]{0,25}(?:носа|ушей)|'
+        r'не двигает[^.!?]{0,15}(?:рук|ног)|выбуха\w* роднич', q))
+
+
+def _adult_faint_reply(question):
+    q = medical_guardrails.norm(question)
+    if re.search(r'\bя\b|у меня|мне', q) and re.search(r'обморок', q):
+        return ('Если обморок повторяется, есть боль в груди, одышка, слабость в руке или ноге, '
+                'нарушение речи, кровотечение, или рядом младенец, а вы одна — звоните 112 сейчас. '
+                'Положите ребёнка в безопасное место — кроватку, попросите взрослого побыть рядом. '
+                'По переписке нельзя установить причину обморока.')
+    return None
+
+
 def urgent_reply(question, profile=None, messages=None):
+    adult = _adult_faint_reply(question)
+    if adult:
+        return adult
+    q = medical_guardrails.norm(question)
+    if _child_accident(q) and _injury_red_flags(q):
+        return 'Звоните 112 сейчас. После травмы эти признаки могут означать опасное состояние. Не ждите ответа чата.'
     answer = _urgent_reply(question, profile, messages)
     return emergency_protocols.finish(answer, question) if answer else None
 
@@ -319,6 +355,11 @@ def followup_reply(question, messages):
 
 def reply(question, profile=None):
     q=question.lower().replace('ё','е')
+    adult = _adult_faint_reply(question)
+    if adult:
+        return adult
+    if _child_accident(q) and _injury_red_flags(q):
+        return None  # urgent_reply handles injury red flags before generation.
     if medical_guardrails.boundary_request(question):return medical_guardrails.boundary_reply()
     urgent = parent_support.urgent_reply(question)
     if urgent:
@@ -333,7 +374,33 @@ def reply(question, profile=None):
         return ('Если прямо сейчас есть риск навредить себе или ребёнку, звоните 112. '
                 'Положите малыша в безопасную кроватку, отойдите от опасных предметов и позовите '
                 'взрослого, которому доверяете. Не оставайтесь с этой ситуацией один на один и не ждите чата.')
+    if re.search(r'\bя\s+(?:\w+\s+){0,2}(?:упал|ударил|стукнул)|у меня[^.!?]{0,30}голов', q):
+        return parent_support.reply(question)
     infant_age=_policy.months(profile)
+    # Accidental impact must precede sleep and repetitive head-banging advice.
+    if _child_accident(q):
+        return ('После падения или удара головой спокойно осмотрите ребёнка и оставайтесь рядом, '
+                'наблюдая за его состоянием в ближайшие часы. По переписке нельзя оценить тяжесть травмы. '
+                'После падения младенца с высоты, в том числе с дивана, кровати или пеленального стола, '
+                'свяжитесь с педиатром сейчас и покажите ребёнка врачу, даже если пока всё выглядит нормально. '
+                'Спать можно; как проверять состояние во сне и нужно ли будить, уточните у врача. '
+                'Если ребёнка трудно разбудить, немедленно звоните 112.\n\n'
+                'Немедленно звоните 112 при потере сознания, судорогах, повторной рвоте, '
+                'необычной сонливости или вялости, плаче, который не удаётся утешить, '
+                'крови или прозрачных выделениях из носа или ушей, нарушении движений '
+                'или выбухании родничка у младенца. Не ждите следующего ответа чата.')
+    if ((infant_age is None or infant_age < 12)
+            and re.search(r'\b(?:перевернул(?:ся|ась|ись)|переворачива\w*(?:ся|сь))\b', q)
+            and not re.search(r'\b(?:упал|свалил|скатил|уронил)\w*\b', q)
+            and re.search(r'впервые|первый раз|сегодня|наконец', q)
+            and not re.search(r'не\s+перевер|перестал|разучил|утрат|потер\w*\s+навык', q)):
+        return ('Первый самостоятельный переворот — важное событие! Теперь особенно важно не оставлять '
+                'ребёнка одного на пеленальном столе, диване или кровати: он может неожиданно '
+                'перевернуться и упасть. Держите его рукой при переодевании на высоте; если нужно '
+                'отойти, перенесите в безопасную кроватку. Для бодрствования под присмотром '
+                'подойдёт свободное безопасное место на полу.\n\n'
+                'При попытках переворачиваться прекратите пеленание. Каждый сон начинайте '
+                'на спине на твёрдом ровном матрасе без подушек, бортиков и игрушек.')
     if re.search(r'по переписк',q) and re.search(r'аллерг\w*[^.!?]{0,35}не подтвержд|аллерг\w*[^.!?]{0,20}нет',q):
         return ('Неподтверждённая аллергия не означает, что её отсутствие установлено. '
                 'По переписке нельзя ни подтвердить, ни исключить реакцию на продукт. '

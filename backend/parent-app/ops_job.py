@@ -53,7 +53,7 @@ def backup():
     key_path=os.environ.get('APP_BACKUP_KEY_FILE')
     if key_path:
         # Recovery settings are encrypted with an independent key kept by the owner.
-        settings={k:v for k,v in os.environ.items() if k.startswith(('APP_','AI_','PROXYAPI_','CHEAPAI_','CHEAP_AI_','YANDEX_','VAPID_','DATA_','STATE_'))}
+        settings={k:v for k,v in os.environ.items() if k.startswith(('APP_','AI_','PROXYAPI_','CHEAPAI_','CHEAP_AI_','VAPID_','DATA_','STATE_'))}
         (stage/'settings.enc').write_bytes(Fernet(Path(key_path).read_bytes().strip()).encrypt(json.dumps(settings).encode()))
     hashes={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in stage.iterdir() if p.is_file()}
     (stage/'manifest.json').write_text(json.dumps({'created':stamp,'integrity':'ok','sha256':hashes},indent=2))

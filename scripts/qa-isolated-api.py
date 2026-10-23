@@ -15,7 +15,7 @@ if __name__ == '__main__':
                           APP_ORIGINS='http://127.0.0.1:5173,http://localhost:5173',
                           CHEAPAI_LIVE_ENABLED='0')
         # Test process never uses inherited provider credentials or production analytics.
-        for name in ('PROXYAPI_API_KEY','YANDEX_API_KEY','YANDEX_FOLDER_ID','YANDEX_USE_METADATA_IAM',
+        for name in ('PROXYAPI_API_KEY',
                      'CHEAPAI_PROXY_TOKEN','CHEAPAI_API_KEY','CHEAP_AI_API_KEY','VAPID_PUBLIC_KEY','VAPID_PRIVATE_KEY',
                      'APP_OPS_PATH','APP_OPS_HASH_KEY','MAMA_OPS_DIR','OPS_LOG_PATH'):
             os.environ.pop(name, None)

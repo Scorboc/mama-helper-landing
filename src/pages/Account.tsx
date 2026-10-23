@@ -106,7 +106,7 @@ function AccountAccess() {
   useEffect(() => { if (error) { setMinimized(false); requestAnimationFrame(() => errorRef.current?.focus()); } }, [error]);
   const [newCode, setNewCode] = useState("");
   const [verificationRequired, setVerificationRequired] = useState(false);
-  const [storage, setStorage] = useState<"checking" | "server" | "device" | "unavailable">(
+  const [storage, setStorage] = useState<"checking" | "server" | "device" | "demo" | "unavailable">(
     "checking",
   );
   const navigate = useNavigate();
@@ -133,6 +133,13 @@ function AccountAccess() {
         termsAccepted: consent,
         termsVersion: "account-2026-10-12",
         recoveryCode: recovery,
+        ...(mode === "register" ? { utm: Object.fromEntries(
+          ["utm_source", "utm_medium", "utm_campaign", "utm_content"].flatMap((name) => {
+            const values = params.getAll(name);
+            return values.length === 1 && values[0].length >= 1 && values[0].length <= 64 && !/[^a-z0-9_-]/.test(values[0])
+              ? [[name, values[0]]] : [];
+          }),
+        ) } : {}),
         ...(mode === "register" && invite ? { invite } : {}),
       });
       setPassword("");
@@ -247,7 +254,7 @@ function AccountAccess() {
               </div>
               {mode !== "login" && <label className={`form-field${typingEnabled ? " account-field-inline" : ""}`}>
                 <span>Повторите пароль</span>
-                <Input name="password-confirmation" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmation}
+                <Input aria-label="Повторите пароль" name="password-confirmation" type="password" autoComplete="new-password" required minLength={12} maxLength={128} value={confirmation}
                   onFocus={e => { lastField.current = e.currentTarget; setTypingActive(true); }} onBlur={() => { setTypingActive(false); typingPulse.current = []; }}
                   onKeyDown={animateKey} onInput={animateMobileInput} onChange={e => setConfirmation(e.target.value)} />
               </label>}
@@ -255,7 +262,7 @@ function AccountAccess() {
               {mode === "register" && (
                 <div className="space-y-4"><div className="flex gap-3 items-start"><Checkbox id="adult" checked={adult} onCheckedChange={v => setAdult(v === true)} /><label htmlFor="adult" className="text-sm leading-relaxed">Мне исполнилось 18 лет.</label></div><div className="flex gap-3 items-start">
                   <Checkbox
-                    id="consent"
+                    id="consent" aria-label="Принимаю условия аккаунта."
                     checked={consent}
                     onCheckedChange={(v) => setConsent(v === true)}
                   />
@@ -274,7 +281,8 @@ function AccountAccess() {
                 </p>
               )}
               <Button
-                className="w-full"
+                className="w-full account-submit"
+                aria-describedby={mode === "register" && (!consent || !adult) ? "account-submit-hint" : undefined}
                 type="submit"
                 disabled={busy || (mode === "register" && (!consent || !adult))}
               >
@@ -286,11 +294,16 @@ function AccountAccess() {
                       ? "Войти"
                       : "Восстановить доступ"}
               </Button>
+              {mode === "register" && (!consent || !adult) && (
+                <p id="account-submit-hint" className="account-submit-hint">Заполните поля и отметьте галочки</p>
+              )}
             </form>
             <p className="muted mt-4 text-sm flex gap-2" role="status">
               <Heart size={18} className="shrink-0" />
               {storage === "checking"
                 ? "Проверяем режим хранения…"
+                : storage === "demo"
+                  ? "Демонстрация: настоящего аккаунта нет. Тестовые записи живут только в памяти вкладки и исчезнут после обновления. Не вводите личные данные."
                 : storage === "server"
                   ? "Профиль, переписка и наблюдения сохраняются в вашем аккаунте на сервере."
                   : storage === "device" ? "Локальный режим: профиль и переписка сохраняются только в этом браузере на устройстве." : "Не удалось проверить подключение к аккаунтам. При ошибке регистрации попробуйте ещё раз — данные в аккаунтах сохраняются."}

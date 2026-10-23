@@ -35,7 +35,7 @@ try:
     retried=call('daily-feedback',**request,detail='Нет книг и игрушек, нужна спокойная игра без предметов.')
     assert retried['version']==changed['version']
     assert call('daily-plan',childId='primary')['items']==changed['items']
-    print('PASS: real YandexGPT selection and reason analysis; required explanation; saved plan; idempotent replacement',flush=True)
+    print('PASS: real ProxyAPI selection and reason analysis; required explanation; saved plan; idempotent replacement',flush=True)
 finally:
     call('delete',password=password)
     print('Disposable account removed',flush=True)

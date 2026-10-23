@@ -29,6 +29,26 @@ class OperationsTest(unittest.TestCase):
         ops.forget('user-secret')
         with ops.database() as db:self.assertEqual(db.execute('SELECT count(*) FROM events').fetchone()[0],0)
 
+    def test_utm_allowlist_and_additive_migration(self):
+        import sqlite3
+        from contextlib import closing
+        with closing(sqlite3.connect(os.environ['APP_OPS_PATH'])) as db, db:
+            db.execute('CREATE TABLE events(at INTEGER,actor TEXT,action TEXT,detail TEXT)')
+            db.execute("INSERT INTO events VALUES(1,'','register','')")
+        tags = {'utm_source':'valid_1', 'utm_medium':'invalid space', 'utm_campaign':'x'*65,
+                'utm_content':'UPPER', 'url':'https://example.test/private', 'email':'discard'}
+        ops.event('register','synthetic',utm=tags)
+        ops.event('chat','synthetic',utm={'utm_source':'ignored'})
+        with ops.database() as db:
+            rows = db.execute('SELECT * FROM events ORDER BY at,rowid').fetchall()
+        self.assertEqual(rows[0], (1,'','register','',None,None,None,None))
+        self.assertEqual(rows[1][4:], ('valid_1',None,None,None))
+        self.assertEqual(rows[2][4:], (None,None,None,None))
+        self.assertNotIn('https://',str(rows))
+        self.assertEqual(ops.clean_utm({'utm_source':['duplicate'], 'utm_medium':None,
+                                     'utm_campaign':'', 'utm_content':'ok-2'}), {'utm_content':'ok-2'})
+        self.assertEqual(ops.clean_utm('arbitrary URL'), {})
+
     def test_unknown_ai_usage_is_not_zero(self):
         ops.ai_call('chat','test/model','error',1)
         row=ops.summary()['ai'][0]
@@ -53,7 +73,7 @@ class OperationsTest(unittest.TestCase):
         import time
         now=int(time.time())
         with ops.database() as db:
-            for stamp,uid in [(now-86400,'a'),(now,'a'),(now,'b')]:db.execute('INSERT INTO events VALUES(?,?,?,?)',(stamp,uid,'page','chat'))
+            for stamp,uid in [(now-86400,'a'),(now,'a'),(now,'b')]:db.execute('INSERT INTO events(at,actor,action,detail) VALUES(?,?,?,?)',(stamp,uid,'page','chat'))
         r=ops.summary()['retention'];self.assertEqual(r[0],{'day':1,'eligible':1,'returned':1});self.assertEqual(r[1]['eligible'],0)
 
     def test_existing_favorites_remain_valid_and_notes_are_bounded(self):

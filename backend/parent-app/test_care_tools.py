@@ -2,6 +2,57 @@ from test_api import AccountsTest,app
 from datetime import datetime,timezone,date,timedelta
 
 class CareToolsTest(AccountsTest):
+    def test_milestone_allowlist_deduplication_and_undo(self):
+        from care_tools import MILESTONE_LABELS
+        cookie,_=self.setup_parent('marks@example.test')
+        for skill,label in MILESTONE_LABELS.items():
+            with self.subTest(skill=skill):
+                record={'id':'mark-'+skill,'kind':'achievement','skill':skill,'at':datetime.now(timezone.utc).isoformat(),'value':'ignored'}
+                response,body=self.call('care-put',cookie,record=record)
+                self.assertEqual(response['statusCode'],200)
+                self.assertEqual(body['record']['value'],label)
+                response,repeat=self.call('care-put',cookie,record={**record,'id':'retry-'+skill})
+                self.assertEqual(response['statusCode'],200)
+                self.assertTrue(repeat['alreadyMarked'])
+                self.assertEqual(repeat['record']['id'],record['id'])
+                self.assertEqual(self.call('care-delete',cookie,id=record['id'])[0]['statusCode'],200)
+        self.assertEqual(self.call('care-list',cookie)[1]['records'],[])
+
+    def test_milestone_rejects_unknown_skill_foreign_child_and_future(self):
+        cookie,_=self.setup_parent('invalid-mark@example.test')
+        other,other_uid=self.setup_parent('other-mark@example.test')
+        record={'id':'mark','kind':'achievement','skill':'roll','at':datetime.now(timezone.utc).isoformat()}
+        for skill in ('sit','unknown','__proto__',None,[],{}):
+            self.assertEqual(self.call('care-put',cookie,record={**record,'skill':skill})[0]['statusCode'],400)
+        self.assertEqual(self.call('care-put',cookie,childId='not-my-child',record=record)[0]['statusCode'],404)
+        self.assertEqual(self.call('care-put',cookie,ownerId=other_uid,record=record)[0]['statusCode'],403)
+        self.assertEqual(self.call('care-put',cookie,record={**record,'at':(datetime.now(timezone.utc)+timedelta(days=1)).isoformat()})[0]['statusCode'],400)
+        self.assertEqual(self.call('care-list',cookie)[1]['records'],[])
+        self.assertEqual(self.call('care-list',other)[1]['records'],[])
+
+    def test_milestone_existing_manual_value_is_not_duplicated(self):
+        cookie,_=self.setup_parent('manual-mark@example.test')
+        record={'id':'manual','kind':'achievement','value':'Ползает','at':datetime.now(timezone.utc).isoformat()}
+        self.call('care-put',cookie,record=record)
+        response,body=self.call('care-put',cookie,record={**record,'id':'new','skill':'crawl'})
+        self.assertEqual(response['statusCode'],200)
+        self.assertTrue(body['alreadyMarked'])
+        self.assertEqual(body['record']['id'],'manual')
+        self.assertEqual(len(self.call('care-list',cookie)[1]['records']),1)
+
+    def test_milestone_legacy_card_is_not_duplicated(self):
+        cookie,_=self.setup_parent('legacy-mark@example.test')
+        session=self.call('session',cookie)[1]
+        state=session['state']
+        state.setdefault('care',{})['achievements']=[{'id':'legacy','kind':'roll','date':date.today().isoformat(),'note':'Переворачивается'}]
+        self.assertEqual(self.call('save',cookie,state=state,revision=session['revision'])[0]['statusCode'],200)
+        record={'id':'new','kind':'achievement','skill':'roll','at':datetime.now(timezone.utc).isoformat()}
+        response,body=self.call('care-put',cookie,record=record)
+        self.assertEqual(response['statusCode'],200)
+        self.assertTrue(body['alreadyMarked'])
+        self.assertTrue(body['record']['legacy'])
+        self.assertEqual(self.call('care-list',cookie)[1]['records'],[])
+
     def test_edit_feeding_time_preserves_record_identity_notes_and_dialogue(self):
         cookie,_=self.setup_parent('edit-feed@example.test')
         now=datetime.now(timezone.utc)

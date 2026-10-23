@@ -17,6 +17,101 @@ class AutomationTest(unittest.TestCase):
     def test_no_arbitrary_job(self):
         for name in ['publish','delete','transfer','../backup','shell']:
             with self.assertRaises(ValueError):self.app.run(name)
+
+    def maintenance(self,age=25,restore=None,now=1800000000):
+        stamp=self.app.dt.datetime.fromtimestamp(now-age*3600,self.app.dt.timezone.utc).strftime('%Y%m%d-%H%M%S')+'-synthetic'
+        self.app.write_json(self.root/'backup-status.json',{'ok':True,'createdAt':stamp})
+        if restore is not None:self.app.write_json(self.root/'restore-status.json',restore)
+
+    def test_catchup_threshold_order_and_persistent_throttle(self):
+        now=1800000000
+        self.maintenance(age=24,now=now)
+        calls=[]
+        with patch.object(self.app.time,'time',return_value=now), patch.object(self.app,'backup',side_effect=lambda:calls.append('backup') or {'ok':True}), patch.object(self.app.reliability,'restore',side_effect=lambda root:calls.append('restore') or {'ok':True}):
+            self.assertEqual(self.app.backup_maintenance()['state'],'fresh')
+            self.maintenance(now=now)
+            self.assertEqual(self.app.backup_maintenance()['state'],'started')
+            self.app.BACKUP_CATCHUP_THREAD.join(3)
+            self.assertFalse(self.app.BACKUP_CATCHUP_THREAD.is_alive())
+            self.assertEqual(calls,['backup','restore'])
+            self.assertEqual(self.app.backup_maintenance()['state'],'throttled')
+            self.assertEqual(json.loads((self.root/'restore-status.json').read_text())['ok'],True)
+        with patch.object(self.app.time,'time',return_value=now+6*3600), patch.object(self.app,'backup',return_value={'ok':True}) as backup, patch.object(self.app.reliability,'restore',return_value={'ok':True}):
+            self.assertEqual(self.app.backup_maintenance()['state'],'started')
+            self.app.BACKUP_CATCHUP_THREAD.join(3)
+            self.assertFalse(self.app.BACKUP_CATCHUP_THREAD.is_alive())
+            backup.assert_called_once()
+
+    def test_catchup_busy_and_failed_attempt_throttled(self):
+        self.maintenance()
+        with patch.object(self.app.time,'time',return_value=1800000000), patch.object(self.app,'backup',side_effect=RuntimeError('synthetic')) as backup, patch.object(self.app.reliability,'restore') as restore:
+            self.app.LOCK.acquire()
+            try:self.assertEqual(self.app.backup_maintenance()['state'],'busy')
+            finally:self.app.LOCK.release()
+            backup.assert_not_called()
+            self.assertEqual(self.app.backup_maintenance()['state'],'started')
+            self.app.BACKUP_CATCHUP_THREAD.join(3)
+            self.assertFalse(self.app.BACKUP_CATCHUP_THREAD.is_alive())
+            self.assertFalse(json.loads((self.root/'restore-status.json').read_text())['ok'])
+            self.assertEqual(self.app.backup_maintenance()['state'],'throttled')
+            restore.assert_not_called()
+
+    def test_backup_alerts_daily_dedup_and_restore_failure(self):
+        import telegram_outbox
+        self.maintenance(age=27)
+        with patch.object(self.app.time,'time',return_value=1800000000), patch.object(self.app,'backup',return_value={'ok':True}), patch.object(self.app.reliability,'restore',side_effect=RuntimeError('private-path-must-not-escape')):
+            self.app.backup_maintenance()
+            self.app.BACKUP_CATCHUP_THREAD.join(3)
+            self.assertFalse(self.app.BACKUP_CATCHUP_THREAD.is_alive())
+            self.app.backup_maintenance()
+        with closing(telegram_outbox.database(self.root)) as db:
+            rows=db.execute('SELECT id,body,state FROM messages').fetchall()
+        self.assertEqual(len(rows),2)
+        self.assertTrue(all(r['state']=='queued' for r in rows))
+        self.assertNotIn('private-path',str([dict(r) for r in rows]))
+        self.assertFalse(json.loads((self.root/'restore-status.json').read_text())['ok'])
+        telegram_outbox.backup_alerts(self.root,26*3600,{'ok':True},1800086400)
+        with closing(telegram_outbox.database(self.root)) as db:self.assertEqual(db.execute('SELECT count(*) FROM messages').fetchone()[0],2)
+        telegram_outbox.backup_alerts(self.root,27*3600,{'ok':False},1800086400)
+        with closing(telegram_outbox.database(self.root)) as db:self.assertEqual(db.execute('SELECT count(*) FROM messages').fetchone()[0],4)
+    def test_monitor_returns_while_catchup_runs_and_second_monitor_is_busy(self):
+        import telegram_outbox
+        self.maintenance()
+        started=threading.Event();release=threading.Event();done=threading.Event()
+        calls=[];results=[]
+        def slow_backup():
+            calls.append('backup');started.set()
+            if not release.wait(5):raise RuntimeError('test release timeout')
+            return {'ok':True}
+        class Response:
+            status=200
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+            def read(self,*args):return self.body
+        def response(url,**kwargs):
+            result=Response()
+            result.body=b'<div id="root"></div>' if url.endswith(':5173/') else b'{"ok":true}'
+            return result
+        with patch.object(self.app.time,'time',return_value=1800000000), patch.object(self.app.urllib.request,'urlopen',side_effect=response), patch.object(telegram_outbox,'backup_alerts'), patch.object(self.app,'backup',side_effect=slow_backup), patch.object(self.app.reliability,'restore',side_effect=lambda root:calls.append('restore') or {'ok':True}):
+            def check():
+                try:results.append(self.app.run('monitor'))
+                finally:done.set()
+            monitor=threading.Thread(target=check);monitor.start()
+            try:
+                self.assertTrue(done.wait(1),'monitor waited for backup')
+                self.assertEqual(results[0]['backupMaintenance'],{'state':'started'})
+                self.assertTrue(started.wait(1))
+                self.assertTrue(self.app.BACKUP_CATCHUP_THREAD.daemon)
+                self.assertEqual(self.app.run('monitor')['backupMaintenance'],{'state':'busy'})
+                self.assertEqual(calls,['backup'])
+            finally:
+                release.set();monitor.join(3)
+                if self.app.BACKUP_CATCHUP_THREAD:self.app.BACKUP_CATCHUP_THREAD.join(3)
+            self.assertFalse(self.app.BACKUP_CATCHUP_THREAD.is_alive())
+            self.assertEqual(calls,['backup','restore'])
+            self.assertEqual(self.app.backup_maintenance()['state'],'throttled')
+            self.assertFalse(self.app.LOCK.locked())
+
     def test_pending_integrations_are_not_claimed_active(self):
         r=self.app.readiness();self.assertFalse(r['automaticPublication']);self.assertFalse(r['externalChatExport'])
         self.assertEqual(r['integrations']['payments'],'not-configured')

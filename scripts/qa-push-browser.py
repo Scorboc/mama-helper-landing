@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory(prefix='push-ui-', dir=RUNTIME) as private:
     env.update(APP_LOCAL='1', APP_BILLING_MODE='legacy', APP_PAYMENTS_ENABLED='0',
                APP_SQLITE_PATH=str(Path(private) / 'qa.sqlite3'), APP_DATA_KEY=Fernet.generate_key().decode(),
                APP_ORIGINS=UI, APP_EMAIL_VERIFICATION_REQUIRED='0', APP_LOCAL_PUSH_ENABLED='0',
-               CHEAPAI_LIVE_ENABLED='0', PROXYAPI_API_KEY='', YANDEX_API_KEY='', APP_SMTP_HOST='',
+               CHEAPAI_LIVE_ENABLED='0', PROXYAPI_API_KEY='', APP_SMTP_HOST='',
                APP_PUSH_STATUS_PATH='', VAPID_PUBLIC_KEY=push['VAPID_PUBLIC_KEY'])
     command = "import local_server as server; server.app.cipher(); server.app.initialize(); server.ThreadingHTTPServer(('127.0.0.1',8793),server.Handler).serve_forever()"
     node = r'C:\Users\Admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'

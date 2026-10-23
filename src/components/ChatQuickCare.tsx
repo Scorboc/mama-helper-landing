@@ -13,7 +13,7 @@ import { careTime } from "@/lib/care-time";
 type Listing = { records: CareRecord[]; summary?: CareSummary; permission: string };
 type Write = { action: "care-put"; record: CareRecord } | { action: "care-delete"; id: string };
 
-export default function ChatQuickCare({ state, onTrackers, onProfile, profileBusy = false, inline = false }: { state: ParentState; onTrackers: () => void; onProfile?: () => void; profileBusy?: boolean; inline?: boolean }) {
+export default function ChatQuickCare({ state, onTrackers, onProfile, profileBusy = false, inline = false, initialQuick = null }: { state: ParentState; onTrackers: () => void; onProfile?: () => void; profileBusy?: boolean; inline?: boolean; initialQuick?: "sleep" | "feed" | "note" | null }) {
   const childId = state.activeChildId || "primary";
   const scope = useRef(new RequestScope());
   scope.current.select(childId);
@@ -65,7 +65,7 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
     setStatus("");
     setSaveError("");
     setListing(undefined);
-    setOpen(null);
+    setOpen(initialQuick === "feed" ? "feeding" : initialQuick);
     setMoreOpen(false);
     setEditing(null);
     setDeleting(null);
@@ -85,12 +85,15 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
       document.removeEventListener("visibilitychange", refresh);
       window.clearInterval(timer);
     };
-  }, [load]);
+  }, [load, initialQuick]);
 
   if (!editable) return null;
   const records = listing?.records || [];
   const currentSleep = records.find((r) => r.kind === "sleep" && !r.end);
   const feedingTimer = records.find((r) => r.kind === "feeding" && r.value === "Таймер кормления" && !r.end);
+  const focused = initialQuick === "feed" || initialQuick === "sleep";
+  const showSleep = !focused || initialQuick === "sleep" || moreOpen;
+  const showFeed = !focused || initialQuick === "feed" || moreOpen;
   const disabled = busy || !ready || !!pending || listing?.permission === "read";
   const minutes = (r: CareRecord) => Math.max(0, Math.floor((now - Date.parse(r.at)) / 60000));
 
@@ -142,7 +145,7 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
   }
   const record = (kind: CareRecord["kind"], extra: Partial<CareRecord> = {}): CareRecord => ({ id: randomId(), kind, at: new Date().toISOString(), note: "", ...extra });
 
-  return <section className={`chat-quick-care${inline ? " chat-quick-care--inline" : ""}`} aria-label="Быстрые отметки" aria-busy={busy || (!listing && !error)}>
+  return <section className={`[&_button]:min-h-11 chat-quick-care${inline ? " chat-quick-care--inline" : ""}`} aria-label="Быстрые отметки" aria-busy={busy || (!listing && !error)}>
     <div className="chat-quick-care__head">
       {inline && <span className="chat-quick-care__label">Быстрые отметки</span>}
       {onProfile && <Button className="quick-care-profile" type="button" variant="ghost" disabled={busy || profileBusy} onClick={onProfile} aria-haspopup="dialog" aria-label={`Выбрать ребёнка: ${contextLabel(state.profile)}`}><span>{contextLabel(state.profile)}</span><ChevronDown size={16} aria-hidden="true" className="shrink-0" /></Button>}
@@ -157,10 +160,10 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
       {pending && <Button type="button" variant="ghost" disabled={busy} onClick={() => { setPending(null); pendingRef.current = null; setSaveError(""); setStatus("Проверьте дневник: изменение могло сохраниться при потере связи"); void load(); }}>Проверить записи</Button>}
     </div>}
     <div className="chat-quick-care__actions">
-      {currentSleep ? <Button type="button" variant="outline" disabled={disabled} onClick={() => void put({ ...currentSleep, end: new Date().toISOString() })}>Проснулся</Button> : <Button type="button" variant="outline" aria-expanded={open === "sleep"} disabled={disabled} onClick={() => chooseOpen(open === "sleep" ? null : "sleep")}>Сон</Button>}
-      {feedingTimer ? <Button type="button" variant="outline" disabled={disabled} onClick={() => void put({ ...feedingTimer, end: new Date().toISOString() })}>Закончить кормление</Button> : <Button type="button" variant="outline" aria-expanded={open === "feeding"} disabled={disabled} onClick={() => chooseOpen(open === "feeding" ? null : "feeding")}>Кормление</Button>}
-      {inline && <Button type="button" variant="outline" aria-expanded={moreOpen} aria-controls="quick-care-more" onClick={() => { setMoreOpen(!moreOpen); setOpen(null); setEditing(null); setDeleting(null); }}>Ещё</Button>}
-      {(!inline || moreOpen) && <>
+      {showSleep && (currentSleep ? <Button type="button" variant="outline" disabled={disabled} onClick={() => void put({ ...currentSleep, end: new Date().toISOString() })}>Проснулся</Button> : <Button type="button" variant="outline" aria-expanded={open === "sleep"} disabled={disabled} onClick={() => chooseOpen(open === "sleep" ? null : "sleep")}>Сон</Button>)}
+      {showFeed && (feedingTimer ? <Button type="button" variant="outline" disabled={disabled} onClick={() => void put({ ...feedingTimer, end: new Date().toISOString() })}>Закончить кормление</Button> : <Button type="button" variant="outline" aria-expanded={open === "feeding"} disabled={disabled} onClick={() => chooseOpen(open === "feeding" ? null : "feeding")}>Кормление</Button>)}
+      {(inline || focused) && <Button type="button" variant="outline" aria-expanded={moreOpen} aria-controls="quick-care-more" onClick={() => { setMoreOpen(!moreOpen); setOpen(null); setEditing(null); setDeleting(null); }}>{focused ? "Другие отметки" : "Ещё"}</Button>}
+      {((!inline && !focused) || moreOpen) && <>
         <Button type="button" variant="outline" disabled={disabled || !!currentSleep} onClick={() => void put(record("wake", { wakeType: "morning" }))}>Утренний подъём</Button>
         <Button type="button" variant="outline" aria-expanded={open === "note"} disabled={disabled} onClick={() => chooseOpen(open === "note" ? null : "note")}>Заметка</Button>
       </>}
@@ -180,7 +183,7 @@ export default function ChatQuickCare({ state, onTrackers, onProfile, profileBus
       <Textarea id="quick-care-note" autoFocus value={note} maxLength={500} disabled={busy || !!pending} onChange={(e) => setNote(e.target.value)} />
       <Button type="submit" disabled={disabled || !note.trim()}>Сохранить заметку</Button>
     </form>}
-    <div id={inline ? "quick-care-more" : undefined} hidden={inline && !moreOpen} className="chat-quick-care__more">
+    <div id={inline || focused ? "quick-care-more" : undefined} hidden={(inline || focused) && !moreOpen} className="chat-quick-care__more">
     {inline && <Button type="button" variant="ghost" onClick={onTrackers}>Графики и весь дневник</Button>}
     <div className="chat-quick-care__past">
       <p>Если не отметили сразу</p>

@@ -5,7 +5,7 @@
 
 /* App navigation and touch surfaces */
 .parent-workspace .cabinet-tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%)!important;width:min(100%,760px);z-index:40;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:8px 4px calc(8px + env(safe-area-inset-bottom));margin:0;border-radius:20px 20px 0 0;background:hsl(var(--background)/.96);border:1px solid hsl(var(--border));box-shadow:0 -4px 24px #00000008;backdrop-filter:blur(20px)}
-.parent-workspace .cabinet-tabs>button{display:flex!important;flex-direction:column;gap:4px;min-width:0;min-height:52px;padding:4px 1px;font-size:11px;line-height:1.2;color:hsl(var(--muted-foreground));background:transparent;box-shadow:none;border-radius:12px;transform:none!important}
+.parent-workspace .cabinet-tabs>button{display:flex!important;flex-direction:column;gap:4px;min-width:0;min-height:52px;padding:4px 1px;font-size:12px;line-height:1.2;color:hsl(var(--muted-foreground));background:transparent;box-shadow:none;border-radius:12px;transform:none!important}
 .parent-workspace .cabinet-tabs>button[data-state=active],.parent-workspace .cabinet-tabs>button.profile-tab-selected{background:transparent;color:hsl(var(--primary));box-shadow:none;font-weight:700}
 .parent-workspace .cabinet-main{padding-bottom:calc(105px + env(safe-area-inset-bottom))}
 .parent-workspace button{min-height:44px;touch-action:manipulation}
@@ -36,7 +36,7 @@
 .parent-workspace.with-tracker-dock .cabinet-main{padding-bottom:calc(170px + env(safe-area-inset-bottom))}
 .parent-workspace .cabinet-greeting .cap{display:none}.parent-workspace .cabinet-greeting{margin-bottom:12px}.parent-workspace .cabinet-greeting h1{font-weight:650}
 .parent-workspace .child-picker{border-radius:16px!important;min-height:56px!important}.parent-workspace .cabinet-header .brand-theme{min-width:0}
-@media(max-width:640px){.tracker-dock{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px}.tracker-dock>button{min-height:44px!important;font-size:11px!important}.parent-workspace.with-tracker-dock .cabinet-main{padding-bottom:calc(205px + env(safe-area-inset-bottom))}.parent-workspace .cabinet-greeting svg{display:none}}
+@media(max-width:640px){.tracker-dock{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px}.tracker-dock>button{min-height:44px!important;font-size:12px!important}.parent-workspace.with-tracker-dock .cabinet-main{padding-bottom:calc(205px + env(safe-area-inset-bottom))}.parent-workspace .cabinet-greeting svg{display:none}}
 @media(max-width:640px){.parent-workspace .cabinet-header{flex-wrap:nowrap!important;gap:4px!important}.parent-workspace .cabinet-header .brand-theme{flex:1;flex-wrap:nowrap!important;gap:8px}.parent-workspace .cabinet-header .brand-theme>a{min-width:0;flex:1}.parent-workspace .cabinet-header .site-logo{height:34px}.parent-workspace .cabinet-header strong{font-size:12px;line-height:1.25}.parent-workspace .cabinet-header .theme-control{padding:0 4px;gap:0}.parent-workspace .cabinet-header .theme-control select{max-width:76px;padding:8px 3px!important;font-size:12px}.parent-workspace .cabinet-header>div:last-child{flex-shrink:0}.parent-workspace .cabinet-header>div:last-child button{width:38px;padding:4px}}
 
 .skip-link{position:fixed;left:12px;top:12px;z-index:100;transform:translateY(-160%);padding:10px 14px;border-radius:12px;background:hsl(var(--foreground));color:hsl(var(--background));font-weight:600;transition:transform .2s}.skip-link:focus{transform:translateY(0)}
@@ -59,3 +59,16 @@
 .chat-emergency-link { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; min-height: 44px; color: hsl(var(--primary)); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
 .chat-emergency-link:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
 .chat-quick-care__note { scroll-margin-bottom: 190px; }
+/* Opaque observation card, including the room photo background. */
+.parent-workspace .milestone-mark {
+  flex: none; min-width: 0; max-width: 100%;
+  background: #fff; color: #302842; border-color: #d4cedf;
+  box-shadow: 0 6px 24px rgb(28 20 48 / .08);
+}
+.room-surface .parent-workspace .milestone-mark {
+  width: min(calc(100% - 32px), 744px); margin: 12px auto;
+  background: #29382b; color: #f5edda; border-color: #d7bd83;
+}
+.parent-workspace .milestone-mark button {
+  height: auto; min-height: 44px; white-space: normal;
+}

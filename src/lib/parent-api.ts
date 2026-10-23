@@ -1,3 +1,4 @@
+import { CareReads } from "./care-reads";
 import {
   demoAnswer,
   emptyState,
@@ -18,6 +19,8 @@ export type BillingInfo = {
   priceRub: number;
   answerLimit: number;
   paymentConfigured: boolean;
+  closedBeta?: boolean;
+  betaAnswerLimit?: number;
   endsAt?: number | null;
 };
 export type Session = {
@@ -63,6 +66,7 @@ async function apiUrl() {
     .then(async (r) => {
       if (!r.ok) throw new Error();
       const config = await r.json();
+      publicDemo = config.publicDemo === true;
       const url = import.meta.env.VITE_APP_API_URL || config.apiUrl;
       if (!url) return null;
       if (typeof url !== "string") throw new Error();
@@ -90,8 +94,10 @@ async function apiUrl() {
   return endpoint;
 }
 
-export async function storageMode(): Promise<"server" | "device"> {
-  return (await apiUrl()) ? "server" : "device";
+let publicDemo = false;
+export async function storageMode(): Promise<"server" | "device" | "demo"> {
+  const url = await apiUrl();
+  return publicDemo ? "demo" : url ? "server" : "device";
 }
 
 function readAccounts(): LocalAccount[] {
@@ -361,7 +367,28 @@ async function localApiUnlocked<T>(
   throw new ApiError("Неизвестное действие.", 400);
 }
 
-export async function api<T>(
+const careReads = new CareReads();
+if (typeof window !== "undefined") {
+  window.addEventListener("care-records-changed", () => careReads.invalidate());
+  window.addEventListener("doctor-questions-changed", () => careReads.invalidate());
+  window.addEventListener("storage", () => careReads.reset());
+}
+
+// Every care-list consumer shares this boundary, including family contexts.
+export async function api<T>(action: string, data: Record<string, unknown> = {}, timeoutMs = 60000): Promise<T> {
+  const sessionAction = ["login", "register", "recover", "logout", "logout-all", "delete", "email-verify", "email-reset", "change-password", "rotate-recovery"].includes(action);
+  if (sessionAction) careReads.reset();
+  if (action === "care-list") {
+    const key = JSON.stringify([localStorage.getItem(REMOTE_SESSION_KEY), localStorage.getItem(SESSION_KEY), data.ownerId || "", data.childId || "primary"]);
+    return careReads.read<T>(key, () => rawApi<T>(action, data, timeoutMs));
+  }
+  const result = await rawApi<T>(action, data, timeoutMs);
+  if (sessionAction) careReads.reset();
+  if (["care-put", "care-delete", "care-import", "save"].includes(action) || action.startsWith("doctor-question-") || action.startsWith("family-" ) && action !== "family-list") careReads.invalidate();
+  return result;
+}
+
+async function rawApi<T>(
   action: string,
   data: Record<string, unknown> = {},
   timeoutMs = 60000,

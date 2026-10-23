@@ -48,7 +48,7 @@ export default function DataRights() {
     {login ? <Button asChild><Link to="/account?mode=login">Войти, чтобы отправить личное обращение</Link></Button> : <>
       <form onSubmit={submit} className="space-y-4">
         <label className="form-field">Вид обращения<select value={kind} onChange={e => { setKind(e.target.value as keyof typeof kinds); setRequestId(randomId()); }} className="rounded-xl border bg-background p-3">{Object.entries(kinds).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
-        <label className="form-field">Ваш запрос<Textarea value={text} onChange={e => { setText(e.target.value); setRequestId(randomId()); }} required maxLength={2000} rows={4} /></label>
+        <label className="form-field">Ваш запрос<Textarea aria-label="Ваш запрос" value={text} onChange={e => { setText(e.target.value); setRequestId(randomId()); }} required maxLength={2000} rows={4} /></label>
         <Button type="submit" disabled={busy}>Отправить владельцу</Button>
       </form>
       <section className="space-y-3"><h2 className="font-heading text-xl">Выгрузить свой кабинет</h2><form onSubmit={download} className="space-y-3"><label className="form-field">Текущий пароль<Input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required maxLength={128} /></label><Button variant="outline" type="submit" disabled={busy}>Скачать свои данные</Button></form></section>

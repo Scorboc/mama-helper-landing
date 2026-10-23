@@ -9,6 +9,7 @@ HELP='''MAMA — управление проектом
 /task <описание> — фоновый Codex готовит изменения в отдельной копии. Перед работой — резервная копия, затем сборка, синтетические тесты и проверка конфликтов. Допустимые изменения применяются локально; результат приходит сюда.
 Пример: /task Сделать кнопку графика сна заметнее
 /status — последние пять задач и их состояние.
+/control — локальные сервисы, резервная копия, n8n, действия на сайте и расходы ИИ; только агрегаты.
 /prompt <идея> — только текст задания, без выполнения. Можно сначала /prompt, затем идею отдельным сообщением в течение суток.
 /reviews — отчёты и предложения; /review ID — открыть.
 /revise ID <полная редакция задачи> — учесть ваши правки и показать промпт. Можно ответить прямо на сообщение с предложением.
@@ -97,6 +98,9 @@ def process(root,cfg,updates):
             elif command=='/status':
                 import telegram_tasks
                 reply=telegram_tasks.status(db)
+            elif command=='/control':
+                import marketing_control
+                reply=marketing_control.summary(root)
             elif command in ('/publish','/deploy'):
                 import telegram_publication
                 reply=telegram_publication.submit(root,db,tail.strip())

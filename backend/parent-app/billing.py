@@ -12,6 +12,7 @@ import time
 import urllib.request
 from urllib.parse import urlparse
 import legal
+import closed_beta
 
 PRICE_RUB = 480
 ANSWER_LIMIT = 300
@@ -29,6 +30,8 @@ def next_month(stamp):
 
 
 def payment_ready():
+    if closed_beta.enabled():
+        return False
     url = urlparse(os.environ.get('APP_PUBLIC_URL', ''))
     return bool(os.environ.get('YOOKASSA_SHOP_ID') and os.environ.get('YOOKASSA_SECRET_KEY')
                 and url.scheme == 'https' and url.hostname and legal.public()['documentsReady']
@@ -36,13 +39,15 @@ def payment_ready():
 
 
 def public_config():
-    return {'enabled': enabled(), 'priceRub': PRICE_RUB, 'answerLimit': ANSWER_LIMIT,
+    return {'closedBeta': closed_beta.enabled(), 'betaAnswerLimit': closed_beta.limit() if closed_beta.enabled() else None, 'enabled': enabled(), 'priceRub': PRICE_RUB, 'answerLimit': ANSWER_LIMIT,
             'plan': PLAN, 'period': 'calendar-month', 'autoRenew': False,
             'paymentConfigured': payment_ready()}
 
 
 def access(db, uid, now=None):
     now = int(time.time()) if now is None else now
+    if closed_beta.enabled():
+        return {'mode': 'test', 'periodKey': 'closed-beta-v1', 'answerLimit': closed_beta.limit(), 'endsAt': None}
     paid = db.query('SELECT period_key,answer_limit,ends_at FROM mh_paid_access WHERE user_id=? AND starts_at<=? AND ends_at>?', (uid, now, now)).fetchone()
     if paid:
         return {'mode': 'paid', 'periodKey': paid[0], 'answerLimit': int(paid[1]), 'endsAt': paid[2]}
@@ -135,6 +140,8 @@ def action(app, db, user, action, data):
     uid = user[0]
     if action == 'billing-status':
         return status(db, uid)
+    if closed_beta.enabled():
+        raise app.AppError(409, 'Оплата откроется позже. По вопросам тестирования напишите владельцу через «Данные и обращения».')
     app.rate_limit(db, 'billing:'+uid, 12, 900)
     if action == 'billing-check':
         oid = data.get('orderId', '')

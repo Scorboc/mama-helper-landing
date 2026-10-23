@@ -39,6 +39,16 @@ def put(root,key,kind,text,priority=10):
     with closing(database(root)) as db:
         db.execute("INSERT OR IGNORE INTO messages(id,kind,body,priority,created,state) VALUES(?,?,?,?,?,'queued')",(key,kind,text[:3500],priority,int(time.time())));db.commit()
 
+def backup_alerts(root,age,restore,now):
+    """Fixed owner alerts, at most one per kind per UTC date; no config/key read."""
+    from datetime import datetime, timezone
+    date=datetime.fromtimestamp(now,timezone.utc).strftime('%Y-%m-%d')
+    if age>26*3600:
+        put(root,'backup-stale:'+date,'backup-alert','MAMA: успешной резервной копии нет более 26 часов. Требуется проверка.',1)
+    if restore.get('ok') is False:
+        put(root,'restore-failed:'+date,'backup-alert','MAMA: последняя проверка восстановления неуспешна. Требуется проверка.',1)
+
+
 def number(value):
     return min(max(value,0),100000000) if type(value) is int else 0
 
@@ -77,6 +87,9 @@ def collect(root):
             proposals=data.get('proposals',[])
             title='Недельный обзор' if path.name.startswith('weekly') else 'Ежедневный отчёт'
             text=f'MAMA: {title}\nВызовов ИИ за отчётный период: {calls}\nС техническими ошибками: {errors}\nПредложений для проверки: {len(proposals)}\nПереписка и сведения о детях не передаются.'
+            marketing=data.get('marketingControl')
+            if isinstance(marketing,str) and marketing.startswith('MAMA: контроль проекта'):
+                text+='\n\n'+marketing[:1400]
             put(root,'report:'+path.stem,'report',text)
             ideas=[]
             if errors:ideas.append('• Проверить причины технических ошибок ИИ.')

@@ -1,3 +1,5 @@
+import { libraryHasNoMatches } from '@/lib/quick-wins';
+import { resetLibraryFilters } from '@/lib/quick-wins';
 import {useEffect,useState} from 'react';
 import {Bookmark} from 'lucide-react';
 import {Button} from './ui/button';
@@ -18,6 +20,9 @@ export function FavoriteButton({state,busy,save,message}:Props & {message:Messag
 export default function Favorites({state,busy,save}:Props) {
   const [query,setQuery]=useState(''),[category,setCategory]=useState('all'),[child,setChild]=useState('all');
   const favorites=state.favorites || [];
+  const hasFilters=!!query||category!=='all'||child!=='all';
+  const reset=()=>{const next=resetLibraryFilters();setQuery(next.query);setCategory(next.category);setChild(next.child);};
+  const resetButton=<Button className="min-h-11" variant="outline" onClick={reset}>Сбросить фильтры</Button>;
   const [materials,setMaterials]=useState<{id:string;title:string;text:string;category:string}[]>([]);
   useEffect(()=>{let active=true;setMaterials([]);api<{items:typeof materials}>('materials').then(r=>{if(active)setMaterials(r.items||[]);}).catch(()=>{});return()=>{active=false;};},[state.activeChildId,state.profile?.birthDate,state.profile?.stage]);
   const filtered=favorites.filter(item=>(category==='all'||(item.category||'other')===category)&&(child==='all'||item.childId===child)&&`${item.childName} ${item.question} ${item.text} ${item.note||''}`.toLocaleLowerCase('ru').includes(query.toLocaleLowerCase('ru')));
@@ -25,8 +30,10 @@ export default function Favorites({state,busy,save}:Props) {
     <Input aria-label="Поиск в избранном" placeholder="Найти ответ или заметку" value={query} onChange={e=>setQuery(e.target.value)}/>
     <div className="my-3 grid gap-3 sm:grid-cols-2"><label>Тема<select className="block w-full rounded-xl border border-border bg-background p-3 text-foreground" value={category} onChange={e=>setCategory(e.target.value)}><option value="all">Все темы</option>{Object.entries(categories).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
     <label>Для кого<select className="block w-full rounded-xl border border-border bg-background p-3 text-foreground" value={child} onChange={e=>setChild(e.target.value)}><option value="all">Вся семья</option>{Array.from(new Map(favorites.map(f=>[f.childId,f.childName])).entries()).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label></div>
+    <p className="break-words">Ищем у: {child==='all'?'всех детей':favorites.find(f=>f.childId===child)?.childName||'выбранного ребёнка'}</p>
+    {hasFilters&&resetButton}
     {!favorites.length&&<p className="my-5">Нажмите «В избранное» под ответом в чате — он появится здесь.</p>}
-    {favorites.length>0&&!filtered.length&&<p className="my-5">Ничего не найдено. Попробуйте изменить фильтры.</p>}
+    {libraryHasNoMatches(favorites.length,filtered.length,hasFilters)&&<div className="my-5"><p>Ничего не найдено. Можно сбросить фильтры и посмотреть все записи.</p>{resetButton}</div>}
     {filtered.map(item=><SavedItem key={`${item.childId}:${item.id}`} item={item} busy={busy} onSave={updated=>save({...state,favorites:favorites.map(f=>f.id===item.id&&f.childId===item.childId?updated:f)},'Запись сохранена')} onRemove={()=>void save({...state,favorites:favorites.filter(f=>!(f.id===item.id&&f.childId===item.childId))},'Убрано из избранного')}/>)}
     {materials.length>0&&<div className="mt-6"><h3>Подборка для вас</h3>{materials.map(item=><article className="tile my-4" key={item.id}><h3>{item.title}</h3><p className="whitespace-pre-wrap break-words">{item.text}</p><Button variant="outline" disabled={busy||favorites.length>=200||favorites.some(f=>f.id===item.id&&f.childId===(state.activeChildId||'primary'))} onClick={()=>void save({...state,favorites:[{id:item.id,childId:state.activeChildId||'primary',childName:state.profile?.childName||'Для меня',text:item.text.slice(0,2500),question:item.title,savedAt:new Date().toISOString(),category:item.category},...favorites]},'Материал сохранён')}>Сохранить</Button></article>)}</div>}
   </section>;
