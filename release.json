@@ -1,1 +1,7 @@
-{"sourceCommit": "d00b17660c328a49570706cf2eb7aeabd7a360c5", "deployment": "GitHub Pages", "backend": "existing synthetic preview; no production API"}
+{
+  "sourceCommit": "91ccf45f5c60b31677203971db9edd515432b515",
+  "previousPagesCommit": "80241bbf61884bb858d61f5a414fd5a039dca816",
+  "mode": "explicit-browser-memory-demo",
+  "builtAt": "2026-10-23",
+  "realBackendDeployed": false
+}

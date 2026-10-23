@@ -1,4 +1,5 @@
-MAMA public frontend
+# MAMA public demonstration
 
-Built from main d00b17660c328a49570706cf2eb7aeabd7a360c5.
-Existing synthetic demo adapter retained. No production accounts, private records, or external AI are connected.
+Source commit: 91ccf45f5c60b31677203971db9edd515432b515
+
+This branch is compiled GitHub Pages output. Demo records exist only in browser memory. Real accounts, AI and payments are not connected.
