@@ -1,0 +1,506 @@
+[
+  {
+    "month": 0,
+    "choices": 13,
+    "stationary": 12,
+    "noMaterials": 9
+  },
+  {
+    "month": 1,
+    "choices": 13,
+    "stationary": 12,
+    "noMaterials": 9
+  },
+  {
+    "month": 2,
+    "choices": 12,
+    "stationary": 11,
+    "noMaterials": 8
+  },
+  {
+    "month": 3,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 9
+  },
+  {
+    "month": 4,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 10
+  },
+  {
+    "month": 5,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 10
+  },
+  {
+    "month": 6,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 7
+  },
+  {
+    "month": 7,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 7
+  },
+  {
+    "month": 8,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 8
+  },
+  {
+    "month": 9,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 5
+  },
+  {
+    "month": 10,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 4
+  },
+  {
+    "month": 11,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 4
+  },
+  {
+    "month": 12,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 6
+  },
+  {
+    "month": 13,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 6
+  },
+  {
+    "month": 14,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 6
+  },
+  {
+    "month": 15,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 6
+  },
+  {
+    "month": 16,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 6
+  },
+  {
+    "month": 17,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 6
+  },
+  {
+    "month": 18,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 7
+  },
+  {
+    "month": 19,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 7
+  },
+  {
+    "month": 20,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 7
+  },
+  {
+    "month": 21,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 7
+  },
+  {
+    "month": 22,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 7
+  },
+  {
+    "month": 23,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 7
+  },
+  {
+    "month": 24,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 6
+  },
+  {
+    "month": 25,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 6
+  },
+  {
+    "month": 26,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 6
+  },
+  {
+    "month": 27,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 6
+  },
+  {
+    "month": 28,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 7
+  },
+  {
+    "month": 29,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 7
+  },
+  {
+    "month": 30,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 6
+  },
+  {
+    "month": 31,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 6
+  },
+  {
+    "month": 32,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 6
+  },
+  {
+    "month": 33,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 6
+  },
+  {
+    "month": 34,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 6
+  },
+  {
+    "month": 35,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 6
+  },
+  {
+    "month": 36,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 37,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 38,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 8
+  },
+  {
+    "month": 39,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 8
+  },
+  {
+    "month": 40,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 41,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 42,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 8
+  },
+  {
+    "month": 43,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 8
+  },
+  {
+    "month": 44,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 45,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 46,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 8
+  },
+  {
+    "month": 47,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 8
+  },
+  {
+    "month": 48,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 8
+  },
+  {
+    "month": 49,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 8
+  },
+  {
+    "month": 50,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 51,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 52,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 8
+  },
+  {
+    "month": 53,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 8
+  },
+  {
+    "month": 54,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 55,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 56,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 8
+  },
+  {
+    "month": 57,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 8
+  },
+  {
+    "month": 58,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 59,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 8
+  },
+  {
+    "month": 60,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 10
+  },
+  {
+    "month": 61,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 10
+  },
+  {
+    "month": 62,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 10
+  },
+  {
+    "month": 63,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 10
+  },
+  {
+    "month": 64,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 10
+  },
+  {
+    "month": 65,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 10
+  },
+  {
+    "month": 66,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 10
+  },
+  {
+    "month": 67,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 10
+  },
+  {
+    "month": 68,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 10
+  },
+  {
+    "month": 69,
+    "choices": 17,
+    "stationary": 16,
+    "noMaterials": 10
+  },
+  {
+    "month": 70,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 10
+  },
+  {
+    "month": 71,
+    "choices": 16,
+    "stationary": 15,
+    "noMaterials": 10
+  },
+  {
+    "month": 72,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 10
+  },
+  {
+    "month": 73,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 10
+  },
+  {
+    "month": 74,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 9
+  },
+  {
+    "month": 75,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 9
+  },
+  {
+    "month": 76,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 10
+  },
+  {
+    "month": 77,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 10
+  },
+  {
+    "month": 78,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 9
+  },
+  {
+    "month": 79,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 9
+  },
+  {
+    "month": 80,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 10
+  },
+  {
+    "month": 81,
+    "choices": 17,
+    "stationary": 17,
+    "noMaterials": 10
+  },
+  {
+    "month": 82,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 9
+  },
+  {
+    "month": 83,
+    "choices": 16,
+    "stationary": 16,
+    "noMaterials": 9
+  }
+]
