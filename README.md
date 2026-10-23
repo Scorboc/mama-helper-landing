@@ -1,5 +1,5 @@
 # MAMA public demonstration
 
-Source commit: 91ccf45f5c60b31677203971db9edd515432b515
+Source commit: 179300cee7a2a06317245d9b8899992399d12e50
 
-This branch is compiled GitHub Pages output. Demo records exist only in browser memory. Real accounts, AI and payments are not connected.
+Demo records exist only in browser memory. Real accounts, AI and payments are not connected.
