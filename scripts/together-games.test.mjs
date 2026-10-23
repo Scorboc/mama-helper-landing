@@ -46,6 +46,7 @@ test('frame context rejects another origin, window, invalid mode and non-numeric
  assert.equal(L.context(data,'https://other.invalid','https://mama.invalid',true),null);
  assert.equal(L.context(data,'https://mama.invalid','https://mama.invalid',false),null);
  assert.equal(L.context({...data,mode:'admin'},'a','a',true),null);
+ assert.equal(L.context({...data,mode:'public'},'a','a',true),null);
  for(const age of [null,'36',true,-1,84,NaN])assert.equal(L.context({...data,ageMonths:age},'a','a',true).ageMonths,null);
  assert.equal(L.context(data,'a','a',true).ageMonths,36);
 });
@@ -90,4 +91,25 @@ test('toddler activity waits for adult advances and stops after exactly three pi
  for(let i=0;i<100;i++)assert.equal(T.advance(s),false);
  assert.equal(T.advance(null),false);assert.equal(T.advance({type:'pairs'}),false);
  assert.match(T.warning,/за весь день/);assert.match(T.warning,/не одобрена ВОЗ/);assert.equal(new URL(T.whoUrl).hostname,'www.who.int');
+});
+
+test('all five toddler themes have bounded rounds and distinct age support',()=>{
+ const T=sandbox.window.TogetherToddler;assert.equal(Object.keys(T.themes).length,5);
+ for(const theme of Object.keys(T.themes)){
+  const prompts=new Set();
+  for(let age=24;age<36;age++){
+   const s=T.create(age,theme);assert.equal(s.theme,theme);prompts.add(s.prompt);assert.ok(s.minMonths<=age&&age<s.maxMonths);
+   for(let round=0;round<3;round++){
+    assert.equal(s.index,round);assert.equal(s.selection,null);assert.equal(s.revealed,false);
+    assert.equal(T.choose(s,0),['colors','shapes','sizes'].includes(theme));
+    assert.equal(T.choose(s,1),['colors','shapes','sizes'].includes(theme));
+    for(const invalid of [-1,2,'0',NaN])assert.equal(T.choose(s,invalid),false);
+    assert.equal(T.reveal(s),theme==='animals');assert.equal(T.advance(s),true);
+    assert.equal(T.choose(s,0),false);assert.equal(T.reveal(s),false);assert.equal(T.advance(s),true);
+   }
+   assert.equal(s.done,true);assert.equal(T.choose(s,0),false);assert.equal(T.reveal(s),false);assert.equal(T.advance(s),false);
+  }
+  assert.equal(prompts.size,6,theme);
+ }
+ for(const invalid of ['invalid','__proto__','constructor'])assert.equal(T.create(24,invalid),null);
 });

@@ -6,15 +6,15 @@ import './together-games.css';
 /** Trusted UI at the same origin, not a security isolation boundary.
  * Messages carry only completed months. Never a DOB,
  * name, child ID, history, health field, auth token or profile object. */
-export default function TogetherGames({profile,contextKey='public',onProfile}: {
-  profile?:Profile|null;contextKey?:string;onProfile?:()=>void;
+export default function TogetherGames({profile,contextKey='primary',onProfile}: {
+  profile:Profile|null;contextKey?:string;onProfile?:()=>void;
 }) {
-  const mode=profile===undefined?'public':'profile';
-  const age=mode==='profile'?playAge(profile??null):null;
+  const mode='profile';
+  const age=playAge(profile);
   const frame=useRef<HTMLIFrameElement>(null);
   const [ready,setReady]=useState(false);
   const [failed,setFailed]=useState(false);
-  const src=import.meta.env.BASE_URL+'together-games/index.html'+(mode==='profile'?'#profile':'');
+  const src=import.meta.env.BASE_URL+'together-games/index.html#profile';
   useEffect(()=>{
     setReady(false);setFailed(false);
     let acknowledged=false;
@@ -29,7 +29,7 @@ export default function TogetherGames({profile,contextKey='public',onProfile}: {
     send();
     return()=>{window.clearTimeout(timeout);window.removeEventListener('message',receive);};
   },[age,contextKey,mode]);
-  if(mode==='profile'&&age===null)return <section className="together-empty">
+  if(age===null)return <section className="together-empty">
     <h3>Для занятий нужен профиль ребёнка</h3>
     <p>Подборка рассчитана на возраст от рождения до 6 лет включительно. Беременность и неизвестный возраст не заменяют профиль родившегося ребёнка.</p>
     {onProfile&&<button type="button" className="glass-btn px-5 py-3" onClick={onProfile}>Открыть профиль</button>}

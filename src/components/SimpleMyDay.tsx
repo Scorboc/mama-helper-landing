@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useLocation, useNavigate} from 'react-router-dom';
 import {Heart, Sparkles, RefreshCw} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {ParentState} from '@/lib/parent-model';
@@ -19,7 +20,10 @@ const motherTips = [
  ['Попросить время на отдых', 'Договоритесь с близким о небольшом времени, когда заботу о ребёнке возьмёт на себя он. Скажите прямо, когда и какая помощь вам нужна.'],
 ];
 export default function SimpleMyDay({state,onProfile,active=true,onNavigate}:{state:ParentState;onProfile:()=>void;active?:boolean;onNavigate:(tab:string)=>void}) {
- const [library,setLibrary]=useState(false);
+ const location=useLocation(),navigate=useNavigate();
+ const library=new URLSearchParams(location.search).get('games')==='1';
+ const openLibrary=()=>{const params=new URLSearchParams(location.search);params.set('games','1');navigate({pathname:location.pathname,search:params.toString()},{replace:true});};
+ const closeLibrary=()=>{const params=new URLSearchParams(location.search);params.delete('games');navigate({pathname:location.pathname,search:params.toString()},{replace:true});};
  const [refresh,setRefresh]=useState(0);
  useEffect(()=>{const update=()=>setRefresh(n=>n+1);window.addEventListener('care-records-changed',update);return()=>window.removeEventListener('care-records-changed',update);},[]);
  const [mood,setMood]=useState('');
@@ -35,7 +39,7 @@ export default function SimpleMyDay({state,onProfile,active=true,onNavigate}:{st
  const unique=ideas.filter((idea,index)=>ideas.findIndex(other=>other.template===idea.template)===index);
  const idea=unique[childIndex%Math.max(1,unique.length)];
  const pregnant=state.profile?.stage==='pregnancy';
- if(library)return <section><Button variant="outline" onClick={()=>setLibrary(false)}>← К сегодняшнему дню</Button><TogetherGames profile={state.profile} contextKey={state.activeChildId||'primary'} onProfile={onProfile}/></section>;
+ if(library)return <section><Button variant="outline" onClick={closeLibrary}>← К сегодняшнему дню</Button><TogetherGames profile={state.profile} contextKey={state.activeChildId||'primary'} onProfile={onProfile}/></section>;
  return <><div className="simple-day">
   <section className="tile simple-day-card" aria-labelledby="parent-day-title">
    <div className="simple-day-label"><Heart size={22}/><h2 id="parent-day-title">{state.profile?.role==='dad'?'Для папы':'Для мамы'}</h2></div>
@@ -44,7 +48,7 @@ export default function SimpleMyDay({state,onProfile,active=true,onNavigate}:{st
   </section>
   <section className="tile simple-day-card" aria-labelledby="child-day-title">
    <div className="simple-day-label"><Sparkles size={22}/><h2 id="child-day-title">Для ребёнка</h2></div>
-   {state.profile?.stage==='child'?<><DailyActivities key={state.activeChildId || 'primary'} state={state} active={active}/><div className="care-buttons mt-4"><Button variant="outline" onClick={()=>setLibrary(true)}>Игры и занятия с мамой</Button></div><p className="muted text-sm">Вся подборка по активному профилю: домашние занятия, обучение в игре и экранные игры от трёх лет.</p></>:<>
+   {state.profile?.stage==='child'?<><DailyActivities key={state.activeChildId || 'primary'} state={state} active={active}/><div className="care-buttons mt-4"><Button variant="outline" onClick={openLibrary}>Игры и занятия с мамой</Button></div><p className="muted text-sm">Вся подборка по активному профилю: домашние занятия, обучение в игре и совместные экранные занятия с двух лет.</p></>:<>
    <div className="simple-day-content" aria-live="polite">
     {idea?<><span className="simple-day-caption">{pregnant?'Пока ждёте малыша':'Вместе · около 5 минут'}</span><h3>{idea.title}</h3><p>{idea.detail}</p></>:<><h3>Подберём занятие по возрасту</h3><p>Укажите дату рождения ребёнка в профиле. Если вы ждёте малыша, выберите беременность.</p></>}
    </div>

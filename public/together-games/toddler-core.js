@@ -11,8 +11,34 @@ const bands=[
  [34,'Поговорите о том, что можно делать с этим предметом. Назовите один пример сами.','Придумайте короткую фразу о похожей вещи рядом. Ребёнок может добавить слово, жест или только слушать.']
 ];
 const pictures=[['⚽','Мяч'],['🧸','Мишка'],['🪑','Стул']];
+const themes={
+ world:{title:'Картинка и мир вокруг',icon:'🧸',description:'Называем знакомые предметы, затем общаемся без экрана.'},
+ animals:{title:'Кто как говорит',icon:'🐱',description:'Кошка, собака и корова: мама озвучивает животных, ребёнок отвечает как захочет.'},
+ colors:{title:'Выбираем цвет',icon:'🎨',description:'Выбираем цветные кружки и называем цвета вместе с мамой.'},
+ shapes:{title:'Знакомимся с формами',icon:'◯',description:'Круг, квадрат и треугольник: рассматриваем, выбираем и показываем форму жестом.'},
+ sizes:{title:'Большой и маленький',icon:'◉',description:'Две одинаковые фигуры разного размера: выбираем и сравниваем без экзамена.'}
+};
+Object.assign(themes.world,{domain:'Слова · знакомые предметы · общение',tip:'Называйте знакомое сами. Ребёнок может показать, ответить жестом или только послушать.',end:'Вы посмотрели картинки и поговорили о знакомых вещах.'});
+Object.assign(themes.animals,{domain:'Животные · звуки · общение',tip:'Звуки произносит мама негромко. Можно ответить любым звуком или жестом, а можно только слушать.',end:'Вы познакомились с животными и послушали их голоса в мамином исполнении.'});
+Object.assign(themes.colors,{domain:'Цвета · выбор · слова',tip:'Называйте выбранный цвет спокойно, без проверки и исправлений. Цвет подписан словами; любой выбор подходит.',end:'Вы выбирали цвета и называли их вместе.'});
+Object.assign(themes.shapes,{domain:'Формы · контуры · жесты',tip:'Мама может показать контур в воздухе. Не нужно обводить экран или повторять до правильного ответа.',end:'Вы рассматривали формы и показывали контуры жестами.'});
+Object.assign(themes.sizes,{domain:'Размеры · сравнение · жесты',tip:'Сравниваем только две показанные фигуры между собой. Кнопки одинаково крупные: маленькую фигуру не нужно точно ловить пальцем.',end:'Вы сравнивали большой и маленький размер и показывали их жестами.'});
+const rounds={
+ animals:[{icon:'🐱',label:'Кошка',sound:'Мяу-мяу',real:'Мама тихо говорит «мяу». Ребёнок может ответить звуком, жестом или просто послушать.'},{icon:'🐶',label:'Собака',sound:'Гав-гав',real:'Мама негромко говорит «гав». Можно ответить своим звуком или только посмотреть на маму.'},{icon:'🐮',label:'Корова',sound:'Му-у',real:'Мама спокойно тянет «му-у» и делает паузу. Не просите повторять; любой ответ или молчание подходит.'}],
+ colors:[['red','blue'],['yellow','red'],['blue','yellow']],
+ shapes:[['circle','square'],['triangle','circle'],['square','triangle']],
+ sizes:['circle','square','triangle']
+};
+const topicPrompts={
+ animals:['Назовите животное и покажите его сами. Можно просто посмотреть.','Назовите животное, сделайте паузу и примите любой жест или звук.','Предложите назвать животное. Если ответа нет, спокойно назовите сами.','Предложите выбрать: назвать животное или послушать маму.','Мама показывает животное, ребёнок может добавить звук или жест.','Поговорите о животном короткой фразой: «Кошка мяукает». Можно только слушать.'],
+ colors:['Мама называет оба цвета и сама показывает любой кружок.','Назовите один цвет и сделайте паузу для любого выбора ребёнка.','Ребёнок выбирает кружок, мама называет его цвет и показывает второй.','Предложите выбрать цвет для мамы. Мама назовёт его и передаст выбор ребёнку.','Мама выбирает кружок, ребёнок может назвать цвет или показать другой.','Обсудите оба цвета: мама называет один, ребёнок может выбрать следующий словом или жестом.'],
+ shapes:['Мама называет обе формы и медленно обводит одну пальцем в воздухе.','Назовите форму и оставьте паузу: можно показать любую или только смотреть.','Покажите плавный край круга или углы другой формы. Ребёнок может выбрать, что рассмотреть.','Ребёнок выбирает форму, мама называет её и показывает контур жестом.','Мама выбирает форму, ребёнок может назвать её или показать контур своим жестом.','Поменяйтесь: мама показывает контур, ребёнок выбирает форму для следующего жеста.'],
+ sizes:['Покажите обе фигуры сами: «Эта большая, эта маленькая».','Мама показывает руками большой и маленький размер, затем ждёт любого ответа.','Ребёнок выбирает фигуру, мама называет её размер и сравнивает со второй.','Предложите выбрать фигуру для мамы, потом мама покажет её размер руками.','Мама выбирает размер, ребёнок может назвать его или показать своим жестом.','Поменяйтесь ролями: ребёнок выбирает фигуру, мама показывает размер, затем наоборот.']
+};
 function eligible(age){return Number.isInteger(age)&&age>=24&&age<36;}
-function create(age){if(!eligible(age))return null;const band=bands[Math.floor((age-24)/2)];return {type:'toddler',minMonths:band[0],maxMonths:band[0]+2,prompt:band[1],real:band[2],index:0,phase:'picture',done:false};}
-function advance(s){if(!s||s.type!=='toddler'||s.done)return false;if(s.phase==='picture'){s.phase='real';return true;}if(s.phase!=='real')return false;if(s.index===pictures.length-1){s.done=true;s.phase='done';}else{s.index++;s.phase='picture';}return true;}
-root.TogetherToddler={eligible,create,advance,pictures,warning,whoUrl};
+function create(age,theme='world'){if(!eligible(age)||!Object.hasOwn(themes,theme))return null;const slot=Math.floor((age-24)/2),band=bands[slot];return {type:'toddler',theme,minMonths:band[0],maxMonths:band[0]+2,prompt:theme==='world'?band[1]:topicPrompts[theme][slot],real:band[2],index:0,phase:'picture',selection:null,revealed:false,done:false};}
+function choose(s,index){if(!s||s.type!=='toddler'||s.done||s.phase!=='picture'||!['colors','shapes','sizes'].includes(s.theme)||!Number.isInteger(index)||index<0||index>1)return false;s.selection=index;return true;}
+function reveal(s){if(!s||s.type!=='toddler'||s.done||s.phase!=='picture'||s.theme!=='animals')return false;s.revealed=true;return true;}
+function advance(s){if(!s||s.type!=='toddler'||s.done)return false;if(s.phase==='picture'){s.phase='real';return true;}if(s.phase!=='real')return false;if(s.index===pictures.length-1){s.done=true;s.phase='done';}else{s.index++;s.phase='picture';s.selection=null;s.revealed=false;}return true;}
+root.TogetherToddler={eligible,create,advance,choose,reveal,pictures,themes,rounds,warning,whoUrl};
 })(typeof window!=='undefined'?window:globalThis);
