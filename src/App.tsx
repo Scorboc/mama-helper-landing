@@ -21,6 +21,7 @@ const Legal = lazy(() => import("./pages/Legal"));
 const Billing = lazy(() => import("./pages/Billing"));
 const DataRights = lazy(() => import("./pages/DataRights"));
 const PublicGuide = lazy(() => import("./pages/PublicGuide"));
+const CampaignGames = lazy(() => import("./pages/CampaignGames"));
 
 function OpeningPage() {
   return <RoomSurface><main className="public-page route-message" aria-busy="true">
@@ -58,6 +59,7 @@ const App = () => (
         <RoomMediaProvider><RoomTransition />
         <PageBoundary><Suspense fallback={<OpeningPage />}><Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/games" element={<RoomSurface><CampaignGames /></RoomSurface>} />
 
           <Route path="/cabinet" element={<RoomSurface><ParentWorkspace key="account" /></RoomSurface>} />
           <Route path="/demo" element={<Navigate to="/account" replace />} />
