@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 const read=name=>fs.readFileSync(new URL('../'+name,import.meta.url),'utf8');
 const sandbox={window:{}};
-for(const file of ['catalog.js','game-core.js','library-rules.js'])vm.runInNewContext(read('public/together-games/'+file),sandbox);
+for(const file of ['catalog.js','game-core.js','library-rules.js','toddler-core.js'])vm.runInNewContext(read('public/together-games/'+file),sandbox);
 const C=sandbox.window.TogetherCatalog,G=sandbox.window.TogetherGames,L=sandbox.window.TogetherLibrary;
 
 test('every month has the declared reserve, including honest smaller newborn pools',()=>{
@@ -69,9 +69,25 @@ test('cooperative game engines finish and remain bounded through mixed actions',
  for(let n=0;n<36;n++){assert.equal(G.memory(n),null);assert.equal(G.story(n),null);}
 });
 test('runtime stores no profile or progress and uses no paid generation, microphone or network',()=>{
- const code=['app.js','game-core.js','library-rules.js'].map(n=>read('public/together-games/'+n)).join('\n');
+ const code=['app.js','game-core.js','library-rules.js','toddler-core.js'].map(n=>read('public/together-games/'+n)).join('\n');
  assert.doesNotMatch(code,/\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|getUserMedia|sendBeacon|setInterval\s*\(/);
  const frame=read('src/components/TogetherGames.tsx');
  assert.doesNotMatch(frame,/postMessage\(profile|postMessage\(state|JSON\.stringify|targetOrigin:\s*['"]\*/);
  assert.match(frame,/event\.source!==frame\.current\?\.contentWindow/);assert.match(frame,/key=\{`\$\{mode\}:\$\{contextKey\}:\$\{age\}`\}/);
+});
+
+test('toddler picture activity has exact age bounds and distinct two-month adult prompts',()=>{
+ const T=sandbox.window.TogetherToddler;
+ for(const n of [null,undefined,true,'24',23,36,84,NaN,24.5])assert.equal(T.create(n),null);
+ const prompts=new Set();for(let n=24;n<36;n++){const s=T.create(n);assert.ok(s.minMonths<=n&&n<s.maxMonths);assert.equal(s.maxMonths-s.minMonths,2);prompts.add(s.prompt+' '+s.real);assert.equal(G.memory(n),null);}
+ assert.equal(prompts.size,6);
+});
+
+test('toddler activity waits for adult advances and stops after exactly three pictures',()=>{
+ const T=sandbox.window.TogetherToddler,s=T.create(24);assert.equal(s.phase,'picture');
+ for(let i=0;i<3;i++){assert.equal(s.index,i);assert.equal(s.done,false);assert.equal(T.advance(s),true);assert.equal(s.phase,'real');assert.equal(T.advance(s),true);}
+ assert.equal(s.done,true);assert.equal(s.index,2);assert.equal(s.phase,'done');
+ for(let i=0;i<100;i++)assert.equal(T.advance(s),false);
+ assert.equal(T.advance(null),false);assert.equal(T.advance({type:'pairs'}),false);
+ assert.match(T.warning,/за весь день/);assert.match(T.warning,/не одобрена ВОЗ/);assert.equal(new URL(T.whoUrl).hostname,'www.who.int');
 });
