@@ -1,9 +1,10 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, Compass, CreditCard, History, LogIn, LogOut, Settings, UserRound } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { contextLabel, type Profile } from "@/lib/parent-model";
 import { accountForRoom } from "@/lib/room-experience";
+import { storageMode } from "@/lib/parent-api";
 
 export default function RoomChatMenu({ profile, disabled, signedIn = true, onProfile, onOptions, onSettings, onLogout }: {
   profile: Profile | null;
@@ -15,6 +16,22 @@ export default function RoomChatMenu({ profile, disabled, signedIn = true, onPro
   onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [temporaryStorage, setTemporaryStorage] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void storageMode().then(mode => { if (active) setTemporaryStorage(mode === 'demo'); }).catch(() => {});
+    return () => { active = false; };
+  }, []);
+  const topbar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = topbar.current;
+    const surface = node?.closest<HTMLElement>('.room-surface');
+    if (!node || !surface) return;
+    const measure = () => surface.style.setProperty('--room-topbar-height', `${node.getBoundingClientRect().height}px`);
+    const observer = new ResizeObserver(measure);
+    observer.observe(node); measure();
+    return () => { observer.disconnect(); surface.style.removeProperty('--room-topbar-height'); };
+  }, []);
   const forwardingFocus = useRef(false);
   function openDialog(action: () => void) {
     forwardingFocus.current = true;
@@ -22,7 +39,7 @@ export default function RoomChatMenu({ profile, disabled, signedIn = true, onPro
     action();
   }
   const name = profile?.childName || (profile?.stage === "pregnancy" ? "Ожидание малыша" : "Профиль ребёнка");
-  return <><div className="room-chat-topbar">
+  return <><div className="room-chat-topbar" ref={topbar}>
     <Link className="room-chat-intro" to="/" aria-label="MAMA · на главную">MAMA</Link>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -53,6 +70,7 @@ export default function RoomChatMenu({ profile, disabled, signedIn = true, onPro
       </PopoverContent>
     </Popover>
     <Link className="room-chat-help" to="/first-aid">Срочная помощь · 112</Link>
+    {temporaryStorage && <p className="room-storage-notice" role="note">Записи — до обновления страницы. Без личных данных.</p>}
   </div>
     {signedIn && <button type="button" className="room-chat-context" disabled={disabled}
       aria-label={`Сменить профиль: ${contextLabel(profile)}`} onClick={onProfile}>

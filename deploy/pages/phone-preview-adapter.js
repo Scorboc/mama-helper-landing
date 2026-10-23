@@ -15,11 +15,4 @@
     let data;try { data=JSON.parse(options.body || '{}'); } catch { return response({error:'Проверьте запрос.'},400); }
     const result=demo.dispatch(data);return response(result.body,result.status);
   };
-  function notice(){
-    const aside=document.createElement('aside');aside.id='mama-public-demo-notice';aside.setAttribute('aria-label','Режим демонстрации');
-    aside.textContent='Демонстрация MAMA. Используйте вымышленные данные. Записи живут только в памяти этой вкладки и исчезнут после обновления. Настоящие аккаунты, ИИ и оплата не подключены.';
-    const style=document.createElement('style');style.textContent='#mama-public-demo-notice{padding:12px 18px;background:#fff8ed;color:#263e35;font:14px/1.5 sans-serif;border-bottom:2px solid #d8c6a5} .room-chat-intro::after{content:" · демо";font-size:11px} @media print{#mama-public-demo-notice{display:none}}';
-    document.head.append(style);document.body.prepend(aside);
-  }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',notice,{once:true});else notice();
 })();

@@ -755,8 +755,8 @@ export default function ParentWorkspace({
           onProfile={() => state.profile ? setChildPickerOpen(true) : setTab("profile")} onOptions={() => setRoomPanel("options")}
           onSettings={() => setTab("settings")} onLogout={() => void logout()}
         />}
-        <QuickConveniences key={state.activeChildId || "primary"} state={state} showLatest={tab === "home" || tab === "chat"} onRecords={() => setTab("trackers")} />
-        <PushMilestoneMark key={state.activeChildId || "primary"} state={state} search={location.search} />
+        <QuickConveniences key={"quick-" + (state.activeChildId || "primary")} state={state} showLatest={tab === "home" || tab === "chat"} onRecords={() => setTab("trackers")} />
+        <PushMilestoneMark key={"mark-" + (state.activeChildId || "primary")} state={state} search={location.search} />
         {!roomScene && <Link className="standalone-link" to="/first-aid">Срочная помощь · 112</Link>}
         {roomScene ? <h1 className={tab === "chat" ? "sr-only" : "room-section-title"}>{sectionTitles[tab] || "Ваш кабинет"}</h1> : <div className="cabinet-greeting">
           <div>

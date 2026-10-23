@@ -29,6 +29,28 @@ function findPushBoundary(node) {
 findPushBoundary(workspaceAst);
 assert.ok(pushBoundary, 'ParentWorkspace must render PushMilestoneMark');
 const workspaceBoundary = compile('boundary.tsx', { 'react/jsx-runtime': jsx }, `export default function boundary(state, location, PushMilestoneMark) { return (${pushBoundary}); }`).default;
+test('ParentWorkspace quick and mark siblings have distinct stable child keys', () => {
+  const elements = [];
+  function visit(node) {
+    if (ts.isJsxSelfClosingElement(node) && ['QuickConveniences', 'PushMilestoneMark'].includes(node.tagName.getText(workspaceAst))) elements.push(node);
+    ts.forEachChild(node, visit);
+  }
+  visit(workspaceAst);
+  assert.equal(elements.length, 2);
+  assert.equal(elements[0].parent, elements[1].parent, 'check the actual siblings');
+  const keys = elements.map(node => {
+    const key = node.attributes.properties.find(prop => ts.isJsxAttribute(prop) && prop.name.getText(workspaceAst) === 'key');
+    assert.ok(key && ts.isJsxExpression(key.initializer) && key.initializer.expression);
+    return compile('key.ts', {}, `export default function key(state, location) { return (${key.initializer.expression.getText(workspaceAst)}); }`).default;
+  });
+  for (const activeChildId of [undefined, '', 'primary', 'second', 'mark-primary', 'quick-primary']) {
+    const state = { activeChildId };
+    const before = keys.map(key => key(state, { search: '?mark=roll&child=primary' }));
+    assert.notEqual(before[0], before[1]);
+    assert.deepEqual(keys.map(key => key(state, { search: '' })), before, 'address cleanup must preserve both keys');
+  }
+  for (const key of keys) assert.notEqual(key({ activeChildId: 'primary' }, {}), key({ activeChildId: 'second' }, {}), 'child change must reset each component');
+});
 const Button = 'button', Input = 'input', FirstYearBook = 'FirstYearBook';
 
 function harness({ initialSearch = '?mark=roll&child=primary&tab=trackers', skill = 'crawl', records = [], achievements = [], permission = 'owner', hintError = false, hint = { title: 'Проверенная подсказка', text: 'Безопасность. Игра.', milestoneSkill: skill } } = {}, component = 'mark') {
