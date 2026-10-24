@@ -1,0 +1,1 @@
+import{F as e,mt as t,yt as n}from"./index-BivrYlgl.js";var r=n(t());function i(){return(0,r.jsx)(e,{to:`/chat?scene=room&tab=home&games=1`,replace:!0})}export{i as default};
