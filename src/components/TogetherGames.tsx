@@ -6,8 +6,8 @@ import './together-games.css';
 /** Trusted UI at the same origin, not a security isolation boundary.
  * Messages carry only completed months. Never a DOB,
  * name, child ID, history, health field, auth token or profile object. */
-export default function TogetherGames({profile,contextKey='primary',onProfile}: {
-  profile:Profile|null;contextKey?:string;onProfile?:()=>void;
+export default function TogetherGames({profile,contextKey='primary',onProfile,active=true}: {
+  profile:Profile|null;contextKey?:string;onProfile?:()=>void;active?:boolean;
 }) {
   const mode='profile';
   const age=playAge(profile);
@@ -29,6 +29,7 @@ export default function TogetherGames({profile,contextKey='primary',onProfile}: 
     send();
     return()=>{window.clearTimeout(timeout);window.removeEventListener('message',receive);};
   },[age,contextKey,mode]);
+  useEffect(()=>{frame.current?.contentWindow?.postMessage({type:'mama-games-activity',active},window.location.origin);},[active,ready]);
   if(age===null)return <section className="together-empty">
     <h3>Для занятий нужен профиль ребёнка</h3>
     <p>Подборка рассчитана на возраст от рождения до 6 лет включительно. Беременность и неизвестный возраст не заменяют профиль родившегося ребёнка.</p>
@@ -39,7 +40,7 @@ export default function TogetherGames({profile,contextKey='primary',onProfile}: 
     <iframe key={`${mode}:${contextKey}:${age}`} ref={frame} src={src}
       title="Игры и образовательные занятия с мамой"
       className="together-library-frame" referrerPolicy="no-referrer"
-      onError={()=>setFailed(true)} onLoad={()=>frame.current?.contentWindow?.postMessage(
-        {type:'mama-games-context',mode,ageMonths:age},window.location.origin)} />
+      onError={()=>setFailed(true)} onLoad={()=>{frame.current?.contentWindow?.postMessage(
+        {type:'mama-games-context',mode,ageMonths:age},window.location.origin);frame.current?.contentWindow?.postMessage({type:'mama-games-activity',active},window.location.origin);}} />
   </section>;
 }

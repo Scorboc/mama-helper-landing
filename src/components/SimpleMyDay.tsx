@@ -39,7 +39,7 @@ export default function SimpleMyDay({state,onProfile,active=true,onNavigate}:{st
  const unique=ideas.filter((idea,index)=>ideas.findIndex(other=>other.template===idea.template)===index);
  const idea=unique[childIndex%Math.max(1,unique.length)];
  const pregnant=state.profile?.stage==='pregnancy';
- if(library)return <section><Button variant="outline" onClick={closeLibrary}>← К сегодняшнему дню</Button><TogetherGames profile={state.profile} contextKey={state.activeChildId||'primary'} onProfile={onProfile}/></section>;
+ if(library)return <section><Button variant="outline" onClick={closeLibrary}>← К сегодняшнему дню</Button><TogetherGames active={active} profile={state.profile} contextKey={state.activeChildId||'primary'} onProfile={onProfile}/></section>;
  return <><div className="simple-day">
   <section className="tile simple-day-card" aria-labelledby="parent-day-title">
    <div className="simple-day-label"><Heart size={22}/><h2 id="parent-day-title">{state.profile?.role==='dad'?'Для папы':'Для мамы'}</h2></div>

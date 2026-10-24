@@ -1,0 +1,133 @@
+{
+  "version": "2026-10-24",
+  "speech": {
+    "provider": "ElevenLabs via ProxyAPI",
+    "model": "elevenlabs/eleven-v4",
+    "voice": "Matilda",
+    "delivery": "soft warm half-voice; prepared individually",
+    "files": [
+      {
+        "file": "voice-cat.mp3",
+        "text": "Кошка.",
+        "sha256": "37ce45b4c76a473e9b8b2845472ae771596d3b2f2b9a407178a224b5beb4ee9e"
+      },
+      {
+        "file": "voice-dog.mp3",
+        "text": "Собака.",
+        "sha256": "9bccadfae9fc51b41c9688ad30453fde158d5392efeb34e6d4ef4178bc0fe8ef"
+      },
+      {
+        "file": "voice-cow.mp3",
+        "text": "Корова.",
+        "sha256": "d2217ee0798f388e4d2dd764406e05d39b276ecd22e9edaf3ef0e17c8d341299"
+      },
+      {
+        "file": "voice-red.mp3",
+        "text": "Красный.",
+        "sha256": "31dd28c19711e1e8cc578dc81ff7ea298d7dc97705fe36ec241c670d1d65d66b"
+      },
+      {
+        "file": "voice-blue.mp3",
+        "text": "Синий.",
+        "sha256": "b92588ca424fab4402e0a4a0876cf36fe0e1a1e0ff64b3289aad20d589a05e1d"
+      },
+      {
+        "file": "voice-yellow.mp3",
+        "text": "Жёлтый.",
+        "sha256": "cb3d04e685ba9e798a779cc1f1f3303738a0fca824526f1aa46c4264001ba368"
+      },
+      {
+        "file": "voice-circle.mp3",
+        "text": "Круг.",
+        "sha256": "0631c46681d36cbac825f6de9a603fba7465ba1bebd2cbc77ab48bc157d3b39a"
+      },
+      {
+        "file": "voice-square.mp3",
+        "text": "Квадрат.",
+        "sha256": "44257a1cfc848610582e9484e9eded6f88b49575001c9eef8268fabc0850a218"
+      },
+      {
+        "file": "voice-triangle.mp3",
+        "text": "Треугольник.",
+        "sha256": "382fcbaebe3502df376867456026b7b09f7a6c985c339f012515a5f46c306918"
+      },
+      {
+        "file": "voice-ball.mp3",
+        "text": "Мяч.",
+        "sha256": "d0ffadfd473e6499d7510c3303f0e34f0c456a9358bbf0266a36faab81defeb3"
+      },
+      {
+        "file": "voice-bear.mp3",
+        "text": "Мишка.",
+        "sha256": "243459c587b640c34d1c03c97de8acaf1684fb171306276825a37460e4db9a26"
+      },
+      {
+        "file": "voice-chair.mp3",
+        "text": "Стул.",
+        "sha256": "4ea9ce6504f19e63698bcb7d592b49760e81e81fcf448fdb8db78f2ec9f871e7"
+      },
+      {
+        "file": "voice-big-circle.mp3",
+        "text": "Большой круг.",
+        "sha256": "45bfd2c8cd1c78b6d15eef30fa0ad56fdc19c14867cb3967f2c3e880508df4cf"
+      },
+      {
+        "file": "voice-small-circle.mp3",
+        "text": "Маленький круг.",
+        "sha256": "2d02252f83247b771b19c1148b7ec1d855ab22f3ea7509282080b04fccc2d434"
+      },
+      {
+        "file": "voice-big-square.mp3",
+        "text": "Большой квадрат.",
+        "sha256": "f1da72a040ac092e8cf640860a96db5319423b07acb487ad4746c6b6195ae8e3"
+      },
+      {
+        "file": "voice-small-square.mp3",
+        "text": "Маленький квадрат.",
+        "sha256": "ad901e5a1c60e3b5fc74d97441777b33ff76e55423df01f01657ac3116e901a2"
+      },
+      {
+        "file": "voice-big-triangle.mp3",
+        "text": "Большой треугольник.",
+        "sha256": "8ee1d2e187e4127a7017ce993a732603773d17ca95e69b8cc1f1668ff9e86a17"
+      },
+      {
+        "file": "voice-small-triangle.mp3",
+        "text": "Маленький треугольник.",
+        "sha256": "463be5b4e487a3fe242564ab9e3872bc9f7cb78bdc5b65a493d369fca43a2cb9"
+      }
+    ]
+  },
+  "animalRecordings": [
+    {
+      "file": "sound-cat.mp3",
+      "author": "Kerzoven",
+      "source": "https://opengameart.org/content/cat-purr-meow",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "changes": "mono MP3, loudness processing and short fades",
+      "originalSha256": "7de9fed4401b677ccbf072781182857d875093a8e9b5727fc21b38028cfd5a90",
+      "sha256": "1a6a9288b3c436e2f1c42037fed580646476d3372565e9b02adc0f9efb341def"
+    },
+    {
+      "file": "sound-dog.mp3",
+      "author": "Brandon Morris / HaelDB",
+      "source": "https://opengameart.org/content/dog-barking-mono",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "changes": "mono MP3, loudness processing and short fades",
+      "originalSha256": "bbd0f908b3514dd3bd7d2bc04dcf64f8d360a161e7f43cac5d6761e7add79451",
+      "sha256": "7c7885663b47348c50bff991125738cf9948ceae6a044f78c2f7c87b67b47d78"
+    },
+    {
+      "file": "sound-cow.mp3",
+      "author": "JarredGibb",
+      "source": "https://freesound.org/people/JarredGibb/sounds/233129/",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "changes": "mono MP3, loudness processing and short fades",
+      "originalSha256": "ff826394c63bd878385d084c547083cf7fd0e40076bb29a69065bc3b6f27f868",
+      "sha256": "bbb022733aaaf56e3a5477375f9d80886cd43196c121bd3b290b4de7341eb5bd"
+    }
+  ]
+}

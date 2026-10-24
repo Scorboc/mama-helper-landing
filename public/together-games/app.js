@@ -4,7 +4,7 @@ const views=['home','play','card','end','adult'];
 const profileMode=true;let profileAge=null,contextReady=false,cursor=0,showAll=false;
 if(profileMode){document.body.classList.add('profile-library');$('main').hidden=true;$('context-loading').hidden=false;}
 
-let currentView='home',previousView='home',mode='offline',state=null,gameType=null,level=0,patternLeader=0,storyLeader=0,activeCard=null,toddlerTheme='world';
+let currentView='home',previousView='home',mode='offline',state=null,gameType=null,level=0,patternLeader=0,storyLeader=0,activeCard=null,libraryActive=true,toddlerTheme='world';
 const defs={
  toddler:{icon:'🧸',title:'Картинка и мир вокруг',domain:'Слова · знакомые предметы · общение',description:'Три картинки: называем вместе, затем вспоминаем знакомую вещь в жизни. Телефон держит и переключает взрослый.',tip:'Можно показать, сказать слово, ответить жестом или только слушать. Не просите повторять до правильного ответа. Ничего не нужно искать или приносить; завершить можно в любой момент.'},
  detective:{icon:'🔎',title:'Комнатный сыщик',domain:'Признаки · описание · общение',description:'Один загадывает признак, другой показывает подходящую вещь рядом — или придумывает её. Потом меняетесь.',tip:'Не нужно ходить по комнате, брать вещи или куда-то забираться. Достаточно показать или представить предмет. Взрослый проверяет безопасность; без еды, мелких предметов, шнуров и розеток.'},
@@ -14,10 +14,19 @@ const defs={
 };
 function el(tag,text,cls){const e=document.createElement(tag);if(text!==undefined)e.textContent=String(text);if(cls)e.className=cls;return e;}
 function button(text,fn,cls='secondary',id){const e=el('button',text,cls);e.type='button';if(id)e.id=id;e.addEventListener('click',fn);return e;}
+const clips=window.MamaGameClips;
+const player=window.MamaGameAudio.create(clips,{makeAudio:src=>{const a=document.createElement('audio');a.preload='none';a.hidden=true;a.src=src;$('audio-panel').append(a);return a;},onChange:s=>{
+ const label=s.last?clips[s.last].label:'';$('audio-repeat').disabled=!s.last||s.muted;$('audio-stop').disabled=!s.playing;
+ $('audio-status').textContent=s.status==='loading'?'Загружаем: '+label:s.status==='playing'?'Звучит: '+label:s.status==='error'?'Не удалось воспроизвести звук. Можно повторить или продолжить без него.':s.muted?'Звук выключен. Названия остаются на экране.':s.status==='ended'?'Можно повторить звук или продолжить вместе.':'Звук включается только по нажатию.';
+}});
+function canPlay(){return libraryActive&&currentView==='play'&&state?.type==='toddler'&&state.phase==='picture';}
+function playClip(id){if(id&&canPlay())player.play(id);}
+$('audio-repeat').onclick=()=>{if(canPlay())player.repeat();};$('audio-stop').onclick=()=>player.stop();$('audio-muted').onchange=()=>player.setMuted($('audio-muted').checked);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)player.stop(true);});window.addEventListener('pagehide',()=>player.stop(true));
 function age(){return contextReady?profileAge:null;}
 function ageText(n){const y=Math.floor(n/12),m=n%12;return y===0?(m===0?'Первый месяц':`${m} мес`):`${y} ${y===1?'год':y<5?'года':'лет'}${m?` ${m} мес.`:''}`;}
 function windowText(card){const n=card.minMonths;return card.maxMonths-n===1?(n===0?'Первый месяц':`${n} ${n%10===1&&n!==11?'полный месяц':n%10>=2&&n%10<=4&&(n<12||n>14)?'полных месяца':'полных месяцев'}`):`${card.minMonths}–${card.maxMonths-1} мес.`;}
-function view(name,heading){currentView=name;for(const id of views)$(id+'-view').hidden=id!==name;$('adult-link').hidden=['play','card'].includes(name);if(heading){$(heading).focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}}
+function view(name,heading){player.stop(true);currentView=name;for(const id of views)$(id+'-view').hidden=id!==name;$('adult-link').hidden=['play','card'].includes(name);if(heading){$(heading).focus({preventScroll:true});window.scrollTo({top:0,behavior:'instant'});}}
 function home(moveFocus=true){state=null;gameType=null;renderList();view('home');if(moveFocus)$('library-heading').focus({preventScroll:true});if(moveFocus)window.scrollTo({top:0,behavior:'instant'});}
 function modeSelect(next){mode=next;cursor=0;showAll=false;renderList();}
 function renderList(){
@@ -48,13 +57,13 @@ function whoLink(){const a=el('a','Рекомендации ВОЗ');a.href=T.wh
 let pendingScreenAge=null,pendingScreenTheme='world',screenOpener=null;
 const screenGate=el('dialog');screenGate.className='adult-gate';screenGate.setAttribute('aria-labelledby','screen-gate-title');const screenTitle=el('h2','Перед экранным занятием');screenTitle.id='screen-gate-title';screenGate.append(screenTitle,el('p',T.warning),whoLink(),el('p','Три короткие части, без автоматического продолжения. В любой момент можно закончить.','note'));
 const screenActions=el('div',undefined,'actions');screenActions.append(button('Выбрать занятие без экрана',()=>{screenGate.close();modeSelect('offline');},'secondary'),button('Играем вместе со взрослым',()=>{const valid=age()===pendingScreenAge&&T.eligible(age());screenGate.close();pendingScreenAge=null;if(valid){toddlerTheme=pendingScreenTheme;start('toddler');}else home();},'primary','screen-gate-start'));screenGate.append(screenActions);document.body.append(screenGate);
-screenGate.addEventListener('close',()=>{if(currentView==='home'&&screenOpener?.isConnected)screenOpener.focus({preventScroll:true});});
+screenGate.addEventListener('close',()=>{if(libraryActive&&currentView==='home'&&screenOpener?.isConnected)screenOpener.focus({preventScroll:true});});
 function requestStart(type,theme='world'){if(type!=='toddler'){start(type);return;}if(!T.eligible(age())||!Object.hasOwn(T.themes,theme)){home();return;}screenTitle.textContent='Перед занятием «'+T.themes[theme].title+'»';pendingScreenAge=age();pendingScreenTheme=theme;screenOpener=document.activeElement;screenGate.showModal();screenGate.querySelector('button').focus();}
 function slots(values,length){const row=el('div',undefined,'pattern-line');for(let i=0;i<length;i++){const slot=el('div',values[i]===undefined?'·':G.symbols[values[i]],'pattern-slot'+(values[i]===undefined?'':' filled symbol-'+values[i]));slot.setAttribute('aria-label',values[i]===undefined?'Пустое место':symbolName(values[i]));row.append(slot);}return row;}
 function symbolName(id){return ['Круг','Треугольник','Звезда','Сердце'][id];}
 function person(turn){return turn===0?'мамы':'ребёнка';}
-function renderGame(){const focus=document.activeElement?.id;const board=$('board'),actions=$('game-actions'),instructions=$('game-instructions');board.replaceChildren();actions.replaceChildren();instructions.replaceChildren();$('game-feedback').textContent='';$('simplify').disabled=level===0;state.type==='toddler'?renderToddler(board,actions,instructions):state.type==='pairs'?renderPairs(board,actions,instructions):state.type==='pattern'?renderPattern(board,actions,instructions):state.type==='detective'?renderDetective(board,actions,instructions):renderStory(board,actions,instructions);
- if(focus==='animal-reveal'&&$('toddler-next')){$('toddler-next').focus({preventScroll:true});}else if(focus==='toddler-next'&&!$(focus)){$('turn').setAttribute('tabindex','-1');$('turn').focus({preventScroll:true});}else if(focus&&$(focus)&&!$(focus).disabled)$(focus).focus({preventScroll:true});else if(focus?.startsWith('tile-')||focus?.startsWith('token-')||focus?.startsWith('story-')){$('game-feedback').setAttribute('tabindex','-1');$('game-feedback').focus({preventScroll:true});}
+function renderGame(){player.stop(true);$('audio-panel').hidden=state.type!=='toddler'||state.phase!=='picture'||state.done;$('audio-help').textContent=state.type==='toddler'&&['colors','shapes','sizes'].includes(state.theme)?'Нажмите на цвет, форму или размер, чтобы услышать название.':'Нажмите «Послушать название» или кнопку голоса животного. Звуки не включаются сами.';const focus=document.activeElement?.id;const board=$('board'),actions=$('game-actions'),instructions=$('game-instructions');board.replaceChildren();actions.replaceChildren();instructions.replaceChildren();$('game-feedback').textContent='';$('simplify').disabled=level===0;state.type==='toddler'?renderToddler(board,actions,instructions):state.type==='pairs'?renderPairs(board,actions,instructions):state.type==='pattern'?renderPattern(board,actions,instructions):state.type==='detective'?renderDetective(board,actions,instructions):renderStory(board,actions,instructions);
+ if(focus==='animal-reveal'&&!$(focus)&&$('toddler-next')){$('toddler-next').focus({preventScroll:true});}else if(focus==='toddler-next'&&!$(focus)){$('turn').setAttribute('tabindex','-1');$('turn').focus({preventScroll:true});}else if(focus&&$(focus)&&!$(focus).disabled)$(focus).focus({preventScroll:true});else if(focus?.startsWith('tile-')||focus?.startsWith('token-')||focus?.startsWith('story-')){$('game-feedback').setAttribute('tabindex','-1');$('game-feedback').focus({preventScroll:true});}
 }
 const colorNames={red:'Красный',blue:'Синий',yellow:'Жёлтый'};
 const shapeNames={circle:'Круг',square:'Квадрат',triangle:'Треугольник'};
@@ -79,19 +88,20 @@ function renderToddler(board,actions,instructions){
   const[icon,label]=T.pictures[state.index];const picture=el('div',icon,'toddler-picture');picture.setAttribute('role','img');picture.setAttribute('aria-label',label);board.append(picture,el('h2',label));
  }else if(theme==='animals'){
   const animal=T.rounds.animals[state.index];const picture=el('div',animal.icon,'toddler-picture');picture.setAttribute('role','img');picture.setAttribute('aria-label',animal.label);board.append(picture,el('h2',animal.label));
-  if(state.revealed)board.append(el('p',animal.sound+' — мама произносит негромко.','learning-reply'));
-  else actions.append(button('Как говорит '+animal.label.toLocaleLowerCase('ru')+'?',()=>{T.reveal(state);renderGame();},'secondary','animal-reveal'));
+  if(state.revealed)board.append(el('p',animal.sound+' — можно ответить своим звуком или только послушать.','learning-reply'));
+  actions.append(button('Послушать голос животного',()=>{T.reveal(state);renderGame();playClip(T.soundId(state));},'secondary','animal-reveal'));
  }else{
   board.append(el('p',theme==='colors'?'Можно выбрать любой цвет — мама назовёт его.':theme==='shapes'?'Покажите любую форму — мама назовёт её.':'Рядом две одинаковые фигуры: большая и маленькая. Можно выбрать любую.','note'));
   const row=el('div',undefined,'learning-choices');const items=theme==='sizes'?(state.index%2?['small','big']:['big','small']):T.rounds[theme][state.index];
   items.forEach((id,i)=>{
    const label=theme==='colors'?colorNames[id]:theme==='shapes'?shapeNames[id]:id==='big'?'Большая фигура':'Маленькая фигура';
-   const choice=button('',()=>{T.choose(state,i);renderGame();},'learning-choice'+(state.selection===i?' selected':''),'learning-choice-'+i);choice.setAttribute('aria-label',label);choice.setAttribute('aria-pressed',String(state.selection===i));
+   const choice=button('',()=>{T.choose(state,i);renderGame();playClip(T.audioId(state));},'learning-choice'+(state.selection===i?' selected':''),'learning-choice-'+i);choice.setAttribute('aria-label',label);choice.setAttribute('aria-pressed',String(state.selection===i));
    if(theme==='colors')choice.append(el('span',undefined,'color-swatch color-'+id));else choice.append(shapeArt(theme==='sizes'?T.rounds.sizes[state.index]:id,theme==='sizes'?id:'normal'));
    choice.append(el('span',label));row.append(choice);
   });board.append(row);
   if(state.selection!==null){const id=items[state.selection];const label=theme==='colors'?colorNames[id]:theme==='shapes'?shapeNames[id]:id==='big'?'большая фигура':'маленькая фигура';$('game-feedback').textContent='Вы выбрали: '+label+'. Можно обсудить или выбрать другую.';}
  }
+ if(['world','animals'].includes(theme))actions.append(button('Послушать название',()=>playClip(T.audioId(state)),'secondary','listen-name'));
  actions.append(button('Обсудили или пропустили — дальше',()=>{T.advance(state);renderGame();},'primary','toddler-next'));
 }
 function renderPairs(board,actions,instructions){
@@ -142,7 +152,7 @@ const simplifyGate=el('dialog');simplifyGate.className='adult-gate';simplifyGate
  const simpleActions=el('div',undefined,'actions');simpleActions.append(button('Продолжить этот раунд',()=>simplifyGate.close(),'secondary'),button('Начать попроще',()=>{simplifyGate.close();if(level>0){level--;start(gameType,false);}},'primary'));simplifyGate.append(simpleActions);document.body.append(simplifyGate);
 function updateAreas(){const selected=$('area-filter').value;const categories=[...new Set(L.select(C.cards,age(),{education:mode==='learn'}).map(c=>c.category))].sort((a,b)=>a.localeCompare(b,'ru'));$('area-filter').replaceChildren(el('option','Все области'));$('area-filter').firstChild.value='';for(const text of categories){const option=el('option',text);option.value=text;$('area-filter').append(option);}if(categories.includes(selected))$('area-filter').value=selected;}
 for(const id of ['area-filter','no-materials','stationary'])$(id).onchange=()=>{cursor=0;showAll=false;renderList();};
-window.addEventListener('message',event=>{const config=L.context(event.data,event.origin,window.location.origin,event.source===window.parent);if(!config)return;contextReady=true;profileAge=Number.isInteger(config.ageMonths)&&config.ageMonths>=0&&config.ageMonths<84?config.ageMonths:null;if(screenGate.open)screenGate.close();pendingScreenAge=null;state=null;cursor=0;showAll=false;$('profile-context').hidden=!profileMode;$('main').hidden=false;$('context-loading').hidden=true;document.body.classList.toggle('profile-library',profileMode);document.body.classList.add('embedded-library');home(false);window.parent.postMessage({type:'mama-games-ready'},window.location.origin);});
+window.addEventListener('message',event=>{if(event.origin!==window.location.origin||event.source!==window.parent)return;if(event.data?.type==='mama-games-activity'&&typeof event.data.active==='boolean'){libraryActive=event.data.active;if(!libraryActive){player.stop(true);if(screenGate.open)screenGate.close();pendingScreenAge=null;}return;}const config=L.context(event.data,event.origin,window.location.origin,event.source===window.parent);if(!config)return;contextReady=true;profileAge=Number.isInteger(config.ageMonths)&&config.ageMonths>=0&&config.ageMonths<84?config.ageMonths:null;if(screenGate.open)screenGate.close();pendingScreenAge=null;state=null;cursor=0;showAll=false;$('profile-context').hidden=!profileMode;$('main').hidden=false;$('context-loading').hidden=true;document.body.classList.toggle('profile-library',profileMode);document.body.classList.add('embedded-library');home(false);window.parent.postMessage({type:'mama-games-ready'},window.location.origin);});
 if(window.parent!==window)window.parent.postMessage({type:'mama-games-request-context'},window.location.origin);else if(profileMode){$('context-loading').textContent='Подборка активного ребёнка открывается из кабинета.';const back=el('a','Открыть кабинет');back.href='../chat';$('context-loading').append(el('br'),back);}
  renderList();
 })();

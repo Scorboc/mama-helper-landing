@@ -70,7 +70,7 @@ test('cooperative game engines finish and remain bounded through mixed actions',
  for(let n=0;n<36;n++){assert.equal(G.memory(n),null);assert.equal(G.story(n),null);}
 });
 test('runtime stores no profile or progress and uses no paid generation, microphone or network',()=>{
- const code=['app.js','game-core.js','library-rules.js','toddler-core.js'].map(n=>read('public/together-games/'+n)).join('\n');
+ const code=['app.js','game-core.js','library-rules.js','toddler-core.js','audio-player.js'].map(n=>read('public/together-games/'+n)).join('\n');
  assert.doesNotMatch(code,/\bfetch\s*\(|XMLHttpRequest|localStorage|sessionStorage|getUserMedia|sendBeacon|setInterval\s*\(/);
  const frame=read('src/components/TogetherGames.tsx');
  assert.doesNotMatch(frame,/postMessage\(profile|postMessage\(state|JSON\.stringify|targetOrigin:\s*['"]\*/);
