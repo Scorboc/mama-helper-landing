@@ -14,7 +14,7 @@ export default function TogetherGames({profile,contextKey='primary',onProfile,ac
   const frame=useRef<HTMLIFrameElement>(null);
   const [ready,setReady]=useState(false);
   const [failed,setFailed]=useState(false);
-  const src=import.meta.env.BASE_URL+'together-games/index.html#profile';
+  const src=import.meta.env.BASE_URL+'together-games/index.html?audio=full-20261024#profile';
   useEffect(()=>{
     setReady(false);setFailed(false);
     let acknowledged=false;

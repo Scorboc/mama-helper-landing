@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import vm from 'node:vm';
 const read=name=>fs.readFileSync(new URL('../public/together-games/'+name,import.meta.url),'utf8');
 const box={window:{}};for(const name of ['audio-player.js','audio-manifest.js','toddler-core.js'])vm.runInNewContext(read(name),box);
@@ -46,4 +47,17 @@ test('every toddler round maps its actual picture or selected option to a local 
  assert.equal(used.size,21);assert.equal(Object.keys(clips).length,21);
  for(const [id,clip]of Object.entries(clips)){assert.ok(clip.label);assert.match(clip.src,/^audio\/[a-z0-9-]+\.mp3$/);assert.ok(fs.statSync(new URL('../public/together-games/'+clip.src,import.meta.url)).size>500,id);}
  assert.match(clips['big-circle'].label,/Большой круг/);assert.match(clips['small-triangle'].label,/Маленький треугольник/);
+});
+
+
+test('active speech files use the normal-voice edition and match published credits',()=>{
+ const credits=JSON.parse(fs.readFileSync(new URL('../public/together-games/audio/credits.json',import.meta.url),'utf8'));
+ assert.equal(credits.speech.files.length,18);
+ for(const item of credits.speech.files){
+  assert.match(item.file,/^voice-full-[a-z-]+\.mp3$/);
+  const bytes=fs.readFileSync(new URL('../public/together-games/audio/'+item.file,import.meta.url));
+  assert.equal(createHash('sha256').update(bytes).digest('hex'),item.sha256);
+  assert.ok(Object.values(clips).some(c=>c.src==='audio/'+item.file));
+ }
+ for(const [id,clip] of Object.entries(clips))if(!id.startsWith('sound-'))assert.match(clip.src,/^audio\/voice-full-/);
 });
