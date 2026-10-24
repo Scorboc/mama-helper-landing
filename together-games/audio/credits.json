@@ -4,130 +4,131 @@
     "provider": "ElevenLabs via ProxyAPI",
     "model": "elevenlabs/eleven-v4",
     "voice": "Matilda",
-    "delivery": "soft warm half-voice; prepared individually",
+    "delivery": "Normal full speaking voice; soft, clear and friendly; no whisper or ASMR cues",
     "files": [
       {
-        "file": "voice-cat.mp3",
+        "file": "voice-full-cat.mp3",
         "text": "Кошка.",
-        "sha256": "37ce45b4c76a473e9b8b2845472ae771596d3b2f2b9a407178a224b5beb4ee9e"
+        "sha256": "ddd406f28f1a6ab172398923a7054517ccdd724f8cd02ee60a641116c281a042"
       },
       {
-        "file": "voice-dog.mp3",
+        "file": "voice-full-dog.mp3",
         "text": "Собака.",
-        "sha256": "9bccadfae9fc51b41c9688ad30453fde158d5392efeb34e6d4ef4178bc0fe8ef"
+        "sha256": "1e10b802c4b9f4c41e30dc49b7f0bc4e51d34cf28468808318ab97c86f5fbcd3"
       },
       {
-        "file": "voice-cow.mp3",
+        "file": "voice-full-cow.mp3",
         "text": "Корова.",
-        "sha256": "d2217ee0798f388e4d2dd764406e05d39b276ecd22e9edaf3ef0e17c8d341299"
+        "sha256": "849bd7b645fee3120be0c15363c09d318b1b4d9091377232ebd88bc0034ad771"
       },
       {
-        "file": "voice-red.mp3",
+        "file": "voice-full-red.mp3",
         "text": "Красный.",
-        "sha256": "31dd28c19711e1e8cc578dc81ff7ea298d7dc97705fe36ec241c670d1d65d66b"
+        "sha256": "978e9970db8c931ed84e97b6909b09f0d97a2f3d3d8464336546e4578c050792"
       },
       {
-        "file": "voice-blue.mp3",
+        "file": "voice-full-blue.mp3",
         "text": "Синий.",
-        "sha256": "b92588ca424fab4402e0a4a0876cf36fe0e1a1e0ff64b3289aad20d589a05e1d"
+        "sha256": "ade376e06b42430e39d590dcfa4a304908a54c8f9e1950b673861827a45ba107"
       },
       {
-        "file": "voice-yellow.mp3",
+        "file": "voice-full-yellow.mp3",
         "text": "Жёлтый.",
-        "sha256": "cb3d04e685ba9e798a779cc1f1f3303738a0fca824526f1aa46c4264001ba368"
+        "sha256": "deb15934a725357b2c91c40b03ef6c13f8362f303b5546ad7c06775f9c309e16"
       },
       {
-        "file": "voice-circle.mp3",
+        "file": "voice-full-circle.mp3",
         "text": "Круг.",
-        "sha256": "0631c46681d36cbac825f6de9a603fba7465ba1bebd2cbc77ab48bc157d3b39a"
+        "sha256": "2c84853d8aff479d17459f108fe5af71af3a11d4b411efcd0cc87d4506bb7431"
       },
       {
-        "file": "voice-square.mp3",
+        "file": "voice-full-square.mp3",
         "text": "Квадрат.",
-        "sha256": "44257a1cfc848610582e9484e9eded6f88b49575001c9eef8268fabc0850a218"
+        "sha256": "f918f956b096b33ceb1e288abae9afc402c4419fe7fb0febdbad99ab017dc0a7"
       },
       {
-        "file": "voice-triangle.mp3",
+        "file": "voice-full-triangle.mp3",
         "text": "Треугольник.",
-        "sha256": "382fcbaebe3502df376867456026b7b09f7a6c985c339f012515a5f46c306918"
+        "sha256": "553e3ba8c6a978b24f7a56fb0030df85b662b4ce55218a8fed5d7df7ae25f1b2"
       },
       {
-        "file": "voice-ball.mp3",
+        "file": "voice-full-ball.mp3",
         "text": "Мяч.",
-        "sha256": "d0ffadfd473e6499d7510c3303f0e34f0c456a9358bbf0266a36faab81defeb3"
+        "sha256": "37bbdf8fe4ab2197d934fd9d562c4ad3a8d4395074d07fe84e6f3707ad55bdc0"
       },
       {
-        "file": "voice-bear.mp3",
+        "file": "voice-full-bear.mp3",
         "text": "Мишка.",
-        "sha256": "243459c587b640c34d1c03c97de8acaf1684fb171306276825a37460e4db9a26"
+        "sha256": "824c60563b81a7ff7fa19d37a6372560e3a1ea7ead77ea27b8092febb0a0fb4d"
       },
       {
-        "file": "voice-chair.mp3",
+        "file": "voice-full-chair.mp3",
         "text": "Стул.",
-        "sha256": "4ea9ce6504f19e63698bcb7d592b49760e81e81fcf448fdb8db78f2ec9f871e7"
+        "sha256": "34700c71aa9ec321af7dc86abeb35a4be4e8230d9b42e714fb971d4f8ec87b2d"
       },
       {
-        "file": "voice-big-circle.mp3",
+        "file": "voice-full-big-circle.mp3",
         "text": "Большой круг.",
-        "sha256": "45bfd2c8cd1c78b6d15eef30fa0ad56fdc19c14867cb3967f2c3e880508df4cf"
+        "sha256": "52f112e7512cd67eb2228b3d61605cc3bc4a5dc4b61f1bb084e34a2deb35d12e"
       },
       {
-        "file": "voice-small-circle.mp3",
+        "file": "voice-full-small-circle.mp3",
         "text": "Маленький круг.",
-        "sha256": "2d02252f83247b771b19c1148b7ec1d855ab22f3ea7509282080b04fccc2d434"
+        "sha256": "e09804891834b0596596167f45fde013acdda662e54a707c999c837c2119fb6a"
       },
       {
-        "file": "voice-big-square.mp3",
+        "file": "voice-full-big-square.mp3",
         "text": "Большой квадрат.",
-        "sha256": "f1da72a040ac092e8cf640860a96db5319423b07acb487ad4746c6b6195ae8e3"
+        "sha256": "95eb3581915f93df5a5eeda217d8b7ba67e7cd40e799499f8edb8b984e47cb02"
       },
       {
-        "file": "voice-small-square.mp3",
+        "file": "voice-full-small-square.mp3",
         "text": "Маленький квадрат.",
-        "sha256": "ad901e5a1c60e3b5fc74d97441777b33ff76e55423df01f01657ac3116e901a2"
+        "sha256": "d150c09674b2ae4cc5e6d09cbe29084ff5652ecccbfd0ef27d4b3c028e3aa8d5"
       },
       {
-        "file": "voice-big-triangle.mp3",
+        "file": "voice-full-big-triangle.mp3",
         "text": "Большой треугольник.",
-        "sha256": "8ee1d2e187e4127a7017ce993a732603773d17ca95e69b8cc1f1668ff9e86a17"
+        "sha256": "dcfcc7d37b0c177bb5cf9c3f7d43d6037e7e4b9820f77858bf337dcc5a10ce82"
       },
       {
-        "file": "voice-small-triangle.mp3",
+        "file": "voice-full-small-triangle.mp3",
         "text": "Маленький треугольник.",
-        "sha256": "463be5b4e487a3fe242564ab9e3872bc9f7cb78bdc5b65a493d369fca43a2cb9"
+        "sha256": "b069c432dcce58c3910767ded96b5347aa4ae8da110ab471f1ebbae330148116"
       }
-    ]
+    ],
+    "version": "full-voice-20261024"
   },
   "animalRecordings": [
     {
-      "file": "sound-cat.mp3",
+      "file": "sound-balanced-cat.mp3",
       "author": "Kerzoven",
       "source": "https://opengameart.org/content/cat-purr-meow",
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "changes": "mono MP3, loudness processing and short fades",
+      "changes": "mono MP3, -22 LUFS / -4 dBTP loudness processing and short fades; same original recording",
       "originalSha256": "7de9fed4401b677ccbf072781182857d875093a8e9b5727fc21b38028cfd5a90",
-      "sha256": "1a6a9288b3c436e2f1c42037fed580646476d3372565e9b02adc0f9efb341def"
+      "sha256": "34f1ca01d1acee0edbcbc926fe7345a9063fd489e665e0f16149beec70da73e2"
     },
     {
-      "file": "sound-dog.mp3",
+      "file": "sound-balanced-dog.mp3",
       "author": "Brandon Morris / HaelDB",
       "source": "https://opengameart.org/content/dog-barking-mono",
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "changes": "mono MP3, loudness processing and short fades",
+      "changes": "mono MP3, -22 LUFS / -4 dBTP loudness processing and short fades; same original recording",
       "originalSha256": "bbd0f908b3514dd3bd7d2bc04dcf64f8d360a161e7f43cac5d6761e7add79451",
-      "sha256": "7c7885663b47348c50bff991125738cf9948ceae6a044f78c2f7c87b67b47d78"
+      "sha256": "c94c3c6a833ddc92adaed91b826408e4d8ad5fbddf785e9b7d6feedf25534742"
     },
     {
-      "file": "sound-cow.mp3",
+      "file": "sound-balanced-cow.mp3",
       "author": "JarredGibb",
       "source": "https://freesound.org/people/JarredGibb/sounds/233129/",
       "license": "CC0-1.0",
       "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
-      "changes": "mono MP3, loudness processing and short fades",
+      "changes": "mono MP3, -22 LUFS / -4 dBTP loudness processing and short fades; same original recording",
       "originalSha256": "ff826394c63bd878385d084c547083cf7fd0e40076bb29a69065bc3b6f27f868",
-      "sha256": "bbb022733aaaf56e3a5477375f9d80886cd43196c121bd3b290b4de7341eb5bd"
+      "sha256": "c11f6d856eabe97c01175ae31268f880c522b0075b6fea2ae355832863e0fe80"
     }
   ]
 }
