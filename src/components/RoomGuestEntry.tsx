@@ -14,6 +14,8 @@ export default function RoomGuestEntry({ loginPath }: { loginPath: string }) {
       <p className="room-guest-note">Чтобы сохранять профиль и историю, войдите в аккаунт. Диагнозы и назначения — к врачу.</p>
       <Link className="room-guest-primary" to={loginPath}>Войти или зарегистрироваться<ArrowRight size={18} aria-hidden="true" /></Link>
       <nav className="room-guest-links" aria-label="Ещё">
+        <Link to="/about">О помощнике и примеры</Link>
+        <Link to="/en" lang="en">English introduction</Link>
         <Link to="/?intro=1"><Compass size={18} aria-hidden="true" />Посмотреть знакомство</Link>
         <Link to="/billing"><CreditCard size={18} aria-hidden="true" />Цена и доступ</Link>
         <Link to="/first-aid">Срочная помощь · 112</Link>

@@ -2,11 +2,18 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
-import { accountForRoom, rememberRoom, workspaceReturn, isRoomLocation, roomCues, ROOM_OUTRO_START } from '../src/lib/room-experience.ts';
+import { accountForRoom, rememberRoom, workspaceReturn, isRoomLocation, roomCues, ROOM_OUTRO_START, profileSavedTab } from '../src/lib/room-experience.ts';
 
 const motionSource = readFileSync(new URL('../src/lib/room-motion.ts', import.meta.url), 'utf8');
 const motionJs = ts.transpileModule(motionSource, {compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
 const {RoomMotion} = await import('data:text/javascript;base64,' + Buffer.from(motionJs).toString('base64'));
+test('first profile creation completes the chosen games route without hijacking later profile edits', () => {
+  const target = workspaceReturn('/chat?scene=room&tab=profile&games=1');
+  assert.equal(profileSavedTab(false, new URL(target, 'https://example.invalid').search), 'home');
+  assert.equal(profileSavedTab(true, '?scene=room&tab=profile&games=1'), 'chat');
+  assert.equal(profileSavedTab(false, '?scene=room&tab=profile'), 'chat');
+  assert.equal(profileSavedTab(false, '?games=0'), 'chat');
+});
 test('current motion can travel forward and back without jumping outside the film', () => {
   const motion = new RoomMotion(ROOM_OUTRO_START);
   let clock = 0, previous = 0;

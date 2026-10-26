@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route, useSearchParams } from "react-router-dom";
 import { Component, lazy, Suspense, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import PublicFirstAid from "./pages/PublicFirstAid";
@@ -12,6 +12,7 @@ import RoomSurface from "@/components/RoomSurface";
 import RoomPageShell from "@/components/RoomPageShell";
 import RoomMediaProvider from "@/components/RoomMediaProvider";
 import "@/components/room-guest.css";
+import PublicOverview from "./pages/PublicOverview";
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Account = lazy(() => import("./pages/Account"));
@@ -22,6 +23,11 @@ const Billing = lazy(() => import("./pages/Billing"));
 const DataRights = lazy(() => import("./pages/DataRights"));
 const PublicGuide = lazy(() => import("./pages/PublicGuide"));
 const CampaignGames = lazy(() => import("./pages/CampaignGames"));
+
+function EntryRoute() {
+  const [params] = useSearchParams();
+  return params.get("lang") === "en" ? <Navigate to="/en" replace /> : <Index />;
+}
 
 function OpeningPage() {
   return <RoomSurface><main className="public-page route-message" aria-busy="true">
@@ -58,7 +64,9 @@ const App = () => (
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <RoomMediaProvider><RoomTransition />
         <PageBoundary><Suspense fallback={<OpeningPage />}><Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<EntryRoute />} />
+          <Route path="/en" element={<PublicOverview english />} />
+          <Route path="/about" element={<PublicOverview />} />
           <Route path="/games" element={<RoomSurface><CampaignGames /></RoomSurface>} />
 
           <Route path="/cabinet" element={<RoomSurface><ParentWorkspace key="account" /></RoomSurface>} />

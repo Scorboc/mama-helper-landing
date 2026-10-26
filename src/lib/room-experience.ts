@@ -14,6 +14,9 @@ export function rememberRoom() {
 export function workspaceReturn(value: string | null) {
   return value && /^\/(?:chat|cabinet)(?:\?[^#]*)?$/.test(value) ? value : "/cabinet";
 }
+export function profileSavedTab(hadProfile: boolean, search: string): "home" | "chat" {
+  return !hadProfile && new URLSearchParams(search).get("games") === "1" ? "home" : "chat";
+}
 export function accountForRoom(mode = "login") {
   return `/account?mode=${mode}&next=${encodeURIComponent(ROOM_CHAT)}`;
 }

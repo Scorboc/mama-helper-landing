@@ -9,7 +9,7 @@ import RoomChatMenu from "@/components/RoomChatMenu";
 import RoomNavigation, { type RoomSection } from "@/components/RoomNavigation";
 import RoomChatTools, { type RoomChatPanel } from "@/components/RoomChatTools";
 import { Compass } from "lucide-react";
-import { isRoomLocation, rememberRoom } from "@/lib/room-experience";
+import { isRoomLocation, rememberRoom, profileSavedTab } from "@/lib/room-experience";
 import { ApiError } from "@/lib/parent-api";
 import CareTools from "@/components/CareTools";
 import AgeGuidance from "@/components/AgeGuidance";
@@ -527,7 +527,8 @@ export default function ParentWorkspace({
       )
     )
       return;
-    if (await save(stateWithProfile(state, p))) setTab("chat");
+    const destination = profileSavedTab(!!state.profile, location.search);
+    if (await save(stateWithProfile(state, p))) setTab(destination);
   }
   async function logout() {
     setBusy(true);
