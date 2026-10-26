@@ -1,1 +1,0 @@
-import{mt as e,yt as t}from"./index-BBAT6Zz_.js";import{t as n}from"./Legal-CZzIbamy.js";var r=t(e());function i(){return(0,r.jsx)(n,{kind:`privacy`})}export{i as default};

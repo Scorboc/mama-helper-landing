@@ -1,0 +1,1 @@
+import{I as e,bt as t,ht as n}from"./index-CUQN9oND.js";var r=t(n());function i(){return(0,r.jsx)(e,{to:`/chat?scene=room&tab=home&games=1`,replace:!0})}export{i as default};

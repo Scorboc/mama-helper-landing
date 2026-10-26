@@ -1,1 +1,0 @@
-import{mt as e,yt as t}from"./index-BivrYlgl.js";import{t as n}from"./Legal-nTs8fbQ8.js";var r=t(e());function i(){return(0,r.jsx)(n,{kind:`privacy`})}export{i as default};

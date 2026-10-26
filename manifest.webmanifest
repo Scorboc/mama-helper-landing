@@ -1,16 +1,16 @@
 {
-  "id": "/",
+  "id": "/mama-helper-landing/",
   "name": "Мамин помощник",
   "short_name": "Мамин помощник",
   "lang": "ru",
-  "start_url": "/cabinet",
-  "scope": "/",
+  "start_url": "/mama-helper-landing/cabinet",
+  "scope": "/mama-helper-landing/",
   "display": "standalone",
   "background_color": "#29382b",
   "theme_color": "#29382b",
   "icons": [
     {
-      "src": "/logo-mark.png?v=3",
+      "src": "/mama-helper-landing/logo-mark.png?v=3",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
@@ -19,10 +19,10 @@
   "shortcuts": [
     {
       "name": "Начать сон",
-      "url": "/cabinet?quick=sleep",
+      "url": "/mama-helper-landing/cabinet?quick=sleep",
       "icons": [
         {
-          "src": "/logo-mark.png?v=3",
+          "src": "/mama-helper-landing/logo-mark.png?v=3",
           "sizes": "512x512",
           "type": "image/png"
         }
@@ -30,10 +30,10 @@
     },
     {
       "name": "Кормление",
-      "url": "/cabinet?quick=feed",
+      "url": "/mama-helper-landing/cabinet?quick=feed",
       "icons": [
         {
-          "src": "/logo-mark.png?v=3",
+          "src": "/mama-helper-landing/logo-mark.png?v=3",
           "sizes": "512x512",
           "type": "image/png"
         }
@@ -41,10 +41,10 @@
     },
     {
       "name": "Записать",
-      "url": "/cabinet?quick=note",
+      "url": "/mama-helper-landing/cabinet?quick=note",
       "icons": [
         {
-          "src": "/logo-mark.png?v=3",
+          "src": "/mama-helper-landing/logo-mark.png?v=3",
           "sizes": "512x512",
           "type": "image/png"
         }

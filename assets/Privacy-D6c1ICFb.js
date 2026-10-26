@@ -1,1 +1,0 @@
-import{mt as e,yt as t}from"./index-bTuv-NAo.js";import{t as n}from"./Legal-BiiOxy-h.js";var r=t(e());function i(){return(0,r.jsx)(n,{kind:`privacy`})}export{i as default};

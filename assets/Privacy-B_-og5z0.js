@@ -1,1 +1,0 @@
-import{pt as e,vt as t}from"./index-CUEzoTeg.js";import{t as n}from"./Legal-DJI6QdXY.js";var r=t(e());function i(){return(0,r.jsx)(n,{kind:`privacy`})}export{i as default};
